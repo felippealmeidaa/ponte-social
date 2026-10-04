@@ -1,0 +1,200 @@
+{
+  "timestamp": "2026-10-04T00:40:00Z",
+  "dataset_size": 240,
+  "classes": [
+    "alimentacao",
+    "cadastro_atualizacao",
+    "documentacao",
+    "moradia",
+    "pessoa_idosa_pcd",
+    "renda_beneficio",
+    "trabalho_renda",
+    "violencia_protecao"
+  ],
+  "baselines": {
+    "classe_majoritaria": {
+      "f1_macro": 0.027777777777777776,
+      "recall_violencia": 0.0,
+      "descricao": "Responde sempre 'cadastro_atualizacao'"
+    },
+    "regras_palavras_chave": {
+      "f1_macro": 0.6475376304132424,
+      "recall_violencia": 0.8,
+      "descricao": "Dicionário de termos estáticos"
+    }
+  },
+  "modelos_avaliados_cv5": {
+    "Multinomial Naive Bayes": {
+      "f1_macro_mean": 0.9866666666666667,
+      "f1_macro_std": 0.02666666666666666,
+      "accuracy_mean": 0.9875,
+      "precision_mean": 0.9916666666666666,
+      "recall_mean": 0.9875
+    },
+    "Linear SVM": {
+      "f1_macro_mean": 1.0,
+      "f1_macro_std": 0.0,
+      "accuracy_mean": 1.0,
+      "precision_mean": 1.0,
+      "recall_mean": 1.0
+    },
+    "Regressão Logística": {
+      "f1_macro_mean": 0.9866666666666667,
+      "f1_macro_std": 0.02666666666666666,
+      "accuracy_mean": 0.9875,
+      "precision_mean": 0.9916666666666666,
+      "recall_mean": 0.9875
+    }
+  },
+  "modelo_final": {
+    "nome": "Linear SVM",
+    "f1_macro": 1.0,
+    "recall_violencia": 1.0,
+    "precision_macro": 1.0,
+    "classification_report": {
+      "alimentacao": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 30.0
+      },
+      "cadastro_atualizacao": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 30.0
+      },
+      "documentacao": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 30.0
+      },
+      "moradia": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 30.0
+      },
+      "pessoa_idosa_pcd": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 30.0
+      },
+      "renda_beneficio": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 30.0
+      },
+      "trabalho_renda": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 30.0
+      },
+      "violencia_protecao": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 30.0
+      },
+      "accuracy": 1.0,
+      "macro avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 240.0
+      },
+      "weighted avg": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 240.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        30,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        30,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        30,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        30,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        30,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        30,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        30,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        30
+      ]
+    ]
+  }
+}

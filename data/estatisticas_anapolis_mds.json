@@ -1,0 +1,11 @@
+{
+  "municipio": "Anápolis",
+  "uf": "GO",
+  "codigo_ibge": 5201108,
+  "familias_cadunico_total": 65518,
+  "familias_sem_atualizacao": 8600,
+  "familias_bolsa_familia": 19300,
+  "cobertura_cadunico_pct": 74.5,
+  "taxa_atualizacao_cadastral_pct": 86.8,
+  "ano_mes_referencia": 202609
+}

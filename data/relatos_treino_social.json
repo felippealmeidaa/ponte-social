@@ -1,0 +1,1202 @@
+[
+  {
+    "texto": "Como faço para agendar a atualização cadastral no posto de atendimento do município?",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso de orientação do CRAS para conseguir gratuidade em documentos civis.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Gostaria de saber se tenho direito ao BPC LOAS, estou sem trabalho e sem recursos.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Estou dormindo em um barraco improvisado sem saneamento e sem condições básicas.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Onde consigo atendimento gratuito para emitir a nova Carteira de Identidade Nacional?",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Como funciona a Sala do Empreendedor para regularizar meu negócio informal e MEI?",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Gostaria de saber quais cursos técnicos estão com inscrições abertas na cidade.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Estamos sem alimentos e sem gás de cozinha, onde peço socorro alimentar?",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Estou trancada no quarto com meus filhos com medo do agressor, onde peço ajuda imediata?",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Recebi um aviso no aplicativo para fazer o recadastramento obrigatório do CadÚnico.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Onde posso conseguir doação de leite e fórmula infantil para o meu bebê?",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Tenho interesse em programas de apoio ao jovem aprendiz e primeiro emprego.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Sou mãe solo de 2 crianças e não tenho renda fixa, como receber o benefício social?",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Tivemos nossa casa inundada pela enchente e perdemos tudo, onde conseguir moradia?",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Gostaria de saber o horário do cartório ou Vapt Vupt para emissão de certidão de óbito sem taxa.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Procuro doação de comida e mantimentos para idoso que mora sozinho e não tem o que comer.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Gostaria de solicitar a tarifa social de energia elétrica e o auxílio gás para minha residência.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Preciso com urgência de uma cesta básica de alimentos da prefeitura.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Onde posso receber orientação profissional e ajuda para formatar meu currículo?",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Existem oficinas de capacitação e geração de renda no CRAS do meu bairro?",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Tenho deficiência física permanente e preciso dar entrada no BPC LOAS para PCD.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Procuro acolhimento em instituição de longa permanência (ILPI) para idoso em vulnerabilidade.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Não tenho onde morar na cidade e estou em situação de rua, preciso de abrigo.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Não temos absolutamente nada para comer hoje em casa, meus filhos estão chorando de fome.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Onde fica o banco de alimentos municipal para cadastro de famílias carentes?",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Meu ex-marido está rondando minha casa armado e quebrou a medida protetiva da justiça.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Estou dormindo em um barraco improvisado sem saneamento e sem condições básicas.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Fui vítima de violência física e psicológica e não tenho para onde fugir com segurança.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Procuro vagas de emprego com urgência para sustentar minha casa.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Fui furtado e estou sem nenhum documento oficial com foto.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Meu avô mora sozinho e sofre de problemas de saúde, tem serviço de visitação domiciliar do CRAS?",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Fui despejado da minha casa de aluguel e estou morando de favor com parentes.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Moro em área de risco condenada pela defesa civil, para onde posso ir?",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Estou trancada no quarto com meus filhos com medo do agressor, onde peço ajuda imediata?",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Cortaram minha luz e não tenho dinheiro para comer ou comprar gás, preciso de auxílio.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Estão ocorrendo abusos e violência grave contra menor de idade nesta residência.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Meu filho não foi registrado no cartório ainda, como conseguir certidão gratuita?",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Sou mãe solo de 5 crianças e não tenho renda fixa, como receber o benefício social?",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Procuro vagas de emprego com urgência para sustentar minha casa.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Perdi minha carteira de trabalho física e meus documentos pessoais, como regularizar?",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Procuro doação de comida e mantimentos para idoso que mora sozinho e não tem o que comer.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Gostaria de saber se tenho direito ao BPC LOAS, estou sem trabalho e sem recursos.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Meu vizinho espanca a esposa e as crianças pequenas todos os dias, estão gritando por socorro.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Preciso atualizar meu Cadastro Único pois mudei de casa recentemente.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Recebi um aviso no aplicativo para fazer o recadastramento obrigatório do CadÚnico.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Estou sofrendo violência doméstica severa e preciso de uma casa abrigo com meus filhos.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Preciso da 2ª via da certidão de casamento e identidade, mas não tenho dinheiro para taxas.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Procuro acolhimento temporário ou abrigo comunitário para passar a noite com segurança.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Como faço para solicitar o Bolsa Família? Minha renda familiar é menor que um salário mínimo.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Quero me cadastrar no Sine para receber oportunidades de emprego na minha área.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Não temos absolutamente nada para comer hoje em casa, meus filhos estão chorando de fome.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Preciso comprovar renda com o extrato do CadÚnico para conseguir isenção em concurso.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Como faço para solicitar o Bolsa Família? Minha renda familiar é menor que um salário mínimo.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Gostaria de saber o endereço e horário de funcionamento do restaurante comunitário popular.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Fui despejado da minha casa de aluguel e estou morando de favor com parentes.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Como faço para solicitar o Bolsa Família? Minha renda familiar é menor que um salário mínimo.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Fui demitido e não consegui seguro desemprego, como conseguir benefício emergencial?",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Moro em área de risco condenada pela defesa civil, para onde posso ir?",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Não temos absolutamente nada para comer hoje em casa, meus filhos estão chorando de fome.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Como funciona o centro dia ou centro de convivência para idosos na nossa cidade?",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Minha família está passando fome, por favor nos ajude com cesta de alimentos.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Tenho interesse em programas de apoio ao jovem aprendiz e primeiro emprego.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Meu filho não foi registrado no cartório ainda, como conseguir certidão gratuita?",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Procuro vagas de emprego com urgência para sustentar minha casa.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Estou desempregado há 3 meses e sem dinheiro para sustentar meus 1 filhos, preciso de benefício.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Minha mãe idosa de 82 anos precisa de cadeira de rodas e fraldas geriátricas do SUS/CRAS.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Estão agredindo e maltratando uma pessoa idosa indefesa na minha vizinhança.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Existe cadastro aberto para casas populares da prefeitura no município?",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Não tenho RG nem CPF para poder procurar emprego e me cadastrar em programas.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Onde fica o banco de alimentos municipal para cadastro de famílias carentes?",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Minha família está passando fome, por favor nos ajude com cesta de alimentos.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Como faço para agendar a atualização cadastral no posto de atendimento do município?",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso de orientação do CRAS para conseguir gratuidade em documentos civis.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Tenho laudo médico comprovando deficiência severa e busco orientação sobre benefícios sociais.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso de auxílio habitacional pois minha família não consegue pagar o aluguel.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Quero incluir meu novo filho no Cadastro Único da minha família.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Cortaram minha luz e não tenho dinheiro para comer ou comprar gás, preciso de auxílio.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Tivemos nossa casa inundada pela enchente e perdemos tudo, onde conseguir moradia?",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Estão agredindo e maltratando uma pessoa idosa indefesa na minha vizinhança.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Minha casa está com rachaduras graves e risco de desabamento com as chuvas fortes.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Meu Bolsa Família foi bloqueado porque meu CadÚnico está desatualizado.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Estou desempregado há 16 meses e sem dinheiro para sustentar meus 2 filhos, preciso de benefício.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Estou sofrendo violência doméstica severa e preciso de uma casa abrigo com meus filhos.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Gostaria de participar das feiras municipais de artesanato e economia solidária.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Como funciona a Sala do Empreendedor para regularizar meu negócio informal e MEI?",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Quero incluir meu novo filho no Cadastro Único da minha família.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso da carteirinha de passe livre municipal para levar meu filho com autismo às terapias.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Estou desempregado e procuro cursos de qualificação em informática ou atendimento.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Existe cadastro aberto para casas populares da prefeitura no município?",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Meu Bolsa Família foi bloqueado porque meu CadÚnico está desatualizado.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Meu companheiro me agrediu fisicamente e está me ameaçando de morte, temo pela minha vida.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Preciso da carteirinha de passe livre municipal para levar meu filho com autismo às terapias.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso de orientação do CRAS para conseguir gratuidade em documentos civis.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Procuro acolhimento em instituição de longa permanência (ILPI) para idoso em vulnerabilidade.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Onde consigo atendimento gratuito para emitir a nova Carteira de Identidade Nacional?",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Existem oficinas de capacitação e geração de renda no CRAS do meu bairro?",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Meu pai está espancando minha mãe agora mesmo, preciso de socorro da polícia e assistência.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Preciso atualizar meu Cadastro Único pois mudei de casa recentemente.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Estamos sem alimentos e sem gás de cozinha, onde peço socorro alimentar?",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Meu companheiro me agrediu fisicamente e está me ameaçando de morte, temo pela minha vida.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Preciso da 2ª via da certidão de casamento e identidade, mas não tenho dinheiro para taxas.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Gostaria de verificar se a folha resumo do meu Cadastro Único está ativa.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Fui vítima de violência física e psicológica e não tenho para onde fugir com segurança.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Procuro acolhimento em instituição de longa permanência (ILPI) para idoso em vulnerabilidade.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso de auxílio habitacional pois minha família não consegue pagar o aluguel.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Preciso com urgência de uma cesta básica de alimentos da prefeitura.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Gostaria de participar das feiras municipais de artesanato e economia solidária.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Estamos sem alimentos e sem gás de cozinha, onde peço socorro alimentar?",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Tenho laudo médico comprovando deficiência severa e busco orientação sobre benefícios sociais.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Tenho deficiência física permanente e preciso dar entrada no BPC LOAS para PCD.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Minha família vive de bicos e a renda não dá para as contas básicas, quero dar entrada no auxílio.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Minha família está passando fome, por favor nos ajude com cesta de alimentos.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Perdi minha carteira de trabalho física e meus documentos pessoais, como regularizar?",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Meu vizinho espanca a esposa e as crianças pequenas todos os dias, estão gritando por socorro.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Quero me cadastrar no Sine para receber oportunidades de emprego na minha área.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Sou idoso com mais de 65 anos e não tenho aposentadoria, posso receber ajuda social?",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Onde posso conseguir doação de leite e fórmula infantil para o meu bebê?",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Minha casa está com rachaduras graves e risco de desabamento com as chuvas fortes.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Sou idoso com mais de 65 anos e não tenho aposentadoria, posso receber ajuda social?",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Estão ocorrendo abusos e violência grave contra menor de idade nesta residência.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Como faço para agendar a atualização cadastral no posto de atendimento do município?",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso comprovar renda com o extrato do CadÚnico para conseguir isenção em concurso.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso com urgência de uma cesta básica de alimentos da prefeitura.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Gostaria de saber quais cursos técnicos estão com inscrições abertas na cidade.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Gostaria de saber se o CRAS entrega cesta básica emergencial para famílias sem renda.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Gostaria de saber onde conseguir auxílio para compra de prótese ou órtese pelo município.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso de uma declaração de hipossuficiência para tirar certidão de nascimento de graça.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Gostaria de saber o endereço e horário de funcionamento do restaurante comunitário popular.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Minha casa está com rachaduras graves e risco de desabamento com as chuvas fortes.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Estou trancada no quarto com meus filhos com medo do agressor, onde peço ajuda imediata?",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Estou desempregado e procuro cursos de qualificação em informática ou atendimento.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Quero incluir meu novo filho no Cadastro Único da minha família.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Gostaria de saber sobre cursos gratuitos de formação profissional oferecidos pela prefeitura.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Meu filho não foi registrado no cartório ainda, como conseguir certidão gratuita?",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Onde posso conseguir doação de leite e fórmula infantil para o meu bebê?",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Estou sofrendo violência doméstica severa e preciso de uma casa abrigo com meus filhos.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Meu companheiro me agrediu fisicamente e está me ameaçando de morte, temo pela minha vida.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Meu cadastro único faz mais de dois anos que não atualizo, o que devo levar?",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Fui demitido e não consegui seguro desemprego, como conseguir benefício emergencial?",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Como funciona o centro dia ou centro de convivência para idosos na nossa cidade?",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso da 2ª via da certidão de casamento e identidade, mas não tenho dinheiro para taxas.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Tivemos nossa casa inundada pela enchente e perdemos tudo, onde conseguir moradia?",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Meu ex-marido está rondando minha casa armado e quebrou a medida protetiva da justiça.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Gostaria de saber onde conseguir auxílio para compra de prótese ou órtese pelo município.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Cortaram minha luz e não tenho dinheiro para comer ou comprar gás, preciso de auxílio.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Existe cadastro aberto para casas populares da prefeitura no município?",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Gostaria de saber quais cursos técnicos estão com inscrições abertas na cidade.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso de ajuda de segurança alimentar pois a despensa está completamente vazia.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Gostaria de saber como se cadastrar no programa municipal de aluguel social.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Meu avô mora sozinho e sofre de problemas de saúde, tem serviço de visitação domiciliar do CRAS?",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Fui furtado e estou sem nenhum documento oficial com foto.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso de apoio e orientação para emissão da carteira de identificação da pessoa com TEA.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Meu pai está espancando minha mãe agora mesmo, preciso de socorro da polícia e assistência.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Gostaria de saber se o CRAS entrega cesta básica emergencial para famílias sem renda.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Recebi um aviso no aplicativo para fazer o recadastramento obrigatório do CadÚnico.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Minha família vive de bicos e a renda não dá para as contas básicas, quero dar entrada no auxílio.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Não tenho onde morar na cidade e estou em situação de rua, preciso de abrigo.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Preciso comprovar renda com o extrato do CadÚnico para conseguir isenção em concurso.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Perdi todos os meus documentos num assalto e não tenho como pagar a segunda via.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso de uma declaração de hipossuficiência para tirar certidão de nascimento de graça.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Onde posso tirar o comprovante com o número do NIS do meu CadÚnico?",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso de uma declaração de hipossuficiência para tirar certidão de nascimento de graça.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Gostaria de saber o horário do cartório ou Vapt Vupt para emissão de certidão de óbito sem taxa.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Gostaria de participar das feiras municipais de artesanato e economia solidária.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Onde posso receber orientação profissional e ajuda para formatar meu currículo?",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso de apoio financeiro da assistência social da prefeitura para a minha família.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Sofri abuso e agressão dentro de casa e preciso de acolhimento emergencial e medida protetiva.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Quero me cadastrar no Sine para receber oportunidades de emprego na minha área.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Moro em área de risco condenada pela defesa civil, para onde posso ir?",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Quero saber o endereço do CRAS para renovar os dados do cadastro único.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Gostaria de saber onde conseguir auxílio para compra de prótese ou órtese pelo município.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Gostaria de saber sobre cursos gratuitos de formação profissional oferecidos pela prefeitura.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Fui demitido e não consegui seguro desemprego, como conseguir benefício emergencial?",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Gostaria de verificar se a folha resumo do meu Cadastro Único está ativa.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Onde fica o banco de alimentos municipal para cadastro de famílias carentes?",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Perdi todos os meus documentos num assalto e não tenho como pagar a segunda via.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Como funciona o centro dia ou centro de convivência para idosos na nossa cidade?",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso da carteirinha de passe livre municipal para levar meu filho com autismo às terapias.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso de auxílio habitacional pois minha família não consegue pagar o aluguel.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Preciso de ajuda de segurança alimentar pois a despensa está completamente vazia.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Minha família vive de bicos e a renda não dá para as contas básicas, quero dar entrada no auxílio.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Não tenho RG nem CPF para poder procurar emprego e me cadastrar em programas.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso atualizar meu Cadastro Único pois mudei de casa recentemente.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Gostaria de saber se o CRAS entrega cesta básica emergencial para famílias sem renda.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Fui furtado e estou sem nenhum documento oficial com foto.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Gostaria de saber se tenho direito ao BPC LOAS, estou sem trabalho e sem recursos.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Não tenho onde morar na cidade e estou em situação de rua, preciso de abrigo.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Meu vizinho espanca a esposa e as crianças pequenas todos os dias, estão gritando por socorro.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Procuro acolhimento temporário ou abrigo comunitário para passar a noite com segurança.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Perdi todos os meus documentos num assalto e não tenho como pagar a segunda via.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso de apoio financeiro da assistência social da prefeitura para a minha família.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Não tenho RG nem CPF para poder procurar emprego e me cadastrar em programas.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Sofri abuso e agressão dentro de casa e preciso de acolhimento emergencial e medida protetiva.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Fui vítima de violência física e psicológica e não tenho para onde fugir com segurança.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Estou dormindo em um barraco improvisado sem saneamento e sem condições básicas.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Como funciona a Sala do Empreendedor para regularizar meu negócio informal e MEI?",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Sofri abuso e agressão dentro de casa e preciso de acolhimento emergencial e medida protetiva.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Onde posso tirar o comprovante com o número do NIS do meu CadÚnico?",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Existem oficinas de capacitação e geração de renda no CRAS do meu bairro?",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Procuro acolhimento temporário ou abrigo comunitário para passar a noite com segurança.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Meu ex-marido está rondando minha casa armado e quebrou a medida protetiva da justiça.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Preciso de apoio e orientação para emissão da carteira de identificação da pessoa com TEA.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Onde posso tirar o comprovante com o número do NIS do meu CadÚnico?",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Tenho interesse em programas de apoio ao jovem aprendiz e primeiro emprego.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Estou desempregado há 17 meses e sem dinheiro para sustentar meus 1 filhos, preciso de benefício.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Gostaria de saber como se cadastrar no programa municipal de aluguel social.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Minha mãe idosa de 82 anos precisa de cadeira de rodas e fraldas geriátricas do SUS/CRAS.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Gostaria de saber o horário do cartório ou Vapt Vupt para emissão de certidão de óbito sem taxa.",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Meu cadastro único faz mais de dois anos que não atualizo, o que devo levar?",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Onde consigo atendimento gratuito para emitir a nova Carteira de Identidade Nacional?",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Estão agredindo e maltratando uma pessoa idosa indefesa na minha vizinhança.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Preciso de apoio e orientação para emissão da carteira de identificação da pessoa com TEA.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Tenho laudo médico comprovando deficiência severa e busco orientação sobre benefícios sociais.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Gostaria de saber sobre cursos gratuitos de formação profissional oferecidos pela prefeitura.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Gostaria de verificar se a folha resumo do meu Cadastro Único está ativa.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso de ajuda de segurança alimentar pois a despensa está completamente vazia.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Estão ocorrendo abusos e violência grave contra menor de idade nesta residência.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Tenho deficiência física permanente e preciso dar entrada no BPC LOAS para PCD.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Gostaria de saber o endereço e horário de funcionamento do restaurante comunitário popular.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Quero saber o endereço do CRAS para renovar os dados do cadastro único.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Meu cadastro único faz mais de dois anos que não atualizo, o que devo levar?",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Gostaria de solicitar a tarifa social de energia elétrica e o auxílio gás para minha residência.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Não temos nenhuma renda em casa no momento, preciso urgente de ajuda financeira do governo.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Não temos nenhuma renda em casa no momento, preciso urgente de ajuda financeira do governo.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Perdi minha carteira de trabalho física e meus documentos pessoais, como regularizar?",
+    "categoria": "documentacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Minha mãe idosa de 82 anos precisa de cadeira de rodas e fraldas geriátricas do SUS/CRAS.",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Gostaria de solicitar a tarifa social de energia elétrica e o auxílio gás para minha residência.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Procuro doação de comida e mantimentos para idoso que mora sozinho e não tem o que comer.",
+    "categoria": "alimentacao",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Meu pai está espancando minha mãe agora mesmo, preciso de socorro da polícia e assistência.",
+    "categoria": "violencia_protecao",
+    "prioridade": "urgente"
+  },
+  {
+    "texto": "Sou idoso com mais de 65 anos e não tenho aposentadoria, posso receber ajuda social?",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Preciso de apoio financeiro da assistência social da prefeitura para a minha família.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Estou desempregado e procuro cursos de qualificação em informática ou atendimento.",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Meu Bolsa Família foi bloqueado porque meu CadÚnico está desatualizado.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Quero saber o endereço do CRAS para renovar os dados do cadastro único.",
+    "categoria": "cadastro_atualizacao",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Fui despejado da minha casa de aluguel e estou morando de favor com parentes.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Gostaria de saber como se cadastrar no programa municipal de aluguel social.",
+    "categoria": "moradia",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Onde posso receber orientação profissional e ajuda para formatar meu currículo?",
+    "categoria": "trabalho_renda",
+    "prioridade": "media"
+  },
+  {
+    "texto": "Não temos nenhuma renda em casa no momento, preciso urgente de ajuda financeira do governo.",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Sou mãe solo de 4 crianças e não tenho renda fixa, como receber o benefício social?",
+    "categoria": "renda_beneficio",
+    "prioridade": "alta"
+  },
+  {
+    "texto": "Meu avô mora sozinho e sofre de problemas de saúde, tem serviço de visitação domiciliar do CRAS?",
+    "categoria": "pessoa_idosa_pcd",
+    "prioridade": "media"
+  }
+]
