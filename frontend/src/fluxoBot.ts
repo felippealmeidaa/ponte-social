@@ -110,30 +110,30 @@ export const ETAPAS: Etapa[] = [
   },
   {
     id: 'relato', titulo: 'Relato', icone: MessageSquareText, faixa: 'principal', tipo: 'normal', x: 560, y: 272,
-    quando: 'A pessoa conta a situação com as palavras dela.',
+    quando: 'A pessoa conta a situação com as palavras dela. A IA lê a mensagem pelo sentido (“estou com fome” já basta) e escolhe a necessidade entre os assuntos desta tela; serviços e documentos vêm sempre das respostas cadastradas aqui.',
     depois: 'Se o sistema entender, segue para a Confirmação. Se não, vai para Não entendi.',
     textos: ['pedir_relato', 'relato_curto'], estados: ['AGUARDANDO_RELATO', 'RETORNO'],
     opcoes: [{ chave: 'pedir_detalhes_relato_curto', tipo: 'bool', rotulo: 'Pedir mais detalhes se o relato for muito curto',
-      ajuda: 'Com menos de 4 palavras, o bot pede para contar mais (uma vez só).' }],
+      ajuda: 'Se a mensagem for curta e o sistema não entender, o bot pede para contar mais (uma vez só). Mensagem curta que deu para entender segue direto.' }],
   },
   {
     id: 'confirmacao', titulo: 'Confirmação', icone: MessageCircleQuestion, faixa: 'principal', tipo: 'automatico', x: 820, y: 272,
     quando: 'O bot diz o que entendeu e pergunta se está certo.',
     depois: 'Se a pessoa disser que está certo, segue para o Caminho. Se não, ela escolhe no Menu de assuntos.', textos: [], estados: ['AGUARDANDO_CONFIRMACAO'],
-    exemplo: 'Entendi que você precisa de ajuda com *documentos (RG, CPF, certidões)*. Está certo?\n*1* - Sim\n*2* - Não',
+    exemplo: 'Entendi que você perdeu seus documentos e precisa tirar a segunda via. Posso te orientar sobre *documentos (RG, CPF, certidões)*. Está certo?\n*1* - Sim\n*2* - Não',
     opcoes: [{ chave: 'confirmar_necessidade', tipo: 'bool', rotulo: 'Perguntar se o bot entendeu certo',
       ajuda: 'Desligado: o bot vai direto ao caminho com a necessidade que identificou (a pessoa não corrige).' }],
   },
   {
     id: 'caminho', titulo: 'Caminho e pedido de contato', icone: BookOpenCheck, faixa: 'principal', tipo: 'normal', x: 1080, y: 272,
     quando: 'O bot mostra o que procurar, que documentos levar e onde ir, e trata o pedido de contato do CRAS.',
-    depois: 'Se quiser contato, o caso entra na Fila. Se não quiser, a conversa termina.',
+    depois: 'Se responder 1, o caso entra na Fila. Se responder 2, o pedido não chega ao CRAS: o bot avisa a pessoa disso e a conversa termina.',
     textos: ['contato_confirmado', 'contato_recusado', 'fim_sem_contato'], estados: ['AGUARDANDO_CONTATO'], editarEm: 'respostas',
     opcoes: [
       { chave: 'mostrar_outras_necessidades', tipo: 'bool', rotulo: 'Mostrar outras necessidades em resumo',
         ajuda: 'Quando o relato fala de mais de um assunto, os outros vêm resumidos depois do principal.' },
       { chave: 'contato', tipo: 'contato', rotulo: 'Contato do CRAS',
-        ajuda: 'Perguntar: a pessoa escolhe. Sempre: todo caso entra na fila. Nunca: o bot só orienta e encerra.' },
+        ajuda: 'Perguntar: a pessoa escolhe; quem responde 2 não chega à fila. Sempre: todo caso entra na fila. Nunca: o bot só orienta e nenhum caso chega à fila, a não ser os de violência.' },
     ],
   },
   {
@@ -166,7 +166,7 @@ export const ETAPAS: Etapa[] = [
   },
   {
     id: 'encerrado', titulo: 'Encerrado', icone: HeartHandshake, faixa: 'principal', tipo: 'fim', x: 1080, y: 470,
-    quando: 'A pessoa recebeu o caminho e não quis contato. Nada entra na fila.', textos: [],
+    quando: 'A pessoa recebeu o caminho e não quis contato. Nada entra na fila, e o bot avisa que o pedido não foi enviado ao CRAS.', textos: [],
   },
 
   // Comandos e situações à parte

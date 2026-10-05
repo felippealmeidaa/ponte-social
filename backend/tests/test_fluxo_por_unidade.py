@@ -75,7 +75,7 @@ def test_opcoes_de_fluxo_por_cras():
             client.put(f"/api/v1/configuracao/fluxo/opcoes?unidade={uid}", json={"opcoes": {"contato": "nunca"}})
             antes = {t["id"] for t in client.get("/api/v1/triagem/fila").json()}
             r = conversa(client, telefone(), "oi", "1", "vila jaiara", RELATO)
-            assert "Procure o CRAS com os documentos" in r[3][1]
+            assert "não envia seu pedido" in r[3][1]                   # contato "nunca": avisa que não chega ao CRAS
             assert not [t for t in client.get("/api/v1/triagem/fila").json() if t["id"] not in antes]
 
             # quem é de fora do CRAS segue o padrão da secretaria (com confirmação)

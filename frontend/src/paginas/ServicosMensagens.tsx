@@ -335,6 +335,12 @@ function OpcoesDaEtapa({ opcoes, estado, ctx, onSalvo }: {
               {op.soSecretaria && ctx.unidade && ' Definida pela secretaria.'}
               {personalizada && <span className="ml-1 text-caneta">Diferente do padrão da secretaria.</span>}
             </p>
+            {op.tipo === 'contato' && valor === 'nunca' && (
+              <Aviso>Com “Nunca”, os casos deste fluxo não chegam à Fila: a equipe só fica sabendo de quem for ao CRAS. O bot avisa a pessoa disso no fim. Casos de violência continuam entrando.</Aviso>
+            )}
+            {op.tipo === 'contato' && valor === 'perguntar' && (
+              <Aviso tom="info">Quem responder 2 recebe a orientação, mas o caso não chega à Fila. O bot avisa a pessoa disso antes de ela escolher.</Aviso>
+            )}
           </div>
         );
       })}

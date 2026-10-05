@@ -48,6 +48,40 @@ def test_fluxo_completo_entra_na_fila_com_dados_protegidos():
         assert nova["telefone_mascarado"] == "62 9****-0001"
 
 
+def test_recusar_contato_avisa_que_o_pedido_nao_chega_ao_cras():
+    with TestClient(app) as client:
+        autenticar(client)
+        antes = {t["id"] for t in _fila(client)}
+        r = _conversa(client, "5562911110009", "oi", "1", "perdi minha identidade e preciso tirar outra", "1", "talvez", "2")
+        assert "não chega ao CRAS" in r[3][0]          # aviso antes de escolher
+        assert "o CRAS não fica sabendo" in r[4][0]    # resposta inválida repete o aviso
+        assert "não foi enviado" in r[5][0]
+        assert not [t for t in _fila(client) if t["id"] not in antes]
+
+
+def test_padrao_antigo_nao_editado_passa_para_o_novo():
+    from sqlalchemy import select
+
+    from app.db import abrir_sessao
+    from app.models import TextoBot
+    from app.services import catalogo
+
+    async def trocar_e_recarregar(texto):
+        async with abrir_sessao() as session:
+            linha = (await session.execute(select(TextoBot).where(TextoBot.chave == "contato_recusado"))).scalar_one()
+            linha.texto = texto
+            await session.commit()
+            await catalogo.carregar(session)
+        return catalogo.texto("contato_recusado")
+
+    with TestClient(app) as client:
+        antigo = catalogo.TEXTOS_ANTIGOS["contato_recusado"][0]
+        assert client.portal.call(trocar_e_recarregar, antigo) == catalogo.TEXTOS_PADRAO["contato_recusado"]["texto"]
+        editado = "Texto escrito pela equipe."
+        assert client.portal.call(trocar_e_recarregar, editado) == editado    # edição da equipe é mantida
+        client.portal.call(trocar_e_recarregar, catalogo.TEXTOS_PADRAO["contato_recusado"]["texto"])
+
+
 def test_correcao_pelo_cidadao_vira_exemplo_rotulado():
     with TestClient(app) as client:
         autenticar(client)
@@ -143,7 +177,7 @@ def test_caminho_mostra_outras_necessidades_por_prioridade():
     texto = caminho_completo("documentacao", ["trabalho_renda", "alimentacao", "documentacao", "violencia_protecao"])
     assert texto.index("alimentação") < texto.index("trabalho e cursos")  # ALTA antes de BAIXA
     assert texto.count("Você também falou de") == 2                        # sem repetir a principal nem violência
-    assert texto.rstrip().endswith("Não, obrigado")
+    assert texto.rstrip().endswith("você precisa ir até lá")              # pergunta de contato fecha a mensagem
 
 
 def test_apagar_dados_remove_conversa_e_triagem():

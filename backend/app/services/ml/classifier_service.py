@@ -3,6 +3,7 @@ import joblib
 from typing import Dict, Any, List
 from app.services.ml.text_rules import predict_heuristic
 from app.services import catalogo
+from app.services.llm import entendimento
 from app.services.ml.train_evaluator import NAO_IDENTIFICADO, VIOLENCIA, decidir
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "model_social_classifier.joblib")
@@ -13,6 +14,7 @@ METODOS = {
     "modelo": "Modelo de Machine Learning",
     "palavras_chave": "Palavras-chave (modelo com baixa confiança)",
     "nao_identificado": "Nenhuma necessidade identificada com segurança",
+    "ia": "IA generativa (Gemini), que leu a mensagem e escolheu entre as categorias do catálogo",
 }
 
 PRIORIDADE_POR_CATEGORIA = {
@@ -68,6 +70,11 @@ class SocialClassifierService:
             metodo = "regra_violencia" if categoria == VIOLENCIA else ("palavras_chave" if categoria != NAO_IDENTIFICADO else "nao_identificado")
             confianca = 0.0
 
+        return cls.montar(categoria, metodo, confianca, secundarias)
+
+    @staticmethod
+    def montar(categoria: str, metodo: str, confianca: float = 0.0, secundarias: List[str] = ()) -> Dict[str, Any]:
+        """Resultado da classificação com o caminho do catálogo (usado pelo modelo local e pela IA)."""
         info_servico = catalogo.servico(categoria)
         return {
             "categoria": categoria,
@@ -76,9 +83,24 @@ class SocialClassifierService:
             "metodo_decisao": METODOS[metodo],
             "prioridade": PRIORIDADE_POR_CATEGORIA.get(categoria, "BAIXA"),
             "is_urgente": info_servico["urgencia"],
-            "necessidades_secundarias": secundarias,
+            "necessidades_secundarias": list(secundarias),
             "servicos_recomendados": info_servico["servicos"],
             "documentos_necessarios": info_servico["documentos"],
             "local_atendimento": info_servico["local_atendimento"],
             "contato_util": info_servico["contato_util"],
         }
+
+    @classmethod
+    async def classificar(cls, texto: str) -> Dict[str, Any]:
+        """Usada no WhatsApp: a IA lê a mensagem; sem IA (sem chave ou fora do ar), vale o modelo local.
+        Segurança primeiro: se a regra ou o modelo local virem violência, o caso é tratado como violência
+        mesmo que a IA discorde. "tipo_mensagem" diz se é pedido, cumprimento ou outro (None sem IA)."""
+        local = cls.classify_relato(texto)
+        ia = await entendimento.entender(texto)
+        if ia is None:
+            return {**local, "tipo_mensagem": None, "resumo_ia": ""}
+        if local["categoria"] == VIOLENCIA and ia["categoria"] != VIOLENCIA:
+            return {**local, "tipo_mensagem": "pedido", "resumo_ia": ""}
+        return {**cls.montar(ia["categoria"], "ia" if ia["categoria"] != NAO_IDENTIFICADO else "nao_identificado",
+                             secundarias=ia["secundarias"]),
+                "tipo_mensagem": ia["tipo"], "resumo_ia": ia["resumo"]}

@@ -75,8 +75,11 @@ TEXTOS_PADRAO: Dict[str, Dict[str, str]] = {
         ),
     },
     "contato_recusado": {
-        "descricao": "A pessoa não quis contato do CRAS",
-        "texto": "Tudo bem! Se precisar de novo, é só mandar uma mensagem. Cuide-se. 💚",
+        "descricao": "A pessoa não quis contato do CRAS (nada entra na fila)",
+        "texto": (
+            "Tudo bem! Seu pedido *não foi enviado* ao CRAS. Para ser atendido, vá ao CRAS com os documentos da lista acima. "
+            "Se mudar de ideia, é só mandar uma nova mensagem. Cuide-se. 💚"
+        ),
     },
     "pedir_bairro": {
         "descricao": "Pergunta o bairro para indicar o CRAS de referência (só quando há CRAS cadastrado)",
@@ -114,8 +117,11 @@ TEXTOS_PADRAO: Dict[str, Dict[str, str]] = {
         "texto": "Tudo bem, nada foi apagado. Se quiser continuar, me mande uma mensagem.",
     },
     "fim_sem_contato": {
-        "descricao": "Fim do caminho quando o CRAS não oferece retorno de contato pelo bot",
-        "texto": "Procure o CRAS com os documentos da lista. Se precisar, é só mandar uma mensagem. 💚",
+        "descricao": "Fim do caminho quando o CRAS não oferece retorno de contato pelo bot (nada entra na fila)",
+        "texto": (
+            "Atenção: esta conversa *não envia seu pedido* ao CRAS. Para ser atendido, vá ao CRAS com os documentos da lista. "
+            "Se precisar, é só mandar uma mensagem. 💚"
+        ),
     },
     "cras_indicado": {
         "descricao": "Depois do bairro: indica o CRAS de referência ({cras} é trocado pelo nome)",
@@ -125,6 +131,28 @@ TEXTOS_PADRAO: Dict[str, Dict[str, str]] = {
         "descricao": "Enviada quando um atendente assume a conversa pelo painel",
         "texto": "Olá! Agora quem fala com você é uma pessoa da equipe da Assistência Social. 🙂",
     },
+}
+
+# Padrões de versões anteriores. Banco que ainda guarda um deles sem edição passa para o padrão atual.
+TEXTOS_ANTIGOS: Dict[str, tuple] = {
+    "boas_vindas": (
+        "Olá! Sou o assistente de orientação da Assistência Social de Anápolis. 👋\n\n"
+        "Eu ajudo a descobrir *qual serviço procurar, quais documentos levar e onde ir*. "
+        "Sou só uma orientação: *não decido quem tem direito a benefício* — isso é feito pelos profissionais do CRAS.\n\n"
+        "Vou usar o que você me contar para te orientar e, *sem identificar você*, para melhorar este serviço. "
+        "Não escreva nome, CPF ou endereço. A qualquer momento, envie *apagar* para excluir seus dados.\n\n"
+        "Você concorda?\n*1* - Sim, concordo\n*2* - Não",
+    ),
+    "emergencia": (
+        "🚨 *Sua segurança vem primeiro.*\n\n"
+        "Se estiver em perigo agora, ligue *190* (Polícia).\n"
+        "Violência contra a mulher: *Ligue 180*.\n"
+        "Crianças, idosos ou pessoas com deficiência: *Disque 100*.\n"
+        "Você também pode procurar o *CREAS* de Anápolis, que atende casos de violência.\n\n"
+        "Sua mensagem foi enviada com prioridade para a equipe da assistência social.",
+    ),
+    "contato_recusado": ("Tudo bem! Se precisar de novo, é só mandar uma mensagem. Cuide-se. 💚",),
+    "fim_sem_contato": ("Procure o CRAS com os documentos da lista. Se precisar, é só mandar uma mensagem. 💚",),
 }
 
 CAMPOS_SERVICO = ("titulo", "servicos", "documentos", "local_atendimento", "contato_util")
@@ -223,6 +251,8 @@ async def carregar(session: AsyncSession) -> None:
             linha = TextoBot(chave=chave, texto=padrao["texto"])
             session.add(linha)
             textos[chave] = linha
+        elif textos[chave].texto in TEXTOS_ANTIGOS.get(chave, ()):
+            textos[chave].texto = padrao["texto"]
     await session.commit()
 
     for categoria, linha in salvos.items():

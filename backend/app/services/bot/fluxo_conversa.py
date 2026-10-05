@@ -58,6 +58,9 @@ NOMES_CATEGORIA = {
     "violencia_protecao": "violência ou ameaça",
 }
 
+# Etapas em que a mensagem é o relato da pessoa: só nelas a IA lê o texto
+ETAPAS_DE_RELATO = {"AGUARDANDO_RELATO", "RELATO_NOVAMENTE", "RETORNO"}
+
 SIM = {"1", "sim", "s", "ss", "isso", "certo", "concordo", "aceito", "pode", "quero", "claro", "ok", "beleza", "isso mesmo"}
 NAO = {"2", "nao", "n", "nao quero", "errado", "nao e isso", "negativo"}
 
@@ -120,7 +123,11 @@ def caminho_completo(categoria: str, secundarias: Sequence[str] = (), cras: Opti
         )
     texto += "Lembre: é uma orientação. Quem confirma o seu direito é o profissional do atendimento."
     if perguntar_contato:
-        texto += "\n\nQuer que o CRAS entre em contato com você?\n*1* - Sim\n*2* - Não, obrigado"
+        texto += (
+            "\n\nQuer que o CRAS entre em contato com você?\n"
+            "*1* - Sim, enviar meu pedido ao CRAS\n"
+            "*2* - Não. Atenção: aí seu pedido *não chega ao CRAS* e você precisa ir até lá"
+        )
     return texto
 
 
@@ -217,6 +224,14 @@ async def _precisa_bairro(session: AsyncSession, conversa: Conversa) -> bool:
     return bool(catalogo.opcoes_fluxo(None)["perguntar_bairro"]) and not conversa.bairro and await unidades.tem_cras_ativo(session)
 
 
+def _so_cumprimento(texto: str, classificacao: Optional[dict]) -> bool:
+    """"oi", "bom dia". Com IA, ela diz; sem IA, mensagem curta em que o modelo não achou necessidade."""
+    tipo = (classificacao or {}).get("tipo_mensagem")
+    if tipo:
+        return tipo == "cumprimento"
+    return len(texto.split()) < 4 and (classificacao or {}).get("categoria") == NAO_IDENTIFICADO
+
+
 def _marcar_confirmada(conversa: Conversa, confirmada: bool) -> None:
     conversa.classificacao = {**(conversa.classificacao or {}), "confirmada": confirmada}
 
@@ -263,8 +278,14 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
         conversa.classificacao = None
         return [t("pedir_relato")]
 
-    # Classifica o mesmo texto que será gravado (sem CPF/telefone/e-mail)
-    classificacao = SocialClassifierService.classify_relato(anonimizar_texto(texto)) if texto else None
+    # Classifica o mesmo texto que será gravado (sem CPF/telefone/e-mail). A IA só lê a mensagem depois do
+    # aceite e nas etapas em que a pessoa conta a situação; no resto, basta o modelo local (e a regra de violência).
+    if not texto:
+        classificacao = None
+    elif conversa.consentiu_em and estado in ETAPAS_DE_RELATO:
+        classificacao = await SocialClassifierService.classificar(anonimizar_texto(texto))
+    else:
+        classificacao = SocialClassifierService.classify_relato(anonimizar_texto(texto))
 
     # Violência interrompe qualquer etapa (exceto respostas curtas de menu, como "1" ou "sim")
     if classificacao and classificacao["categoria"] == VIOLENCIA and _resposta(texto) is None and not texto.isdigit():
@@ -294,7 +315,7 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
             conversa.estado = "AGUARDANDO_BAIRRO"
             return [t("pedir_bairro")]
         conversa.estado = "AGUARDANDO_RELATO"
-        if len(texto.split()) < 4:  # "oi", "bom dia": cumprimenta e pede o relato
+        if _so_cumprimento(texto, classificacao):  # "oi", "bom dia": cumprimenta e pede o relato
             return [t("retorno")]
         estado = "AGUARDANDO_RELATO"  # mensagem longa já é o relato
 
@@ -327,7 +348,11 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
 
     if estado in ("AGUARDANDO_RELATO", "RELATO_NOVAMENTE"):
         opcoes = catalogo.opcoes_fluxo(conversa.unidade_id)
-        if opcoes["pedir_detalhes_relato_curto"] and len(texto.split()) < 4 and conversa.tentativas == 0:
+        if classificacao.get("tipo_mensagem") == "cumprimento":
+            return [t("relato_curto")]
+        # Mensagem curta só pede detalhes se não deu para entender ("estou com fome" já basta)
+        if (opcoes["pedir_detalhes_relato_curto"] and len(texto.split()) < 4 and conversa.tentativas == 0
+                and classificacao["categoria"] == NAO_IDENTIFICADO):
             conversa.tentativas = 1
             return [t("relato_curto")]
         conversa.relato = anonimizar_texto(texto)
@@ -350,6 +375,9 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
         assuntos = [NOMES_CATEGORIA[classificacao["categoria"]]] + [
             NOMES_CATEGORIA[c] for c in _secundarias_por_prioridade(classificacao["categoria"], secundarias)
         ] if opcoes["mostrar_outras_necessidades"] else [NOMES_CATEGORIA[classificacao["categoria"]]]
+        resumo = classificacao.get("resumo_ia")
+        if resumo:  # a IA resumiu a situação com as palavras dela
+            return [f"Entendi que {resumo}. Posso te orientar sobre *{' e '.join(assuntos)}*. Está certo?\n*1* - Sim\n*2* - Não"]
         return [f"Entendi que você precisa de ajuda com *{' e '.join(assuntos)}*. Está certo?\n*1* - Sim\n*2* - Não"]
 
     if estado == "AGUARDANDO_CONFIRMACAO":
@@ -380,7 +408,7 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
     if estado == "AGUARDANDO_CONTATO":
         resposta = _resposta(texto)
         if resposta is None:
-            return ["Responda *1* para o CRAS entrar em contato ou *2* para não."]
+            return ["Responda *1* para enviar seu pedido ao CRAS ou *2* para não enviar (o CRAS não fica sabendo do seu caso)."]
         conversa.estado = "FINALIZADA"
         if resposta is False:
             return [t("contato_recusado")]
