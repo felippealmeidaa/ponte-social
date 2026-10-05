@@ -65,6 +65,9 @@ Sinal de violência em qualquer etapa interrompe tudo e mostra 190 / 180 / 100 /
 
 LGPD: relato gravado sem CPF/telefone/e-mail, telefone mascarado + criptografado, conversa identificada por hash, prazo de retenção (`RETENCAO_DIAS`).
 
+### Protótipos da Fase 2 (desligados)
+Flow Builder (`/flows`), AI Gateway (`/models`), API Keys (`/api-keys`), Base RAG (`/knowledge`) e Workspaces (`/apps`) são protótipos da visão de produto: guardam dados só em memória e não fazem parte do escopo do semestre. Ficam fora da API por padrão; para demonstrar, defina `HABILITAR_FASE2=true` no `backend/.env` — mesmo assim exigem login.
+
 ---
 
 ## 📊 Avaliação do Modelo (honesta)

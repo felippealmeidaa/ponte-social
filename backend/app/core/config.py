@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     CONVERSA_EXPIRA_MIN: int = 120
     EVOLUTION_INSTANCE_NAME: str = "cras-anapolis"
 
+    # Protótipos da fase 2 (Flow Builder, AI Gateway, API Keys, RAG, Workspaces): desligados por padrão
+    HABILITAR_FASE2: bool = False
+
     # Google Gemini LLM API
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-3.5-flash-lite"
