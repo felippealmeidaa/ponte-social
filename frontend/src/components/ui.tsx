@@ -115,6 +115,36 @@ export function Campo({ rotulo, dica, children, id }: { rotulo: string; dica?: s
   );
 }
 
+/** Chave liga/desliga. O rótulo fica fora (aria-labelledby), para a frase da opção poder ser longa. */
+export function Chave({ id, ligada, onMudar, disabled, rotuloId }: {
+  id: string; ligada: boolean; onMudar: (v: boolean) => void; disabled?: boolean; rotuloId: string;
+}) {
+  return (
+    <button id={id} type="button" role="switch" aria-checked={ligada} aria-labelledby={rotuloId} disabled={disabled}
+      onClick={() => onMudar(!ligada)}
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 ${ligada ? 'border-texto bg-texto' : 'border-linha-forte bg-realce hover:border-texto-3'}`}>
+      <span aria-hidden className={`absolute left-0.5 size-[18px] rounded-full bg-white shadow-[0_1px_2px_rgb(23_40_74/0.35)] transition-transform duration-200 ease-[var(--ease-saida)] ${ligada ? 'translate-x-5' : ''}`} />
+    </button>
+  );
+}
+
+/** Escolha entre poucas opções lado a lado (no lugar de um select quando todas cabem à vista). */
+export function Segmentado<T extends string>({ valor, opcoes, onMudar, disabled, rotuloId }: {
+  valor: T; opcoes: { valor: T; rotulo: string }[]; onMudar: (v: T) => void; disabled?: boolean; rotuloId: string;
+}) {
+  return (
+    <div role="radiogroup" aria-labelledby={rotuloId} className="grid auto-cols-fr grid-flow-col gap-1 rounded-[6px] border border-linha-forte bg-elevada p-1">
+      {opcoes.map((o) => (
+        <button key={o.valor} type="button" role="radio" aria-checked={valor === o.valor} disabled={disabled}
+          onClick={() => onMudar(o.valor)}
+          className={`rounded-[4px] px-2 py-1.5 text-[13.5px] leading-tight transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 ${valor === o.valor ? 'bg-superficie font-semibold text-texto shadow-[0_1px_2px_rgb(23_40_74/0.18)]' : 'text-texto-2 hover:text-texto'}`}>
+          {o.rotulo}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export const classeEntrada =
   'w-full rounded-[5px] border border-linha-forte bg-superficie px-3 py-2 text-[15px] text-texto transition-colors duration-150 hover:border-texto-3 focus:border-caneta focus:outline-none focus:ring-2 focus:ring-caneta/15';
 

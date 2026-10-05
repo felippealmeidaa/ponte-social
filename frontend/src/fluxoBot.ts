@@ -1,4 +1,6 @@
-// Mapa do fluxo do bot (espelha backend/app/services/bot/fluxo_conversa.py).
+// Fluxo do bot (espelha backend/app/services/bot/fluxo_conversa.py), desenhado como um trilho:
+// as etapas do caminho principal em sequência, os desvios pendurados embaixo de onde saem,
+// a faixa de violência (vale em qualquer etapa) e os comandos à parte.
 // A sequência é fixa no backend; cada CRAS liga/desliga as etapas opcionais e edita os textos.
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -6,7 +8,6 @@ import {
   Mic, Phone, RotateCcw, ShieldAlert, Siren, ThumbsUp, Trash2, Undo2, UserRound,
 } from 'lucide-react';
 
-export type Faixa = 'seguranca' | 'principal' | 'comandos';
 export type TipoEtapa = 'normal' | 'urgente' | 'fim' | 'automatico';
 
 export interface OpcaoEtapa {
@@ -22,7 +23,6 @@ export interface Etapa {
   id: string;
   titulo: string;
   icone: LucideIcon;
-  faixa: Faixa;
   tipo: TipoEtapa;
   /** Quando a pessoa chega nesta etapa, em linguagem de quem atende. */
   quando: string;
@@ -40,16 +40,12 @@ export interface Etapa {
   travada?: string;
   /** Opções do fluxo que esta etapa controla. */
   opcoes?: OpcaoEtapa[];
-  x: number;
-  y: number;
 }
 
 export interface Ligacao {
   de: string;
   para: string;
   rotulo?: string;
-  saida?: 'd' | 'b' | 't-out';
-  entrada?: 'e' | 't' | 'b-in';
   urgente?: boolean;
   /** Só aparece quando a condição vale para a unidade (ex.: confirmação desligada). */
   quando?: 'sem_confirmacao';
@@ -64,52 +60,43 @@ export type OpcoesFluxo = {
   contato: 'perguntar' | 'sempre' | 'nunca';
 };
 
-export const FAIXAS: { id: Faixa; titulo: string; y: number; altura: number }[] = [
-  { id: 'seguranca', titulo: 'Segurança, em qualquer etapa', y: 0, altura: 200 },
-  { id: 'principal', titulo: 'Caminho da conversa', y: 220, altura: 570 },
-  { id: 'comandos', titulo: 'Comandos e situações à parte', y: 810, altura: 200 },
-];
-
-export const LARGURA_ETAPA = 190;
-export const LARGURA_MAPA = 1570;
-
 const TRAVA_SEGURANCA = 'Proteção da vida: vale para todos os CRAS e não pode ser desligada.';
 
 export const ETAPAS: Etapa[] = [
   // Segurança
   {
-    id: 'violencia', titulo: 'Sinal de violência', icone: ShieldAlert, faixa: 'seguranca', tipo: 'urgente', x: 40, y: 52,
+    id: 'violencia', titulo: 'Sinal de violência', icone: ShieldAlert, tipo: 'urgente',
     quando: 'A pessoa fala de agressão, ameaça ou abuso, em qualquer momento da conversa.',
     depois: 'Interrompe tudo e vai direto para a mensagem de emergência, sem perguntas.', textos: [], travada: TRAVA_SEGURANCA,
   },
   {
-    id: 'emergencia', titulo: 'Mensagem de emergência', icone: Siren, faixa: 'seguranca', tipo: 'urgente', x: 300, y: 52,
+    id: 'emergencia', titulo: 'Mensagem de emergência', icone: Siren, tipo: 'urgente',
     quando: 'Logo depois do sinal de violência.',
     depois: 'O caso entra na fila como urgente. Se houver CREAS cadastrado, o endereço vai junto.',
     textos: ['emergencia'], travada: 'O texto pode mudar, mas precisa ter 190, 180 e 100. A etapa não pode ser desligada.',
   },
   {
-    id: 'fila_urgente', titulo: 'Fila: urgente', icone: Inbox, faixa: 'seguranca', tipo: 'fim', x: 560, y: 52,
+    id: 'fila_urgente', titulo: 'Fila: urgente', icone: Inbox, tipo: 'fim',
     quando: 'O caso aparece no topo da Fila do CRAS da pessoa, na fileira de violência.', textos: [],
   },
 
   // Caminho principal
   {
-    id: 'boas_vindas', titulo: 'Boas-vindas e aceite', icone: Hand, faixa: 'principal', tipo: 'normal', x: 40, y: 272,
+    id: 'boas_vindas', titulo: 'Boas-vindas e aceite', icone: Hand, tipo: 'normal',
     quando: 'Primeira mensagem da pessoa. O bot se apresenta, avisa que não decide direito e pede o aceite.',
     depois: 'Se aceitar, segue para o Bairro (ou direto ao Relato). Se não aceitar, a conversa termina sem gravar nada.', textos: ['boas_vindas'], estados: ['NOVA', 'AGUARDANDO_CONSENTIMENTO'],
     travada: 'LGPD: o aceite vem sempre antes de qualquer pergunta. O texto pode mudar; a etapa não.',
   },
   {
-    id: 'bairro', titulo: 'Bairro', icone: MapPin, faixa: 'principal', tipo: 'normal', x: 300, y: 272,
-    quando: 'Logo depois do aceite, o bot pergunta o bairro. É o bairro que escolhe o CRAS: daqui em diante valem os textos e as opções daquele CRAS.',
-    depois: 'Segue para o Relato, já com o fluxo do CRAS do bairro. Bairro de fora ou “não sei”: padrão da secretaria.',
-    textos: ['pedir_bairro', 'cras_indicado', 'bairro_nao_encontrado'], estados: ['AGUARDANDO_BAIRRO'], editarEm: 'unidades',
-    opcoes: [{ chave: 'perguntar_bairro', tipo: 'bool', soSecretaria: true, rotulo: 'Perguntar o bairro',
+    id: 'bairro', titulo: 'Localização ou bairro', icone: MapPin, tipo: 'normal',
+    quando: 'Logo depois do aceite, o bot pede a localização do WhatsApp ou o bairro. Isso escolhe o CRAS (lista de bairros ou, sem ela, o mais perto) e ordena os lugares do Caminho do mais perto ao mais longe.',
+    depois: 'Segue para o Relato, já com o fluxo do CRAS escolhido. Bairro não encontrado ou “não sei”: padrão da secretaria.',
+    textos: ['pedir_bairro', 'cras_indicado', 'cras_mais_perto', 'bairro_nao_encontrado'], estados: ['AGUARDANDO_BAIRRO'], editarEm: 'unidades',
+    opcoes: [{ chave: 'perguntar_bairro', tipo: 'bool', soSecretaria: true, rotulo: 'Perguntar a localização ou o bairro',
       ajuda: 'Desligado: ninguém é encaminhado a um CRAS específico e todos seguem o padrão da secretaria.' }],
   },
   {
-    id: 'relato', titulo: 'Relato', icone: MessageSquareText, faixa: 'principal', tipo: 'normal', x: 560, y: 272,
+    id: 'relato', titulo: 'Relato', icone: MessageSquareText, tipo: 'normal',
     quando: 'A pessoa conta a situação com as palavras dela. A IA lê a mensagem pelo sentido (“estou com fome” já basta) e escolhe a necessidade entre os assuntos desta tela; serviços e documentos vêm sempre das respostas cadastradas aqui.',
     depois: 'Se o sistema entender, segue para a Confirmação. Se não, vai para Não entendi.',
     textos: ['pedir_relato', 'relato_curto'], estados: ['AGUARDANDO_RELATO', 'RETORNO'],
@@ -117,7 +104,7 @@ export const ETAPAS: Etapa[] = [
       ajuda: 'Se a mensagem for curta e o sistema não entender, o bot pede para contar mais (uma vez só). Mensagem curta que deu para entender segue direto.' }],
   },
   {
-    id: 'confirmacao', titulo: 'Confirmação', icone: MessageCircleQuestion, faixa: 'principal', tipo: 'automatico', x: 820, y: 272,
+    id: 'confirmacao', titulo: 'Confirmação', icone: MessageCircleQuestion, tipo: 'automatico',
     quando: 'O bot diz o que entendeu e pergunta se está certo.',
     depois: 'Se a pessoa disser que está certo, segue para o Caminho. Se não, ela escolhe no Menu de assuntos.', textos: [], estados: ['AGUARDANDO_CONFIRMACAO'],
     exemplo: 'Entendi que você perdeu seus documentos e precisa tirar a segunda via. Posso te orientar sobre *documentos (RG, CPF, certidões)*. Está certo?\n*1* - Sim\n*2* - Não',
@@ -125,7 +112,7 @@ export const ETAPAS: Etapa[] = [
       ajuda: 'Desligado: o bot vai direto ao caminho com a necessidade que identificou (a pessoa não corrige).' }],
   },
   {
-    id: 'caminho', titulo: 'Caminho e pedido de contato', icone: BookOpenCheck, faixa: 'principal', tipo: 'normal', x: 1080, y: 272,
+    id: 'caminho', titulo: 'Caminho e pedido de contato', icone: BookOpenCheck, tipo: 'normal',
     quando: 'O bot mostra o que procurar, que documentos levar e onde ir, e trata o pedido de contato do CRAS.',
     depois: 'Se responder 1, o caso entra na Fila. Se responder 2, o pedido não chega ao CRAS: o bot avisa a pessoa disso e a conversa termina.',
     textos: ['contato_confirmado', 'contato_recusado', 'fim_sem_contato'], estados: ['AGUARDANDO_CONTATO'], editarEm: 'respostas',
@@ -137,17 +124,17 @@ export const ETAPAS: Etapa[] = [
     ],
   },
   {
-    id: 'fila', titulo: 'Fila do CRAS', icone: Inbox, faixa: 'principal', tipo: 'fim', x: 1340, y: 272,
+    id: 'fila', titulo: 'Fila do CRAS', icone: Inbox, tipo: 'fim',
     quando: 'O caso entra na Fila do CRAS da pessoa com a necessidade, a prioridade e o bairro.', textos: [],
   },
 
   // Exceções do caminho
   {
-    id: 'sem_aceite', titulo: 'Sem aceite', icone: Ban, faixa: 'principal', tipo: 'fim', x: 40, y: 470,
+    id: 'sem_aceite', titulo: 'Sem aceite', icone: Ban, tipo: 'fim',
     quando: 'A pessoa não aceitou. Nada é gravado; o bot indica o Disque Social 121 e o CRAS.', textos: ['sem_consentimento'],
   },
   {
-    id: 'nao_entendi', titulo: 'Não entendi', icone: MessageCircleQuestion, faixa: 'principal', tipo: 'normal', x: 560, y: 470,
+    id: 'nao_entendi', titulo: 'Não entendi', icone: MessageCircleQuestion, tipo: 'normal',
     quando: 'O sistema não identificou a necessidade com segurança. Pede para contar de outro jeito.',
     depois: 'A pessoa conta de novo. Se o sistema não entender pela 2ª vez, oferece o Menu de assuntos.',
     textos: ['nao_entendi', 'nao_entendi_de_novo'], estados: ['RELATO_NOVAMENTE'],
@@ -155,46 +142,46 @@ export const ETAPAS: Etapa[] = [
       ajuda: 'Ligado: em vez de pedir para contar de novo, o bot já oferece os assuntos por número.' }],
   },
   {
-    id: 'menu', titulo: 'Menu de assuntos', icone: ListChecks, faixa: 'principal', tipo: 'automatico', x: 820, y: 470,
+    id: 'menu', titulo: 'Menu de assuntos', icone: ListChecks, tipo: 'automatico',
     quando: 'A pessoa escolhe o assunto por número, quando o bot errou ou não entendeu.',
     depois: 'Com o assunto escolhido, segue para o Caminho. Com “Nenhum desses”, indica o Disque Social 121.', textos: [], estados: ['AGUARDANDO_CORRECAO'],
     exemplo: 'Qual destes assuntos combina mais com a sua situação? Responda com o número:\n*1* - renda e benefícios\n*2* - Cadastro Único\n…\n*9* - Nenhum desses',
   },
   {
-    id: 'disque121', titulo: 'Disque Social 121', icone: Phone, faixa: 'principal', tipo: 'fim', x: 820, y: 650,
+    id: 'disque121', titulo: 'Disque Social 121', icone: Phone, tipo: 'fim',
     quando: 'Nenhum assunto serviu. O bot indica o Disque Social 121 e o CRAS, sem inventar resposta.', textos: [],
   },
   {
-    id: 'encerrado', titulo: 'Encerrado', icone: HeartHandshake, faixa: 'principal', tipo: 'fim', x: 1080, y: 470,
+    id: 'encerrado', titulo: 'Encerrado', icone: HeartHandshake, tipo: 'fim',
     quando: 'A pessoa recebeu o caminho e não quis contato. Nada entra na fila, e o bot avisa que o pedido não foi enviado ao CRAS.', textos: [],
   },
 
   // Comandos e situações à parte
   {
-    id: 'apagar', titulo: '“apagar”', icone: Trash2, faixa: 'comandos', tipo: 'normal', x: 40, y: 860,
+    id: 'apagar', titulo: '“apagar”', icone: Trash2, tipo: 'normal',
     quando: 'A qualquer momento. O bot confirma e apaga conversa e pedidos (casos urgentes abertos ficam com a equipe).',
     textos: ['apagar_confirmar', 'apagar_feito', 'apagar_cancelado'], estados: ['CONFIRMAR_APAGAR'],
     travada: 'Direito da pessoa (LGPD): o comando vale em todos os CRAS. Os textos podem mudar.',
   },
   {
-    id: 'recomecar', titulo: '“recomeçar”', icone: RotateCcw, faixa: 'comandos', tipo: 'automatico', x: 300, y: 860,
+    id: 'recomecar', titulo: '“recomeçar”', icone: RotateCcw, tipo: 'automatico',
     quando: 'A qualquer momento. Volta para o Relato (ou para as boas-vindas, se ainda não aceitou).', textos: [],
     exemplo: 'Usa o mesmo texto do Relato: “Obrigado! Agora me conte…”', travada: 'Vale em todos os CRAS.',
   },
   {
-    id: 'retorno', titulo: 'Volta outro dia', icone: Undo2, faixa: 'comandos', tipo: 'normal', x: 560, y: 860,
+    id: 'retorno', titulo: 'Volta outro dia', icone: Undo2, tipo: 'normal',
     quando: 'Quem já aceitou e escreve de novo não precisa aceitar outra vez; o bairro também fica guardado.', textos: ['retorno'],
   },
   {
-    id: 'agradecimento', titulo: 'Agradece no fim', icone: ThumbsUp, faixa: 'comandos', tipo: 'normal', x: 820, y: 860,
+    id: 'agradecimento', titulo: 'Agradece no fim', icone: ThumbsUp, tipo: 'normal',
     quando: '“Obrigado”, “valeu” depois que a conversa terminou.', textos: ['agradecimento'],
   },
   {
-    id: 'audio', titulo: 'Mensagem de áudio', icone: Mic, faixa: 'comandos', tipo: 'normal', x: 1080, y: 860,
+    id: 'audio', titulo: 'Mensagem de áudio', icone: Mic, tipo: 'normal',
     quando: 'Por enquanto o bot só lê texto e pede para a pessoa escrever.', textos: ['audio'],
   },
   {
-    id: 'atendente', titulo: 'Atendente assumiu', icone: UserRound, faixa: 'comandos', tipo: 'normal', x: 1340, y: 860,
+    id: 'atendente', titulo: 'Atendente assumiu', icone: UserRound, tipo: 'normal',
     quando: 'Alguém da equipe assumiu a conversa em Conversas. O bot fica em silêncio até devolverem.',
     textos: ['atendente_assumiu'],
   },
@@ -204,20 +191,50 @@ export const LIGACOES: Ligacao[] = [
   { de: 'violencia', para: 'emergencia', rotulo: 'na hora', urgente: true },
   { de: 'emergencia', para: 'fila_urgente', urgente: true },
   { de: 'boas_vindas', para: 'bairro', rotulo: 'aceitou' },
-  { de: 'boas_vindas', para: 'sem_aceite', rotulo: 'não aceitou', saida: 'b', entrada: 't' },
+  { de: 'boas_vindas', para: 'sem_aceite', rotulo: 'não aceitou' },
   { de: 'bairro', para: 'relato', rotulo: 'escolhe o CRAS' },
   { de: 'relato', para: 'confirmacao', rotulo: 'entendeu' },
-  { de: 'relato', para: 'caminho', rotulo: 'sem confirmação', saida: 't-out', entrada: 't', quando: 'sem_confirmacao' },
-  { de: 'relato', para: 'nao_entendi', rotulo: 'não entendeu', saida: 'b', entrada: 't' },
-  { de: 'nao_entendi', para: 'relato', rotulo: 'contou de novo', saida: 't-out', entrada: 'b-in' },
+  { de: 'relato', para: 'caminho', rotulo: 'entendeu (sem confirmação)', quando: 'sem_confirmacao' },
+  { de: 'relato', para: 'nao_entendi', rotulo: 'não entendeu' },
+  { de: 'nao_entendi', para: 'relato', rotulo: 'contou de novo' },
   { de: 'nao_entendi', para: 'menu', rotulo: '2ª vez' },
   { de: 'confirmacao', para: 'caminho', rotulo: 'está certo' },
-  { de: 'confirmacao', para: 'menu', rotulo: 'não', saida: 'b', entrada: 't' },
-  { de: 'menu', para: 'caminho', rotulo: 'escolheu', saida: 'd', entrada: 'b-in' },
-  { de: 'menu', para: 'disque121', rotulo: 'nenhum desses', saida: 'b', entrada: 't' },
+  { de: 'confirmacao', para: 'menu', rotulo: 'não está certo' },
+  { de: 'menu', para: 'caminho', rotulo: 'escolheu o assunto' },
+  { de: 'menu', para: 'disque121', rotulo: 'nenhum desses' },
   { de: 'caminho', para: 'fila', rotulo: 'quis contato' },
-  { de: 'caminho', para: 'encerrado', rotulo: 'não quis', saida: 'b', entrada: 't' },
+  { de: 'caminho', para: 'encerrado', rotulo: 'não quis contato' },
 ];
+
+/** Caminho principal, na ordem da conversa. */
+export const TRILHO = ['boas_vindas', 'bairro', 'relato', 'confirmacao', 'caminho', 'fila'];
+
+/** Desvios pendurados embaixo da etapa de onde saem: cada passo é a condição e a etapa a que ela leva. */
+export const DESVIOS: Record<string, { rotulo: string; etapa: string }[][]> = {
+  boas_vindas: [[{ rotulo: 'não aceitou', etapa: 'sem_aceite' }]],
+  relato: [[
+    { rotulo: 'não entendeu', etapa: 'nao_entendi' },
+    { rotulo: 'não entendeu de novo', etapa: 'menu' },
+    { rotulo: 'nenhum desses', etapa: 'disque121' },
+  ]],
+  confirmacao: [[{ rotulo: 'não está certo', etapa: 'menu' }]],
+  caminho: [[{ rotulo: 'não quis contato', etapa: 'encerrado' }]],
+};
+
+/** Vale em qualquer etapa, para todos os CRAS. */
+export const SEGURANCA = ['violencia', 'emergencia', 'fila_urgente'];
+
+export const COMANDOS = ['apagar', 'recomecar', 'retorno', 'agradecimento', 'audio', 'atendente'];
+
+/** Coluna do trilho a que uma etapa pertence (a principal ou a de onde sai o desvio), para a orelha do editor. */
+export function colunaDaEtapa(id: string): number | null {
+  const direta = TRILHO.indexOf(id);
+  if (direta >= 0) return direta;
+  for (const [origem, cadeias] of Object.entries(DESVIOS)) {
+    if (cadeias.some((c) => c.some((passo) => passo.etapa === id))) return TRILHO.indexOf(origem);
+  }
+  return null;
+}
 
 /** Contagem "parado aqui agora" por etapa, a partir de /configuracao/fluxo/agora. */
 export function contagemPorEtapa(porEstado: Record<string, number>, comAtendente: number): Record<string, number> {
@@ -229,16 +246,18 @@ export function contagemPorEtapa(porEstado: Record<string, number>, comAtendente
   return saida;
 }
 
-/** Etapas que não acontecem com as opções atuais, com o motivo (o mapa as mostra apagadas). */
-export function etapasPuladas(opcoes: OpcoesFluxo | null, temCras: boolean, vendoUnidade: boolean): Record<string, string> {
-  const saida: Record<string, string> = {};
-  if (!vendoUnidade && !temCras) saida.bairro = 'Pulada agora: nenhum CRAS cadastrado em Unidades de atendimento.';
+export interface Pulada { curto: string; motivo: string }
+
+/** Etapas que não acontecem com as opções atuais: rótulo curto (trilho) e motivo (editor). */
+export function etapasPuladas(opcoes: OpcoesFluxo | null, temCras: boolean, vendoUnidade: boolean): Record<string, Pulada> {
+  const saida: Record<string, Pulada> = {};
+  if (!vendoUnidade && !temCras) saida.bairro = { curto: 'pulada agora', motivo: 'Pulada agora: nenhum CRAS cadastrado em Unidades de atendimento.' };
   if (!opcoes) return saida;
-  if (!vendoUnidade && !opcoes.perguntar_bairro) saida.bairro = 'Desligada: ninguém é encaminhado a um CRAS; vale o padrão da secretaria.';
-  if (vendoUnidade) saida.bairro = 'Definida pela secretaria. Quem chega aqui já é deste CRAS (pelo bairro).';
-  if (!opcoes.confirmar_necessidade) saida.confirmacao = 'Desligada: o bot vai direto ao caminho.';
-  if (opcoes.menu_na_primeira_falha) saida.nao_entendi = 'Pulada: o menu de assuntos aparece já na 1ª vez.';
-  if (opcoes.contato === 'nunca') saida.fila = 'Contato “nunca”: o bot só orienta; nada entra na fila.';
-  if (opcoes.contato === 'sempre') saida.encerrado = 'Contato “sempre”: todo caso entra na fila, sem perguntar.';
+  if (!vendoUnidade && !opcoes.perguntar_bairro) saida.bairro = { curto: 'desligada', motivo: 'Desligada: ninguém é encaminhado a um CRAS; vale o padrão da secretaria.' };
+  if (vendoUnidade) saida.bairro = { curto: 'pela secretaria', motivo: 'Definida pela secretaria. Quem chega aqui já é deste CRAS (pela localização ou pelo bairro).' };
+  if (!opcoes.confirmar_necessidade) saida.confirmacao = { curto: 'desligada', motivo: 'Desligada: o bot vai direto ao caminho.' };
+  if (opcoes.menu_na_primeira_falha) saida.nao_entendi = { curto: 'pulada', motivo: 'Pulada: o menu de assuntos aparece já na 1ª vez.' };
+  if (opcoes.contato === 'nunca') saida.fila = { curto: 'ninguém entra', motivo: 'Contato “nunca”: o bot só orienta; nada entra na fila (a não ser violência).' };
+  if (opcoes.contato === 'sempre') saida.encerrado = { curto: 'não acontece', motivo: 'Contato “sempre”: todo caso entra na fila, sem perguntar.' };
   return saida;
 }

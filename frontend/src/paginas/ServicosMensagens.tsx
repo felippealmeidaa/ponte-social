@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CircleAlert, Lock, RotateCcw, Save, ShieldAlert } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { ArrowRight, CircleAlert, Lock, Pencil, RotateCcw, Save, ShieldAlert } from 'lucide-react';
 import { api, atualizar, enviar, ErroApi } from '../api';
-import { ListaFluxo, MapaFluxo } from '../components/MapaFluxo';
-import { Aviso, Botao, Campo, classeEntrada, Esqueleto, PainelLateral } from '../components/ui';
-import { contagemPorEtapa, ETAPAS, etapasPuladas, type OpcaoEtapa, type OpcoesFluxo } from '../fluxoBot';
+import { TrilhoFluxo } from '../components/TrilhoFluxo';
+import { Aviso, Botao, Campo, Chave, classeEntrada, Esqueleto, Segmentado } from '../components/ui';
+import {
+  colunaDaEtapa, contagemPorEtapa, ETAPAS, etapasPuladas, LIGACOES, TRILHO, type Etapa, type OpcaoEtapa, type OpcoesFluxo,
+} from '../fluxoBot';
 import { comUnidade, contaAtual, nomeUnidade, useUnidades, type UnidadeResumo } from '../unidades';
 import { useAtualizacao } from '../useAtualizacao';
 import { Unidades } from './Unidades';
@@ -154,144 +156,169 @@ function useTelaLarga() {
 
 interface Agora { por_estado: Record<string, number>; com_atendente: number; janela_minutos: number }
 
+const POR_ID: Record<string, Etapa> = Object.fromEntries(ETAPAS.map((e) => [e.id, e]));
+
 function Fluxo({ ctx, unidades, irPara }: { ctx: Contexto; unidades: UnidadeResumo[] | null; irPara: (aba: Aba) => void }) {
-  const { unidade, podeEditar } = ctx;
+  const { unidade } = ctx;
   const textos = useAtualizacao(useCallback(() => api<TextoBot[]>(comUnidade('/configuracao/textos', unidade)), [unidade]), 0);
   const opcoes = useAtualizacao(useCallback(() => api<RespostaOpcoes>(comUnidade('/configuracao/fluxo/opcoes', unidade)), [unidade]), 0);
   const agora = useAtualizacao(useCallback(() => api<Agora>(comUnidade('/configuracao/fluxo/agora', unidade)), [unidade]), 10000);
-  const [selecionada, setSelecionada] = useState<string | null>(null);
+  const [selecionada, setSelecionada] = useState('boas_vindas');
+  const editor = useRef<HTMLElement>(null);
   const larga = useTelaLarga();
 
   const contagem = useMemo(() => (agora.dados ? contagemPorEtapa(agora.dados.por_estado, agora.dados.com_atendente) : {}), [agora.dados]);
   const temCras = Boolean(unidades?.some((u) => u.tipo === 'CRAS' && u.ativo));
-  const puladas = useMemo(() => etapasPuladas(opcoes.dados?.opcoes ?? null, temCras, Boolean(unidade)),
-    [opcoes.dados, temCras, unidade]);
-  const fechar = useCallback(() => setSelecionada(null), []);
-  const abrir = useCallback((id: string) => setSelecionada((atual) => (atual === id ? null : id)), []);
+  const puladas = useMemo(() => etapasPuladas(opcoes.dados?.opcoes ?? null, temCras, Boolean(unidade)), [opcoes.dados, temCras, unidade]);
+  const personalizadas = useMemo(() => {
+    const saida = new Set<string>();
+    if (!unidade) return saida;
+    for (const e of ETAPAS) {
+      const texto = e.textos.some((k) => textos.dados?.find((t) => t.chave === k)?.personalizado);
+      const opcao = e.opcoes?.some((o) => opcoes.dados?.personalizadas.includes(o.chave));
+      if (texto || opcao) saida.add(e.id);
+    }
+    return saida;
+  }, [unidade, textos.dados, opcoes.dados]);
 
-  const etapa = ETAPAS.find((e) => e.id === selecionada) ?? null;
+  const abrir = useCallback((id: string) => {
+    setSelecionada(id);
+    // No celular o trilho é comprido: leva até o editor
+    if (!larga) requestAnimationFrame(() => editor.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  }, [larga]);
+
+  const etapa = POR_ID[selecionada];
   const usados = new Set(ETAPAS.flatMap((e) => e.textos));
   const avulsos = textos.dados?.filter((t) => !usados.has(t.chave)) ?? [];
   const totalAgora = Object.values(contagem).reduce((a, b) => a + b, 0);
-  const props = { selecionada, contagem, puladas, semConfirmacao: opcoes.dados ? !opcoes.dados.opcoes.confirmar_necessidade : false, onAbrir: abrir };
+  const coluna = colunaDaEtapa(etapa.id);
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
-        <p className="max-w-[78ch] text-sm text-texto-2">
-          Cada caixa é uma etapa da conversa no WhatsApp; as setas mostram para onde ela vai. Clique numa etapa para ver quando ela acontece,
-          ligar ou desligar o que é opcional e editar o que o bot diz.
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+        <p className="max-w-[72ch] text-[15px] text-texto-2">
+          A conversa segue o trilho, na ordem dos números; os desvios ficam embaixo da etapa de onde saem.
+          Escolha uma etapa para ver e editar o que o bot diz nela.
         </p>
-        <div className="flex flex-col gap-1 text-[13px] text-texto-2" role="status">
-          <p className="flex items-center gap-2">
-            <ShieldAlert className="size-4 shrink-0 text-urgente" aria-hidden />
-            Violência interrompe qualquer etapa, em todos os CRAS.
+        {agora.dados && (
+          <p role="status" className="text-[13px] text-texto-3">
+            {totalAgora ? `${totalAgora} conversa${totalAgora > 1 ? 's' : ''} em andamento` : 'Nenhuma conversa em andamento'} nos últimos {agora.dados.janela_minutos} min
           </p>
-          {agora.dados && (
-            <p className="pl-6 text-texto-3">
-              {totalAgora ? `${totalAgora} conversa${totalAgora > 1 ? 's' : ''} em andamento` : 'Nenhuma conversa em andamento'} nos últimos {agora.dados.janela_minutos} min
-            </p>
-          )}
-        </div>
+        )}
       </div>
 
       {opcoes.erro && <Aviso>{opcoes.erro}</Aviso>}
-      {larga ? <MapaFluxo {...props} /> : <ListaFluxo {...props} />}
+      <TrilhoFluxo selecionada={selecionada} contagem={contagem} puladas={puladas} personalizadas={personalizadas} onAbrir={abrir} />
+
+      <section ref={editor} aria-labelledby="t-etapa" data-sem-orelha={coluna === null ? '' : undefined}
+        style={coluna === null ? undefined : { '--orelha': `calc(21px + ${coluna} * ((100% - 102px) / 6 + 12px) + (100% - 102px) / 12)` } as CSSProperties}
+        className="editor-etapa mt-2 scroll-mt-4 rounded-[6px] border border-linha-forte bg-superficie shadow-[0_10px_28px_-20px_rgb(23_40_74/0.45)]">
+        <div key={etapa.id} className="assentar flex flex-col gap-6 p-5 sm:p-6">
+          <CabecalhoEtapa etapa={etapa} contagem={contagem[etapa.id] ?? 0} />
+          {puladas[etapa.id] && <Aviso tom="info">{puladas[etapa.id].motivo}</Aviso>}
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="flex min-w-0 flex-col gap-3">
+              <h3 className="text-[13.5px] font-semibold text-texto-2">O que a pessoa vê no WhatsApp</h3>
+              <MensagensEtapa etapa={etapa} textos={textos} ctx={ctx} />
+              {etapa.editarEm && (etapa.editarEm === 'respostas' || contaAtual().geral) && (
+                <Botao className="self-start" icone={ArrowRight} onClick={() => irPara(etapa.editarEm!)}>
+                  {etapa.editarEm === 'respostas' ? 'Editar serviços e documentos de cada necessidade' : 'Cadastrar lugares e bairros'}
+                </Botao>
+              )}
+            </div>
+            <aside className="flex flex-col gap-5">
+              <AjustesEtapa etapa={etapa} estado={opcoes.dados} ctx={ctx} onSalvo={(novo) => opcoes.setDados(novo)} />
+              <ParaOndeVai etapa={etapa} semConfirmacao={opcoes.dados ? !opcoes.dados.opcoes.confirmar_necessidade : false} onAbrir={abrir} />
+            </aside>
+          </div>
+        </div>
+      </section>
 
       {avulsos.length > 0 && (
         <section aria-labelledby="t-avulsos" className="mt-4">
           <h2 id="t-avulsos" className="mb-3 titulo text-[19px] leading-[1.05]">Outros textos</h2>
-          <ul className="flex flex-col gap-4">
-            {avulsos.map((t) => <li key={t.chave + (t.atualizado_em ?? '')}><EditorTexto texto={t} ctx={ctx} onSalvo={textos.recarregar} /></li>)}
-          </ul>
+          <div className="conversa-whats flex flex-col gap-4 rounded-[6px] border border-linha px-4 py-5 sm:px-6">
+            {avulsos.map((t) => <BalaoTexto key={t.chave + (t.atualizado_em ?? '')} texto={t} ctx={ctx} onSalvo={textos.recarregar} />)}
+          </div>
         </section>
       )}
-
-      <PainelLateral aberto={etapa !== null} titulo={etapa?.titulo ?? ''} onFechar={fechar}>
-        {etapa && (
-          <div className="flex flex-col gap-6">
-            <dl className="flex flex-col gap-4 text-sm">
-              <div>
-                <dt className="text-[13px] font-medium text-texto-3">Quando acontece</dt>
-                <dd className="mt-1 leading-relaxed">{etapa.quando}</dd>
-              </div>
-              {etapa.depois && (
-                <div>
-                  <dt className="text-[13px] font-medium text-texto-3">Depois</dt>
-                  <dd className="mt-1 leading-relaxed">{etapa.depois}</dd>
-                </div>
-              )}
-              {puladas[etapa.id] && (
-                <div>
-                  <dt className="text-[13px] font-medium text-texto-3">Nesta configuração</dt>
-                  <dd className="mt-1 leading-relaxed">{puladas[etapa.id]}</dd>
-                </div>
-              )}
-              {(contagem[etapa.id] ?? 0) > 0 && (
-                <div>
-                  <dt className="text-[13px] font-medium text-texto-3">Agora</dt>
-                  <dd className="mt-1">{contagem[etapa.id]} conversa(s) parada(s) nesta etapa.</dd>
-                </div>
-              )}
-            </dl>
-
-            {etapa.travada && (
-              <p className="flex items-start gap-2 rounded-[5px] border border-linha bg-fundo px-3 py-2.5 text-[13px] text-texto-2">
-                <Lock className="mt-0.5 size-4 shrink-0 text-texto-3" aria-hidden />
-                {etapa.travada}
-              </p>
-            )}
-
-            {etapa.opcoes && opcoes.dados && (
-              <OpcoesDaEtapa key={`${etapa.id}-${opcoes.dados.atualizado_em}`} opcoes={etapa.opcoes} estado={opcoes.dados}
-                ctx={ctx} onSalvo={(novo) => opcoes.setDados(novo)} />
-            )}
-
-            {etapa.exemplo && (
-              <div>
-                <p className="mb-2 text-[13px] font-medium text-texto-3">Texto automático (montado pelo sistema)</p>
-                <p className="whitespace-pre-line rounded-[6px] rounded-tr-[2px] bg-[#d9fdd3] px-4 py-3 text-[13.5px] leading-relaxed text-[#111b21]">{etapa.exemplo}</p>
-              </div>
-            )}
-
-            {etapa.editarEm && (etapa.editarEm === 'respostas' || contaAtual().geral) && (
-              <Botao icone={ArrowRight} onClick={() => { fechar(); irPara(etapa.editarEm!); }}>
-                {etapa.editarEm === 'respostas' ? 'Editar respostas por necessidade' : 'Cadastrar unidades e bairros'}
-              </Botao>
-            )}
-
-            {etapa.textos.length > 0 && (
-              textos.erro ? <Aviso>{textos.erro}</Aviso> : !textos.dados ? <Esqueleto className="h-40" /> : (
-                <div className="flex flex-col gap-4">
-                  <p className="text-[13px] font-medium text-texto-3">O que o bot diz nesta etapa</p>
-                  {etapa.textos.map((chave) => {
-                    const t = textos.dados!.find((x) => x.chave === chave);
-                    return t ? <EditorTexto key={t.chave + (t.atualizado_em ?? '') + t.personalizado} texto={t} ctx={ctx} onSalvo={textos.recarregar} /> : null;
-                  })}
-                </div>
-              )
-            )}
-
-            {etapa.textos.length === 0 && !etapa.exemplo && !etapa.editarEm && !etapa.opcoes && (
-              <p className="text-sm text-texto-2">Esta etapa não envia texto próprio.</p>
-            )}
-            {!podeEditar && (etapa.textos.length > 0 || etapa.opcoes) && (
-              <p className="text-[13px] text-texto-3">Só a coordenação pode mudar esta etapa.</p>
-            )}
-          </div>
-        )}
-      </PainelLateral>
     </div>
   );
 }
 
-const ROTULO_CONTATO = { perguntar: 'Perguntar se quer contato', sempre: 'Sempre colocar na fila', nunca: 'Nunca (só orientar)' } as const;
+function CabecalhoEtapa({ etapa, contagem }: { etapa: Etapa; contagem: number }) {
+  const Icone = etapa.icone;
+  const numero = TRILHO.indexOf(etapa.id);
+  const urgente = etapa.tipo === 'urgente';
+  return (
+    <header className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex items-start gap-3.5">
+        <span className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full border-2 ${urgente ? 'border-urgente bg-urgente-fundo text-urgente' : 'border-texto bg-texto text-white'}`}>
+          {numero >= 0 && etapa.tipo !== 'fim'
+            ? <span className="titulo text-[17px] leading-none tabular">{numero + 1}</span>
+            : <Icone className="size-[18px]" aria-hidden />}
+        </span>
+        <div>
+          <h2 id="t-etapa" className="titulo text-[24px] leading-[1.1]">{etapa.titulo}</h2>
+          <p className="mt-1.5 max-w-[68ch] text-[15px] leading-relaxed text-texto-2">{etapa.quando}</p>
+        </div>
+      </div>
+      {contagem > 0 && (
+        <span className="rounded-full bg-info-fundo px-2.5 py-1 text-[13px] font-medium tabular text-info">
+          {contagem} conversa{contagem > 1 ? 's' : ''} aqui agora
+        </span>
+      )}
+    </header>
+  );
+}
 
-function OpcoesDaEtapa({ opcoes, estado, ctx, onSalvo }: {
-  opcoes: OpcaoEtapa[]; estado: RespostaOpcoes; ctx: Contexto; onSalvo: (novo: RespostaOpcoes) => void;
+function MensagensEtapa({ etapa, textos, ctx }: {
+  etapa: Etapa; textos: ReturnType<typeof useAtualizacao<TextoBot[]>>; ctx: Contexto;
+}) {
+  if (etapa.textos.length > 0) {
+    if (textos.erro) return <Aviso>{textos.erro}</Aviso>;
+    if (!textos.dados) return <Esqueleto className="h-40" />;
+  }
+  return (
+    <div className="conversa-whats flex flex-col gap-5 rounded-[6px] border border-linha px-4 py-5 sm:px-6">
+      {etapa.textos.map((chave) => {
+        const t = textos.dados?.find((x) => x.chave === chave);
+        return t ? <BalaoTexto key={t.chave + (t.atualizado_em ?? '') + t.personalizado} texto={t} ctx={ctx} onSalvo={textos.recarregar} /> : null;
+      })}
+      {etapa.exemplo && (
+        <div className="flex flex-col gap-1.5">
+          <p className="pl-2 text-[12.5px] text-[#54656f]">Texto automático, montado pelo sistema a cada conversa</p>
+          <div className="balao-whats ml-2 max-w-[560px] whitespace-pre-wrap px-3 py-2 text-[14.5px] leading-[1.45]">{whatsapp(etapa.exemplo)}</div>
+        </div>
+      )}
+      {etapa.textos.length === 0 && !etapa.exemplo && (
+        <p className="text-[14px] text-[#54656f]">
+          {etapa.tipo === 'fim' ? 'Aqui a conversa chega ao fim: esta etapa não manda mensagem própria.' : 'Esta etapa não manda mensagem própria.'}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Negrito do WhatsApp (*assim*) na prévia. */
+function whatsapp(texto: string) {
+  return texto.split(/(\*[^*\n]+\*)/g).map((parte, i) =>
+    parte.length > 2 && parte.startsWith('*') && parte.endsWith('*') ? <strong key={i} className="font-semibold">{parte.slice(1, -1)}</strong> : parte,
+  );
+}
+
+const ROTULO_CONTATO = [
+  { valor: 'perguntar', rotulo: 'Perguntar' },
+  { valor: 'sempre', rotulo: 'Sempre' },
+  { valor: 'nunca', rotulo: 'Nunca' },
+] as const;
+
+function AjustesEtapa({ etapa, estado, ctx, onSalvo }: {
+  etapa: Etapa; estado: RespostaOpcoes | null; ctx: Contexto; onSalvo: (novo: RespostaOpcoes) => void;
 }) {
   const [salvando, setSalvando] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const opcoes: OpcaoEtapa[] = etapa.opcoes ?? [];
 
   const mudar = async (chave: string, valor: boolean | string) => {
     setSalvando(chave);
@@ -306,46 +333,79 @@ function OpcoesDaEtapa({ opcoes, estado, ctx, onSalvo }: {
   };
 
   return (
-    <fieldset className="flex flex-col gap-4 rounded-[6px] border border-linha bg-superficie p-4">
-      <legend className="px-1 text-[13px] font-medium text-texto-3">{ctx.unidade ? 'Opções deste CRAS' : 'Opções do padrão da secretaria'}</legend>
-      {opcoes.map((op) => {
+    <section aria-labelledby="t-ajustes" className="flex flex-col gap-4 rounded-[6px] border border-linha p-4">
+      <h3 id="t-ajustes" className="text-[13.5px] font-semibold text-texto-2">{ctx.unidade ? 'Ajustes deste CRAS' : 'Ajustes do padrão da secretaria'}</h3>
+      {opcoes.length > 0 && !estado && <Esqueleto className="h-16" />}
+      {estado && opcoes.map((op) => {
         const valor = estado.opcoes[op.chave as keyof OpcoesFluxo];
-        const bloqueada = !ctx.podeEditar || (op.soSecretaria && Boolean(ctx.unidade));
-        const personalizada = estado.personalizadas.includes(op.chave);
-        const id = `op-${op.chave}`;
+        const bloqueada = !ctx.podeEditar || (op.soSecretaria && Boolean(ctx.unidade)) || salvando !== null;
+        const rotuloId = `rot-${op.chave}`;
+        const nota = (
+          <>
+            {op.soSecretaria && ctx.unidade && <span className="block text-texto-3">Definida pela secretaria.</span>}
+            {estado.personalizadas.includes(op.chave) && <span className="block text-caneta">Diferente do padrão da secretaria.</span>}
+          </>
+        );
+        if (op.tipo === 'bool') {
+          return (
+            <div key={op.chave} className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p id={rotuloId} className="text-[14.5px] font-semibold leading-snug">{op.rotulo}</p>
+                <p className="mt-1 text-[13px] leading-snug text-texto-2">{op.ajuda}{nota}</p>
+              </div>
+              <Chave id={`op-${op.chave}`} rotuloId={rotuloId} ligada={Boolean(valor)} disabled={bloqueada} onMudar={(v) => mudar(op.chave, v)} />
+            </div>
+          );
+        }
         return (
-          <div key={op.chave} className="flex flex-col gap-1.5">
-            {op.tipo === 'bool' ? (
-              <label htmlFor={id} className="flex items-start gap-3 text-sm">
-                <input id={id} type="checkbox" checked={Boolean(valor)} disabled={bloqueada || salvando !== null}
-                  onChange={(e) => mudar(op.chave, e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-[var(--color-caneta)] disabled:opacity-50" />
-                <span className="font-medium">{op.rotulo}</span>
-              </label>
-            ) : (
-              <>
-                <label htmlFor={id} className="text-sm font-medium">{op.rotulo}</label>
-                <select id={id} value={String(valor)} disabled={bloqueada || salvando !== null}
-                  onChange={(e) => mudar(op.chave, e.target.value)} className={`${classeEntrada} disabled:opacity-50`}>
-                  {Object.entries(ROTULO_CONTATO).map(([v, r]) => <option key={v} value={v}>{r}</option>)}
-                </select>
-              </>
-            )}
-            <p className={`text-xs text-texto-3 ${op.tipo === 'bool' ? 'pl-7' : ''}`}>
-              {op.ajuda}
-              {op.soSecretaria && ctx.unidade && ' Definida pela secretaria.'}
-              {personalizada && <span className="ml-1 text-caneta">Diferente do padrão da secretaria.</span>}
+          <div key={op.chave} className="flex flex-col gap-2">
+            <p id={rotuloId} className="text-[14.5px] font-semibold leading-snug">{op.rotulo}</p>
+            <Segmentado rotuloId={rotuloId} valor={String(valor)} opcoes={[...ROTULO_CONTATO]} disabled={bloqueada} onMudar={(v) => mudar(op.chave, v)} />
+            <p className="text-[13px] leading-snug text-texto-2">
+              {valor === 'perguntar' && 'O bot pergunta no fim. Quem responder 2 recebe a orientação, mas o caso não chega à Fila (o bot avisa a pessoa antes).'}
+              {valor === 'sempre' && 'Todo caso concluído entra na Fila, sem perguntar.'}
+              {valor === 'nunca' && 'O bot só orienta: a equipe só fica sabendo de quem for ao CRAS. Casos de violência continuam entrando.'}
+              {nota}
             </p>
-            {op.tipo === 'contato' && valor === 'nunca' && (
-              <Aviso>Com “Nunca”, os casos deste fluxo não chegam à Fila: a equipe só fica sabendo de quem for ao CRAS. O bot avisa a pessoa disso no fim. Casos de violência continuam entrando.</Aviso>
-            )}
-            {op.tipo === 'contato' && valor === 'perguntar' && (
-              <Aviso tom="info">Quem responder 2 recebe a orientação, mas o caso não chega à Fila. O bot avisa a pessoa disso antes de ela escolher.</Aviso>
-            )}
+            {valor === 'nunca' && <Aviso>Com “Nunca”, nenhum caso deste fluxo chega à Fila, a não ser os de violência.</Aviso>}
           </div>
         );
       })}
+      {etapa.travada && (
+        <p className="flex items-start gap-2 text-[13px] leading-snug text-texto-2">
+          <Lock className="mt-0.5 size-4 shrink-0 text-texto-3" aria-hidden />
+          {etapa.travada}
+        </p>
+      )}
+      {opcoes.length === 0 && !etapa.travada && <p className="text-[13px] text-texto-3">Nada para ligar ou desligar nesta etapa.</p>}
+      {!ctx.podeEditar && opcoes.length > 0 && <p className="text-[13px] text-texto-3">Só a coordenação muda os ajustes.</p>}
       {erro && <Aviso>{erro}</Aviso>}
-    </fieldset>
+    </section>
+  );
+}
+
+function ParaOndeVai({ etapa, semConfirmacao, onAbrir }: { etapa: Etapa; semConfirmacao: boolean; onAbrir: (id: string) => void }) {
+  const saidas = LIGACOES.filter((l) => l.de === etapa.id && (!l.quando || (l.quando === 'sem_confirmacao' && semConfirmacao)));
+  return (
+    <section aria-labelledby="t-depois" className="flex flex-col gap-2">
+      <h3 id="t-depois" className="text-[13.5px] font-semibold text-texto-2">Para onde a conversa vai</h3>
+      {saidas.length > 0 ? (
+        <ul className="flex flex-col">
+          {saidas.map((l) => (
+            <li key={l.para}>
+              <button type="button" onClick={() => onAbrir(l.para)}
+                className="group flex w-full items-center gap-2 rounded-[5px] px-2 py-1.5 text-left text-[14px] hover:bg-elevada focus-visible:outline-2 focus-visible:outline-caneta">
+                <span className="text-texto-2">{l.rotulo ?? 'depois'}</span>
+                <ArrowRight className={`size-3.5 shrink-0 ${l.urgente ? 'text-urgente' : 'text-texto-3'}`} aria-hidden />
+                <span className="font-semibold group-hover:underline group-hover:underline-offset-4">{POR_ID[l.para].titulo}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-[14px] leading-relaxed text-texto-2">{etapa.depois ?? (etapa.tipo === 'fim' ? 'A conversa termina aqui.' : 'Depois disso, a conversa segue de onde estava.')}</p>
+      )}
+    </section>
   );
 }
 
@@ -505,9 +565,9 @@ function EditorServico({ servico, ctx, onSalvo }: { servico: Servico; ctx: Conte
       </div>
 
       <aside aria-label="Prévia no WhatsApp" className="xl:sticky xl:top-6 self-start">
-        <p className="mb-2 text-[13px] font-medium text-texto-2">Como aparece no WhatsApp</p>
-        <div className="rounded-[6px] border border-linha bg-[#efeae2] p-4">
-          <div className="ml-6 rounded-[6px] rounded-tr-[2px] bg-[#d9fdd3] px-4 py-3 text-[13.5px] leading-relaxed text-[#111b21] shadow-[0_1px_0_rgb(0_0_0/0.08)]">
+        <p className="mb-2 text-[13.5px] font-semibold text-texto-2">O que a pessoa vê no WhatsApp</p>
+        <div className="conversa-whats rounded-[6px] border border-linha py-4 pl-5 pr-4">
+          <div className="balao-whats px-3.5 py-2.5 text-[13.5px] leading-relaxed">
             <p className="font-semibold">📋 {titulo}</p>
             <p className="mt-3 font-semibold">O que você pode procurar:</p>
             {linhas(servicos).map((s) => <p key={s}>• {s}</p>)}
@@ -523,12 +583,20 @@ function EditorServico({ servico, ctx, onSalvo }: { servico: Servico; ctx: Conte
   );
 }
 
-function EditorTexto({ texto, ctx, onSalvo }: { texto: TextoBot; ctx: Contexto; onSalvo: () => void }) {
+/** A caixa de edição cresce com o texto, como o próprio balão. */
+function crescer(el: HTMLTextAreaElement | null) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = `${el.scrollHeight}px`;
+}
+
+/** Uma mensagem do bot no balão do WhatsApp, editada ali mesmo. */
+function BalaoTexto({ texto, ctx, onSalvo }: { texto: TextoBot; ctx: Contexto; onSalvo: () => void }) {
+  const [editando, setEditando] = useState(false);
   const [valor, setValor] = useState(texto.texto);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [salvo, setSalvo] = useState(false);
-  const somenteLeitura = !ctx.podeEditar;
 
   const executar = async (caminho: string, opcoes: RequestInit) => {
     setSalvando(true);
@@ -536,6 +604,7 @@ function EditorTexto({ texto, ctx, onSalvo }: { texto: TextoBot; ctx: Contexto; 
     try {
       await api(comUnidade(caminho, ctx.unidade), opcoes);
       setSalvo(true);
+      setEditando(false);
       onSalvo();
     } catch (e) {
       setErro(e instanceof ErroApi ? e.message : 'Não foi possível salvar.');
@@ -548,30 +617,47 @@ function EditorTexto({ texto, ctx, onSalvo }: { texto: TextoBot; ctx: Contexto; 
   const podeVoltar = ctx.unidade ? texto.personalizado : texto.texto !== texto.padrao;
   const id = `texto-${texto.chave}`;
   return (
-    <div className="rounded-[6px] border border-linha bg-superficie p-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <label htmlFor={id} className="font-medium">{texto.descricao}</label>
-        {ctx.unidade && <span className={`text-[11px] ${texto.personalizado ? 'text-caneta' : 'text-texto-3'}`}>{texto.personalizado ? 'personalizado neste CRAS' : 'padrão da secretaria'}</span>}
-      </div>
-      <textarea id={id} rows={Math.min(10, Math.max(3, valor.split('\n').length + 1))} value={valor} readOnly={somenteLeitura}
-        onChange={(e) => { setValor(e.target.value); setSalvo(false); }}
-        className={`${classeEntrada} mt-2 resize-y font-[inherit] leading-relaxed ${somenteLeitura ? 'opacity-80' : ''}`} />
-      {!somenteLeitura && <p className="mt-1 text-xs text-texto-3">Use *asteriscos* para negrito no WhatsApp.</p>}
-      {erro && <div className="mt-2"><Aviso>{erro}</Aviso></div>}
-      {!somenteLeitura && (
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <Botao tamanho="sm" variante="primario" icone={Save} carregando={salvando} disabled={valor === texto.texto}
-            onClick={() => executar(`/configuracao/textos/${texto.chave}`, atualizar({ texto: valor }, 'PUT'))}>
-            {ctx.unidade ? 'Salvar para este CRAS' : 'Salvar'}
-          </Botao>
-          {podeVoltar && (
-            <Botao tamanho="sm" variante="fantasma" icone={RotateCcw}
-              onClick={() => executar(`/configuracao/textos/${texto.chave}/restaurar`, enviar({}))}>
-              {ctx.unidade ? 'Voltar ao padrão da secretaria' : 'Voltar ao original'}
-            </Botao>
+    <div className="flex flex-col gap-1.5">
+      <p className="flex flex-wrap items-baseline gap-x-2 pl-2 text-[12.5px] text-[#54656f]">
+        <label htmlFor={editando ? id : undefined}>{texto.descricao}</label>
+        {ctx.unidade && texto.personalizado && <span className="font-semibold text-caneta">personalizado neste CRAS</span>}
+      </p>
+      {editando ? (
+        <div className="balao-whats ml-2 max-w-[560px] p-1.5 ring-2 ring-caneta/45">
+          <textarea id={id} ref={crescer} autoFocus value={valor} rows={3}
+            onChange={(e) => { setValor(e.target.value); crescer(e.target); }}
+            className="w-full resize-none overflow-hidden rounded-[4px] bg-transparent px-1.5 py-1 text-[14.5px] leading-[1.45] text-[#111b21] focus:outline-none" />
+        </div>
+      ) : (
+        <div className="balao-whats ml-2 max-w-[560px] whitespace-pre-wrap px-3 py-2 text-[14.5px] leading-[1.45]">{whatsapp(texto.texto)}</div>
+      )}
+      {erro && <div className="ml-2 max-w-[560px]"><Aviso>{erro}</Aviso></div>}
+      {ctx.podeEditar && (
+        <div className="ml-2 flex flex-wrap items-center gap-2 pt-0.5">
+          {editando ? (
+            <>
+              <Botao tamanho="sm" variante="primario" icone={Save} carregando={salvando} disabled={valor === texto.texto}
+                onClick={() => executar(`/configuracao/textos/${texto.chave}`, atualizar({ texto: valor }, 'PUT'))}>
+                {ctx.unidade ? 'Salvar para este CRAS' : 'Salvar'}
+              </Botao>
+              <Botao tamanho="sm" variante="fantasma" onClick={() => { setEditando(false); setValor(texto.texto); setErro(null); }}>Cancelar</Botao>
+              <span className="text-[12.5px] text-[#54656f]">Use *asteriscos* para negrito.</span>
+            </>
+          ) : (
+            <>
+              <Botao tamanho="sm" icone={Pencil} onClick={() => { setEditando(true); setSalvo(false); }}>Editar texto</Botao>
+              {podeVoltar && (
+                <Botao tamanho="sm" variante="fantasma" icone={RotateCcw} carregando={salvando}
+                  onClick={() => executar(`/configuracao/textos/${texto.chave}/restaurar`, enviar({}))}>
+                  {ctx.unidade ? 'Voltar ao padrão da secretaria' : 'Voltar ao original'}
+                </Botao>
+              )}
+              {salvo && <span role="status" className="text-[12.5px] font-semibold text-ok">Salvo. Já vale nas próximas conversas.</span>}
+              {!salvo && texto.atualizado_em && (
+                <span className="text-[12.5px] text-[#54656f]">Alterado em {dataHora(texto.atualizado_em)}{texto.atualizado_por ? ` por ${texto.atualizado_por}` : ''}</span>
+              )}
+            </>
           )}
-          {salvo && <span role="status" className="text-xs text-ok">Salvo.</span>}
-          {texto.atualizado_em && <span className="text-xs text-texto-3">Alterado em {dataHora(texto.atualizado_em)}{texto.atualizado_por ? ` por ${texto.atualizado_por}` : ''}</span>}
         </div>
       )}
     </div>

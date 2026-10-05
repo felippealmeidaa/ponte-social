@@ -213,29 +213,65 @@
   box-shadow: 0 1px 0 var(--color-superficie);
 }
 
-/* Mapa do fluxo (React Flow) na paleta do papel */
-.mapa-fluxo .react-flow {
-  --xy-background-color: var(--color-elevada);
-  --xy-controls-button-background-color: var(--color-superficie);
-  --xy-controls-button-background-color-hover: var(--color-elevada);
-  --xy-controls-button-color: var(--color-texto-2);
-  --xy-controls-button-color-hover: var(--color-texto);
-  --xy-controls-button-border-color: var(--color-linha);
-  --xy-controls-box-shadow: 0 8px 20px -14px rgb(23 40 74 / 0.4);
-  --xy-attribution-background-color: transparent;
-  font-family: var(--font-sans);
+/* Fluxo do bot: editor da etapa com uma orelha que aponta para a etapa escolhida no trilho */
+.editor-etapa {
+  position: relative;
 }
-.mapa-fluxo .react-flow__controls {
-  border: 1px solid var(--color-linha);
-  border-radius: 6px;
-  overflow: hidden;
+.editor-etapa::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: var(--orelha, 50%);
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  background: var(--color-superficie);
+  border-left: 1px solid var(--color-linha-forte);
+  border-top: 1px solid var(--color-linha-forte);
+  transform: rotate(45deg);
+  transition: left 220ms var(--ease-saida);
 }
-.mapa-fluxo .react-flow__attribution a {
-  color: var(--color-texto-3);
+.editor-etapa[data-sem-orelha]::before {
+  display: none;
 }
-.mapa-fluxo .react-flow__pane {
-  cursor: grab;
+@media (max-width: 1023px) {
+  .editor-etapa::before {
+    display: none;
+  }
 }
-.mapa-fluxo .react-flow__pane.dragging {
-  cursor: grabbing;
+/* Ao trocar de etapa, o conteúdo novo assenta no lugar (responde ao clique; some com movimento reduzido) */
+.assentar {
+  animation: assentar 200ms var(--ease-saida) both;
+}
+@keyframes assentar {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Balão do WhatsApp como a pessoa vê (mensagem recebida, com a pontinha) */
+.conversa-whats {
+  background-color: #efeae2;
+}
+.balao-whats {
+  position: relative;
+  background: #fff;
+  color: #111b21;
+  border-radius: 0 7.5px 7.5px 7.5px;
+  box-shadow: 0 1px 0.5px rgb(11 20 26 / 0.13);
+}
+.balao-whats::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -8px;
+  width: 8px;
+  height: 13px;
+  background: #fff;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
 }
