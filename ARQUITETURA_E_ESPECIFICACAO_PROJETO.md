@@ -74,7 +74,7 @@ NOVA → AGUARDANDO_CONSENTIMENTO → AGUARDANDO_RELATO → AGUARDANDO_CONFIRMAC
 - Prazo de retenção (`RETENCAO_DIAS`): triagens antigas são apagadas ao iniciar a API.
 - Senhas com Argon2id; JWT para o painel. Rotas do painel exigem login; webhooks não.
 - Nenhum segredo tem valor padrão no código: tudo vem do `.env` (fora do git). Fora de `development`, a API não inicia sem `SECRET_KEY` e `ENCRYPTION_SECRET_KEY`.
-- **Pendente:** termo de consentimento revisado, usuários reais em vez dos de demonstração, HTTPS e limite de requisições na publicação (Ciclo 3).
+- **Pendente:** validar o consentimento e a base legal com o orientador (`docs/termo_coleta_e_consentimento.md`), comando para o cidadão pedir exclusão dos dados, usuários reais em vez dos de demonstração, HTTPS e limite de requisições na publicação (Ciclo 3).
 
 ### 4. Modelo e avaliação
 
@@ -110,7 +110,7 @@ Também existem, sem uso no caminho principal: `services/llm/gemini_service.py` 
 
 ### 6. Pendências técnicas
 
-1. Relatos reais do CRAS parceiro + guia de rotulagem; refazer a avaliação.
+1. Relatos reais do CRAS parceiro seguindo `docs/guia_rotulagem.md` e `docs/termo_coleta_e_consentimento.md`; refazer a avaliação com um teste real.
 2. Definir com um profissional o piso de recall de violência.
 3. Preencher, no painel, a fonte oficial e a data de conferência de cada necessidade (o painel marca as que estão "a conferir" ou com mais de 6 meses); obter a lista oficial de CRAS/CREAS de Anápolis.
 4. Subir a Evolution numa VPS com número dedicado e testar com celular real.
