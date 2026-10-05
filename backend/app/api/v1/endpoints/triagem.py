@@ -7,10 +7,11 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import usuario_logado
+from app.core.deps import escopo, pode_ver, usuario_logado
 from app.core.security import decrypt_secret
 from app.db import get_session
 from app.models import Triagem
+from app.services import unidades
 from app.services.live_chat.manager import live_chat_manager
 from app.services.ml.classifier_service import SocialClassifierService
 from app.services.triagens import STATUS_VALIDOS, TENANT_PADRAO, criar_triagem, listar, para_dict
@@ -40,12 +41,18 @@ async def predizer_relato(payload: TriagemRequest):
 
 
 @router.post("/submeter")
-async def submeter_triagem(payload: TriagemRequest, session: AsyncSession = Depends(get_session)):
-    """Classifica o relato e coloca na fila do CRAS (entrada pelo painel/web)."""
+async def submeter_triagem(payload: TriagemRequest, usuario: Dict[str, Any] = Depends(usuario_logado), session: AsyncSession = Depends(get_session)):
+    """Classifica o relato e coloca na fila (entrada pelo painel/web). Conta de um CRAS registra na própria
+    unidade; a coordenação geral, no CRAS do bairro informado (se houver)."""
     classificacao = SocialClassifierService.classify_relato(payload.relato)
+    unidade_id = escopo(usuario)
+    if not unidade_id and payload.bairro:
+        unidade = await unidades.cras_do_bairro(session, payload.bairro)
+        unidade_id = unidade.id if unidade else None
     triagem = await criar_triagem(
         session, payload.relato, classificacao, canal=payload.canal,
         telefone=payload.telefone, nome=payload.nome, bairro=payload.bairro, cidade=payload.cidade,
+        unidade_id=unidade_id,
     )
     return {
         "triagem_id": triagem.id,
@@ -59,19 +66,21 @@ async def listar_fila_triagens(
     status_filter: Optional[str] = None,
     prioridade_filter: Optional[str] = None,
     categoria_filter: Optional[str] = None,
+    usuario: Dict[str, Any] = Depends(usuario_logado),
     session: AsyncSession = Depends(get_session),
 ):
-    """Fila de triagens para o painel do CRAS, mais recentes primeiro."""
-    itens = await listar(session, status_filter, prioridade_filter, categoria_filter)
+    """Fila de triagens: só as da unidade da conta (coordenação geral vê todas)."""
+    itens = await listar(session, status_filter, prioridade_filter, categoria_filter, unidade=escopo(usuario))
     return [para_dict(t) for t in itens]
 
 
 @router.patch("/{triagem_id}/status")
-async def atualizar_status_triagem(triagem_id: str, payload: UpdateStatusRequest, session: AsyncSession = Depends(get_session)):
+async def atualizar_status_triagem(triagem_id: str, payload: UpdateStatusRequest, usuario: Dict[str, Any] = Depends(usuario_logado),
+                                  session: AsyncSession = Depends(get_session)):
     if payload.status not in STATUS_VALIDOS:
         raise HTTPException(status_code=422, detail=f"Status inválido. Use um de: {sorted(STATUS_VALIDOS)}")
     triagem = await session.get(Triagem, triagem_id)
-    if triagem is None:
+    if triagem is None or not pode_ver(usuario, triagem.unidade_id):
         raise HTTPException(status_code=404, detail="Triagem não encontrada")
     triagem.status = payload.status
     triagem.atualizado_em = datetime.now(timezone.utc)
@@ -85,10 +94,12 @@ async def atualizar_status_triagem(triagem_id: str, payload: UpdateStatusRequest
 
 
 @router.get("/exemplos-rotulados")
-async def exportar_exemplos_rotulados(session: AsyncSession = Depends(get_session)):
+async def exportar_exemplos_rotulados(usuario: Dict[str, Any] = Depends(usuario_logado), session: AsyncSession = Depends(get_session)):
     """Relatos (já anonimizados) cuja categoria o próprio cidadão confirmou ou corrigiu no WhatsApp,
     com consentimento. São candidatos a novos exemplos de treino — revisar antes de usar."""
     q = select(Triagem).where(Triagem.categoria_confirmada_pelo_cidadao.is_(True), Triagem.consentiu_uso_para_treino.is_(True))
+    if escopo(usuario):
+        q = q.where(Triagem.unidade_id == escopo(usuario))
     itens = (await session.execute(q)).scalars().all()
     return [
         {"texto": t.relato_anonimizado, "categoria": t.categoria, "categoria_sugerida_pelo_modelo": t.categoria_modelo,
@@ -102,7 +113,7 @@ async def ver_contato(triagem_id: str, usuario: Dict[str, Any] = Depends(usuario
                       session: AsyncSession = Depends(get_session)):
     """Telefone completo para o CRAS retornar o contato. Fica registrado quem consultou."""
     triagem = await session.get(Triagem, triagem_id)
-    if triagem is None:
+    if triagem is None or not pode_ver(usuario, triagem.unidade_id):
         raise HTTPException(status_code=404, detail="Triagem não encontrada")
     telefone = decrypt_secret(triagem.telefone_cifrado)
     if not telefone:
@@ -114,10 +125,13 @@ async def ver_contato(triagem_id: str, usuario: Dict[str, Any] = Depends(usuario
 
 
 @router.get("/indicadores/resumo")
-async def indicadores(dias: int = 30, session: AsyncSession = Depends(get_session)):
+async def indicadores(dias: int = 30, usuario: Dict[str, Any] = Depends(usuario_logado), session: AsyncSession = Depends(get_session)):
     """Números da fila e indicadores de impacto propostos no plano (seção 10). Ignora os exemplos de demonstração."""
     desde = datetime.now(timezone.utc) - timedelta(days=dias)
-    itens = (await session.execute(select(Triagem).where(Triagem.criado_em >= desde, Triagem.canal != "demo"))).scalars().all()
+    consulta = select(Triagem).where(Triagem.criado_em >= desde, Triagem.canal != "demo")
+    if escopo(usuario):
+        consulta = consulta.where(Triagem.unidade_id == escopo(usuario))
+    itens = (await session.execute(consulta)).scalars().all()
     por_dia = Counter(t.criado_em.date().isoformat() for t in itens)
     confirmadas = [t for t in itens if t.categoria_confirmada_pelo_cidadao]
     atendidas = [t for t in itens if t.atualizado_em and t.status in {"EM_ATENDIMENTO", "CONCLUIDO", "ENCAMINHADO_CREAS"}]

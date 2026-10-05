@@ -6,8 +6,10 @@ Fluxo da conversa no WhatsApp (plano do projeto, seção 4).
                                                                    ▼               ▼
                                          FINALIZADA ◄─ AGUARDANDO_CONTATO ◄─ AGUARDANDO_CORRECAO
 
+  Com CRAS cadastrado, o bairro vem logo depois do aceite (AGUARDANDO_BAIRRO): ele escolhe o CRAS,
+  e daí em diante valem os textos, as respostas e as opções de fluxo daquele CRAS.
   Estados auxiliares: RELATO_NOVAMENTE (não entendeu uma vez), RETORNO (quem já consentiu volta
-  a escrever), AGUARDANDO_BAIRRO (só quando há CRAS cadastrado) e CONFIRMAR_APAGAR.
+  a escrever) e CONFIRMAR_APAGAR.
 
 Regras:
 - Sinal de violência em QUALQUER etapa interrompe o fluxo e mostra os canais de emergência,
@@ -16,8 +18,10 @@ Regras:
 - Nada identificado: pede para contar de outro jeito; na segunda vez, oferece o menu de assuntos
   com "Nenhum desses" (Disque Social 121 e CRAS), sem inventar resposta.
 - Mais de uma necessidade: mostra o caminho da principal e um resumo das outras, por prioridade.
-- Com CRAS cadastrado no painel, pergunta o bairro e indica a unidade (plano, seção 4, passo 4).
-  O bairro fica guardado para as próximas conversas da pessoa. Na emergência, mostra o CREAS cadastrado.
+- Número único para a cidade: o bairro define o CRAS (plano, seção 4, passo 4) e fica guardado.
+  Cada CRAS escolhe: confirmar ou não a necessidade, pedir detalhes de relato curto, menu de assuntos na
+  1ª ou 2ª falha, mostrar outras necessidades e como fica o contato (perguntar, sempre ou nunca).
+  Travados para todos: violência, aceite, "apagar" e "recomeçar". Na emergência, mostra o CREAS cadastrado.
 - Comandos em qualquer etapa: "apagar" (exclui os dados da pessoa, com confirmação) e "recomeçar".
 - Conversa parada além de CONVERSA_EXPIRA_MIN recomeça; quem já consentiu não é perguntado de novo.
 - A triagem só entra na fila se a pessoa pedir contato do CRAS.
@@ -35,7 +39,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.security import encrypt_secret, mask_phone
-from app.models import Conversa, Mensagem, Triagem, agora
+from app.models import Conversa, Mensagem, Triagem, UnidadeAtendimento, agora
 from app.services import catalogo, unidades
 from app.services.anonimizacao import anonimizar_texto, hash_telefone
 from app.services.ml.classifier_service import PRIORIDADE_POR_CATEGORIA, SocialClassifierService
@@ -91,10 +95,10 @@ def _secundarias_por_prioridade(principal: str, secundarias: Sequence[str]) -> L
 
 
 def caminho_completo(categoria: str, secundarias: Sequence[str] = (), cras: Optional[str] = None,
-                     aviso_bairro: Optional[str] = None) -> str:
-    """cras: descrição da unidade do bairro da pessoa (quando há CRAS cadastrado);
-    aviso_bairro: texto quando o bairro não foi encontrado."""
-    info = catalogo.servico(categoria)
+                     unidade: Optional[str] = None, perguntar_contato: bool = True) -> str:
+    """Resposta com o caminho da necessidade, usando as respostas do CRAS (ou o padrão da secretaria).
+    cras: descrição da unidade de referência da pessoa."""
+    info = catalogo.servico(categoria, unidade)
     servicos = "\n".join(f"• {s}" for s in info["servicos"])
     documentos = "\n".join(f"• {d}" for d in info["documentos"])
     texto = (
@@ -103,22 +107,21 @@ def caminho_completo(categoria: str, secundarias: Sequence[str] = (), cras: Opti
         f"*Documentos para levar:*\n{documentos}\n\n"
         f"*Onde ir:* {info['local_atendimento']}\n"
         + (f"*CRAS do seu bairro:* {cras}\n" if cras else "")
-        + (f"{aviso_bairro}\n" if aviso_bairro else "")
         + f"*Contato:* {info['contato_util']}\n\n"
     )
     # Plano, seção 4: mais de uma necessidade → mostrar todas, em ordem de prioridade
     for outra in _secundarias_por_prioridade(categoria, secundarias):
-        extra = catalogo.servico(outra)
+        extra = catalogo.servico(outra, unidade)
         texto += (
             f"➕ *Você também falou de {NOMES_CATEGORIA[outra]}:* {extra['titulo']}\n"
             f"Procure: {'; '.join(extra['servicos'])}.\n"
             f"Leve: {'; '.join(extra['documentos'])}.\n"
             f"Onde: {extra['local_atendimento']}\n\n"
         )
-    return texto + (
-        "Lembre: é uma orientação. Quem confirma o seu direito é o profissional do atendimento.\n\n"
-        "Quer que o CRAS entre em contato com você?\n*1* - Sim\n*2* - Não, obrigado"
-    )
+    texto += "Lembre: é uma orientação. Quem confirma o seu direito é o profissional do atendimento."
+    if perguntar_contato:
+        texto += "\n\nQuer que o CRAS entre em contato com você?\n*1* - Sim\n*2* - Não, obrigado"
+    return texto
 
 
 def registrar(session: AsyncSession, conversa: Conversa, autor: str, texto: str) -> None:
@@ -150,7 +153,7 @@ async def processar_mensagem(session: AsyncSession, telefone: str, texto: Option
         if conversa.atendimento_humano:
             return []  # o atendente responde pelo painel
         if is_audio:
-            respostas = [catalogo.texto("audio")]
+            respostas = [catalogo.texto("audio", conversa.unidade_id)]
         else:
             expirada = conversa.atualizado_em is not None and \
                 conversa.atualizado_em.replace(tzinfo=agora().tzinfo) < agora() - timedelta(minutes=settings.CONVERSA_EXPIRA_MIN)
@@ -160,6 +163,9 @@ async def processar_mensagem(session: AsyncSession, telefone: str, texto: Option
                 conversa.tentativas, conversa.relato = 0, None
                 conversa.categoria_sugerida = conversa.categoria_escolhida = None
                 conversa.classificacao = None
+                if conversa.bairro:  # a coordenação pode ter mudado os bairros de cada CRAS
+                    unidade = await unidades.cras_do_bairro(session, conversa.bairro)
+                    conversa.unidade_id = unidade.id if unidade else None
             respostas = await _passo(session, conversa, telefone, texto)
         apagada = getattr(conversa, "_apagada", False)
         if not apagada:
@@ -186,53 +192,76 @@ async def _apagar_dados(session: AsyncSession, conversa: Conversa) -> bool:
     return mantidos > 0
 
 
+async def _registrar_triagem(session: AsyncSession, conversa: Conversa, telefone: str) -> None:
+    classificacao = conversa.classificacao or {}
+    await criar_triagem(
+        session, conversa.relato, classificacao, canal="whatsapp", telefone=telefone,
+        nome="Contato via WhatsApp", categoria_final=conversa.categoria_escolhida, bairro=conversa.bairro,
+        confirmada=bool(classificacao.get("confirmada")), consentiu_treino=True,
+        conversa_id=conversa.telefone_hash, unidade_id=conversa.unidade_id,
+    )
+
+
 async def _emergencia(session: AsyncSession, conversa: Conversa, telefone: str, texto: str) -> List[str]:
     classificacao = SocialClassifierService.classify_relato(anonimizar_texto(texto))
     await criar_triagem(session, texto, classificacao, canal="whatsapp", telefone=telefone,
-                        nome="Contato via WhatsApp", categoria_final=VIOLENCIA, conversa_id=conversa.telefone_hash)
+                        nome="Contato via WhatsApp", categoria_final=VIOLENCIA, bairro=conversa.bairro,
+                        conversa_id=conversa.telefone_hash, unidade_id=conversa.unidade_id)
     conversa.estado = "FINALIZADA"
     creas = await unidades.creas_ativo(session)
-    return [catalogo.texto("emergencia") + (f"\n\n📍 CREAS: {unidades.descricao(creas)}" if creas else "")]
+    return [catalogo.texto("emergencia", conversa.unidade_id) + (f"\n\n📍 CREAS: {unidades.descricao(creas)}" if creas else "")]
 
 
-async def _ir_para_caminho(session: AsyncSession, conversa: Conversa, categoria: str, secundarias: Sequence[str] = ()) -> List[str]:
-    """Plano, seção 4, passo 4: com CRAS cadastrado, pergunta o bairro antes de mostrar o caminho."""
-    conversa.categoria_escolhida = categoria
-    if await unidades.tem_cras_ativo(session) and not conversa.bairro:
-        conversa.estado = "AGUARDANDO_BAIRRO"
-        return [catalogo.texto("pedir_bairro")]
-    return await _mostrar_caminho(session, conversa, secundarias)
+async def _precisa_bairro(session: AsyncSession, conversa: Conversa) -> bool:
+    """Número único para a cidade: o bairro define o CRAS e, com ele, o fluxo que vale daqui em diante."""
+    return bool(catalogo.opcoes_fluxo(None)["perguntar_bairro"]) and not conversa.bairro and await unidades.tem_cras_ativo(session)
 
 
-async def _mostrar_caminho(session: AsyncSession, conversa: Conversa, secundarias: Sequence[str] = ()) -> List[str]:
-    conversa.estado = "AGUARDANDO_CONTATO"
-    cras = aviso = None
-    if conversa.bairro and await unidades.tem_cras_ativo(session):
-        unidade = await unidades.cras_do_bairro(session, conversa.bairro)
-        if unidade:
-            cras = unidades.descricao(unidade)
-        else:
-            aviso = catalogo.texto("bairro_nao_encontrado")
-    return [caminho_completo(conversa.categoria_escolhida, secundarias, cras=cras, aviso_bairro=aviso)]
+def _marcar_confirmada(conversa: Conversa, confirmada: bool) -> None:
+    conversa.classificacao = {**(conversa.classificacao or {}), "confirmada": confirmada}
+
+
+async def _mostrar_caminho(session: AsyncSession, conversa: Conversa, telefone: str, secundarias: Sequence[str] = ()) -> List[str]:
+    u = conversa.unidade_id
+    opcoes = catalogo.opcoes_fluxo(u)
+    if not opcoes["mostrar_outras_necessidades"]:
+        secundarias = ()
+    cras = None
+    if u:
+        unidade = await session.get(UnidadeAtendimento, u)
+        cras = unidades.descricao(unidade) if unidade else None
+    modo = opcoes["contato"]
+    caminho = caminho_completo(conversa.categoria_escolhida, secundarias, cras=cras, unidade=u, perguntar_contato=modo == "perguntar")
+    if modo == "perguntar":
+        conversa.estado = "AGUARDANDO_CONTATO"
+        return [caminho]
+    conversa.estado = "FINALIZADA"
+    if modo == "sempre":  # este CRAS quer todo caso na fila, sem perguntar
+        await _registrar_triagem(session, conversa, telefone)
+        return [caminho, catalogo.texto("contato_confirmado", u)]
+    return [caminho, catalogo.texto("fim_sem_contato", u)]
 
 
 async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto: str) -> List[str]:
     estado = conversa.estado
     texto_norm = normalizar(texto).strip(" .!?")
 
+    def t(chave: str) -> str:  # texto do CRAS da pessoa (ou da secretaria)
+        return catalogo.texto(chave, conversa.unidade_id)
+
     # Comandos que valem em qualquer etapa. Vêm antes da regra de violência porque só casam com a
     # mensagem inteira (nunca com um relato) e o modelo pode confundir "apagar meus dados" com ameaça.
     if texto_norm in COMANDO_APAGAR and estado != "CONFIRMAR_APAGAR":
         conversa.estado = "CONFIRMAR_APAGAR"
-        return [catalogo.texto("apagar_confirmar")]
+        return [t("apagar_confirmar")]
     if texto_norm in COMANDO_RECOMECAR:
         if not conversa.consentiu_em:
             conversa.estado = "AGUARDANDO_CONSENTIMENTO"
-            return [catalogo.texto("boas_vindas")]
+            return [t("boas_vindas")]
         conversa.estado, conversa.tentativas = "AGUARDANDO_RELATO", 0
         conversa.relato = conversa.categoria_sugerida = conversa.categoria_escolhida = None
         conversa.classificacao = None
-        return [catalogo.texto("pedir_relato")]
+        return [t("pedir_relato")]
 
     # Classifica o mesmo texto que será gravado (sem CPF/telefone/e-mail)
     classificacao = SocialClassifierService.classify_relato(anonimizar_texto(texto)) if texto else None
@@ -247,61 +276,89 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
             mantido = await _apagar_dados(session, conversa)
             aviso = ("\n\nO pedido de ajuda urgente que você enviou continua com a equipe até o atendimento, "
                      "para a sua proteção.") if mantido else ""
-            return [catalogo.texto("apagar_feito") + aviso]
+            return [t("apagar_feito") + aviso]
         if resposta is False:
             conversa.estado = "FINALIZADA"
-            return [catalogo.texto("apagar_cancelado")]
+            return [t("apagar_cancelado")]
         return ["Responda *1* para apagar seus dados ou *2* para manter."]
 
     if estado == "NOVA":
         conversa.estado = "AGUARDANDO_CONSENTIMENTO"
-        return [catalogo.texto("boas_vindas")]
+        return [t("boas_vindas")]
 
     if estado == "RETORNO":
         if texto_norm in AGRADECIMENTO:
             conversa.estado = "FINALIZADA"
-            return [catalogo.texto("agradecimento")]
+            return [t("agradecimento")]
+        if await _precisa_bairro(session, conversa):
+            conversa.estado = "AGUARDANDO_BAIRRO"
+            return [t("pedir_bairro")]
         conversa.estado = "AGUARDANDO_RELATO"
         if len(texto.split()) < 4:  # "oi", "bom dia": cumprimenta e pede o relato
-            return [catalogo.texto("retorno")]
+            return [t("retorno")]
         estado = "AGUARDANDO_RELATO"  # mensagem longa já é o relato
 
     if estado == "AGUARDANDO_CONSENTIMENTO":
         resposta = _resposta(texto)
         if resposta is True:
             conversa.consentiu_em = agora()
+            if await _precisa_bairro(session, conversa):
+                conversa.estado = "AGUARDANDO_BAIRRO"
+                return [t("pedir_bairro")]
             conversa.estado = "AGUARDANDO_RELATO"
-            return [catalogo.texto("pedir_relato")]
+            return [t("pedir_relato")]
         if resposta is False:
             conversa.consentiu_em = None
             conversa.estado = "FINALIZADA"
-            return [catalogo.texto("sem_consentimento")]
+            return [t("sem_consentimento")]
         return ["Para continuar, responda *1* (Sim, concordo) ou *2* (Não)."]
 
+    if estado == "AGUARDANDO_BAIRRO":
+        # O bairro escolhe o CRAS; "não sei" ou bairro de fora seguem com o padrão da secretaria
+        bairro = None if texto_norm in unidades.NAO_SEI else texto.strip()[:80]
+        unidade = await unidades.cras_do_bairro(session, bairro) if bairro else None
+        conversa.bairro, conversa.unidade_id = bairro, (unidade.id if unidade else None)
+        conversa.estado = "AGUARDANDO_RELATO"
+        if unidade:
+            return [t("cras_indicado").replace("{cras}", unidade.nome) + "\n\n" + t("pedir_relato")]
+        if bairro:
+            return [t("bairro_nao_encontrado") + "\n\n" + t("pedir_relato")]
+        return [t("pedir_relato")]
+
     if estado in ("AGUARDANDO_RELATO", "RELATO_NOVAMENTE"):
-        if len(texto.split()) < 4 and conversa.tentativas == 0:
+        opcoes = catalogo.opcoes_fluxo(conversa.unidade_id)
+        if opcoes["pedir_detalhes_relato_curto"] and len(texto.split()) < 4 and conversa.tentativas == 0:
             conversa.tentativas = 1
-            return [catalogo.texto("relato_curto")]
+            return [t("relato_curto")]
         conversa.relato = anonimizar_texto(texto)
         conversa.classificacao = classificacao
         if classificacao["categoria"] == NAO_IDENTIFICADO:
-            if estado == "AGUARDANDO_RELATO":
+            if estado == "AGUARDANDO_RELATO" and not opcoes["menu_na_primeira_falha"]:
                 conversa.estado = "RELATO_NOVAMENTE"
-                return [catalogo.texto("nao_entendi")]
+                return [t("nao_entendi")]
             conversa.estado = "AGUARDANDO_CORRECAO"
-            return [_menu_categorias(catalogo.texto("nao_entendi_de_novo"))]
+            introducao = t("nao_entendi_de_novo") if estado == "RELATO_NOVAMENTE" else \
+                "Não consegui entender com segurança. Escolha o assunto pelo número:"
+            return [_menu_categorias(introducao)]
         conversa.categoria_sugerida = classificacao["categoria"]
+        secundarias = classificacao.get("necessidades_secundarias", [])
+        if not opcoes["confirmar_necessidade"]:  # este CRAS dispensa a confirmação
+            conversa.categoria_escolhida = conversa.categoria_sugerida
+            _marcar_confirmada(conversa, False)
+            return await _mostrar_caminho(session, conversa, telefone, secundarias)
         conversa.estado = "AGUARDANDO_CONFIRMACAO"
         assuntos = [NOMES_CATEGORIA[classificacao["categoria"]]] + [
-            NOMES_CATEGORIA[c] for c in _secundarias_por_prioridade(classificacao["categoria"], classificacao.get("necessidades_secundarias", []))
-        ]
+            NOMES_CATEGORIA[c] for c in _secundarias_por_prioridade(classificacao["categoria"], secundarias)
+        ] if opcoes["mostrar_outras_necessidades"] else [NOMES_CATEGORIA[classificacao["categoria"]]]
         return [f"Entendi que você precisa de ajuda com *{' e '.join(assuntos)}*. Está certo?\n*1* - Sim\n*2* - Não"]
 
     if estado == "AGUARDANDO_CONFIRMACAO":
         resposta = _resposta(texto)
         if resposta is True:
+            conversa.categoria_escolhida = conversa.categoria_sugerida
+            _marcar_confirmada(conversa, True)
             secundarias = (conversa.classificacao or {}).get("necessidades_secundarias", [])
-            return await _ir_para_caminho(session, conversa, conversa.categoria_sugerida, secundarias)
+            return await _mostrar_caminho(session, conversa, telefone, secundarias)
         if resposta is False:
             conversa.estado = "AGUARDANDO_CORRECAO"
             return [_menu_categorias()]
@@ -310,21 +367,15 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
     if estado == "AGUARDANDO_CORRECAO":
         if texto.isdigit() and int(texto) == OPCAO_NENHUM:
             conversa.estado = "FINALIZADA"
-            return [catalogo.texto("nao_entendi")]
+            return [t("nao_entendi")]
         if texto.isdigit() and 1 <= int(texto) <= len(CATEGORIAS):
             escolhida = CATEGORIAS[int(texto) - 1]
             if escolhida == VIOLENCIA:
                 return await _emergencia(session, conversa, telefone, conversa.relato or texto)
-            return await _ir_para_caminho(session, conversa, escolhida)
+            conversa.categoria_escolhida = escolhida
+            _marcar_confirmada(conversa, True)
+            return await _mostrar_caminho(session, conversa, telefone)
         return [f"Responda só com o número, de 1 a {OPCAO_NENHUM}."]
-
-    if estado == "AGUARDANDO_BAIRRO":
-        # "não sei" segue sem bairro; qualquer outra resposta é guardada como bairro
-        conversa.bairro = None if normalizar(texto).strip(" .!?") in unidades.NAO_SEI else texto.strip()[:80]
-        secundarias = []
-        if conversa.categoria_escolhida == conversa.categoria_sugerida:
-            secundarias = (conversa.classificacao or {}).get("necessidades_secundarias", [])
-        return await _mostrar_caminho(session, conversa, secundarias)
 
     if estado == "AGUARDANDO_CONTATO":
         resposta = _resposta(texto)
@@ -332,13 +383,9 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
             return ["Responda *1* para o CRAS entrar em contato ou *2* para não."]
         conversa.estado = "FINALIZADA"
         if resposta is False:
-            return [catalogo.texto("contato_recusado")]
-        await criar_triagem(
-            session, conversa.relato, conversa.classificacao, canal="whatsapp", telefone=telefone,
-            nome="Contato via WhatsApp", categoria_final=conversa.categoria_escolhida, bairro=conversa.bairro,
-            confirmada=True, consentiu_treino=True, conversa_id=conversa.telefone_hash,
-        )
-        return [catalogo.texto("contato_confirmado")]
+            return [t("contato_recusado")]
+        await _registrar_triagem(session, conversa, telefone)
+        return [t("contato_confirmado")]
 
     conversa.estado = "AGUARDANDO_CONSENTIMENTO"
-    return [catalogo.texto("boas_vindas")]
+    return [t("boas_vindas")]

@@ -58,7 +58,8 @@ NOVA → AGUARDANDO_CONSENTIMENTO → AGUARDANDO_RELATO → AGUARDANDO_CONFIRMAC
 - **Violência em qualquer etapa** interrompe o fluxo e mostra 190 / Ligue 180 / Disque 100 / CREAS, sem perguntas antes; a triagem entra como urgente.
 - Relato muito curto: pede detalhes uma única vez. Nada identificado: pede para contar de outro jeito; na segunda vez, oferece o menu de assuntos com "Nenhum desses" (Disque Social 121 + CRAS), sem inventar resposta.
 - Mais de uma necessidade: o caminho da principal vem seguido de um resumo das outras, em ordem de prioridade.
-- Com CRAS cadastrado, o bot pergunta o bairro e indica a unidade (aceita erro de digitação e falta de acento); o bairro fica guardado para as próximas conversas. Na emergência, mostra o CREAS cadastrado. Sem unidades cadastradas, o fluxo não pergunta o bairro.
+- **Número único para a cidade, um fluxo por CRAS:** com CRAS cadastrado, o bot pergunta o bairro **logo depois do aceite** (aceita erro de digitação e falta de acento). O bairro escolhe o CRAS e, daí em diante, valem os textos, as respostas por necessidade e as opções de fluxo daquele CRAS; o que ele não personalizou vem do padrão da secretaria. Bairro de fora ou "não sei": padrão da secretaria. O bairro fica guardado para as próximas conversas. Na emergência, mostra o CREAS cadastrado.
+- **Opções de fluxo por CRAS** (`catalogo.OPCOES_PADRAO`): confirmar ou não a necessidade, pedir detalhes de relato curto, menu de assuntos na 1ª ou na 2ª falha, mostrar outras necessidades e contato (perguntar / sempre / nunca). "Perguntar o bairro" é só da secretaria. **Travados para todos:** violência, aceite (LGPD), "apagar" e "recomeçar".
 - Comandos em qualquer etapa: **apagar** (com confirmação, exclui histórico, conversa e triagens do número; casos urgentes de violência ainda abertos ficam com a equipe) e **recomeçar**. Quem já consentiu não é perguntado de novo; "obrigado" depois do fim recebe só um agradecimento.
 - A triagem só vai para a fila se a pessoa pedir contato do CRAS. A correção feita pela pessoa vira exemplo rotulado (`GET /api/v1/triagem/exemplos-rotulados`).
 - Opções numeradas (1/2) em vez de botões: botões interativos não são confiáveis na Evolution/Baileys.
@@ -74,12 +75,15 @@ NOVA → AGUARDANDO_CONSENTIMENTO → AGUARDANDO_RELATO → AGUARDANDO_CONFIRMAC
 | `textos_bot` | Mensagens do bot (editáveis no painel) |
 | `usuarios` | Contas do painel: login, nome, senha (Argon2id), papel, ativo, último acesso |
 | `unidades_atendimento` | CRAS, CREAS e Centro POP: endereço, horário, telefone, bairros atendidos, fonte e data de conferência |
+| `servicos_unidade`, `textos_unidade` | Respostas e textos personalizados por CRAS (sem linha = padrão da secretaria) |
+| `opcoes_fluxo` | Opções do fluxo: `padrao` (secretaria) e uma linha por CRAS que mudou algo |
 
 ### 3. Segurança e LGPD
 
 - Relato gravado sem CPF, telefone ou e-mail (`services/anonimizacao.py`); telefone mascarado na tela e criptografado (Fernet) no banco.
 - Prazo de retenção (`RETENCAO_DIAS`): triagens antigas são apagadas ao iniciar a API.
-- Senhas com Argon2id (mínimo de 8 caracteres); JWT para o painel. Rotas do painel exigem login de conta **ativa**: desativar uma conta corta o acesso na hora, mesmo com sessão aberta. Só a coordenação gerencia a equipe, e o sistema nunca fica sem coordenação ativa. Webhooks não usam login, mas são autenticados: a Evolution manda um token secreto na URL (`EVOLUTION_WEBHOOK_TOKEN`) e a Meta assina cada chamada (`X-Hub-Signature-256`, conferida com `META_APP_SECRET`). Fora de `development`, webhook sem token ou assinatura válida é recusado.
+- Senhas com Argon2id (mínimo de 8 caracteres); JWT para o painel. Rotas do painel exigem login de conta **ativa**: desativar uma conta corta o acesso na hora, mesmo com sessão aberta. Só a coordenação gerencia a equipe, e o sistema nunca fica sem coordenação geral ativa.
+- **Escopo por unidade:** cada conta pode ser de um CRAS (vê e edita só a fila, as conversas, os indicadores, a configuração e a equipe da sua unidade) ou da coordenação geral (sem unidade: vê tudo, cadastra CRAS e edita o padrão da secretaria). Caso de outra unidade responde 404. Editar configuração exige papel de coordenação; atendimento só consulta. CRAS com contas ou casos ligados não pode ser removido, só desativado. Webhooks não usam login, mas são autenticados: a Evolution manda um token secreto na URL (`EVOLUTION_WEBHOOK_TOKEN`) e a Meta assina cada chamada (`X-Hub-Signature-256`, conferida com `META_APP_SECRET`). Fora de `development`, webhook sem token ou assinatura válida é recusado.
 - Nenhum segredo tem valor padrão no código: tudo vem do `.env` (fora do git). Fora de `development`, a API não inicia sem `SECRET_KEY` e `ENCRYPTION_SECRET_KEY`.
 - **Pendente:** validar o consentimento e a base legal com o orientador (`docs/termo_coleta_e_consentimento.md`), regra de preservação dos casos urgentes ao apagar, HTTPS e limite de requisições na publicação (Ciclo 3).
 

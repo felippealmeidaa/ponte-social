@@ -41,6 +41,7 @@ def para_dict(t: Triagem) -> Dict[str, Any]:
         "status": t.status,
         "observacoes": t.observacoes,
         "conversa_id": t.conversa_id,
+        "unidade_id": t.unidade_id,
         "tem_contato": bool(t.telefone_cifrado),
         "servicos_recomendados": t.servicos_recomendados or [],
         "documentos_necessarios": t.documentos_necessarios or [],
@@ -61,11 +62,12 @@ async def criar_triagem(
     confirmada: bool = False,
     consentiu_treino: bool = False,
     conversa_id: Optional[str] = None,
+    unidade_id: Optional[str] = None,
 ) -> Triagem:
     """categoria_final: categoria depois da confirmação/correção do cidadão. Se diferente da sugerida,
     os dados de serviço/documentos passam a ser os da categoria corrigida."""
     categoria = categoria_final or classificacao["categoria"]
-    info = catalogo.servico(categoria)
+    info = catalogo.servico(categoria, unidade_id)
     urgente = info["urgencia"]
     triagem = Triagem(
         id=f"trg-{uuid.uuid4().hex[:8]}",
@@ -89,6 +91,7 @@ async def criar_triagem(
         status="URGENTE_CREAS" if urgente else "PENDENTE",
         consentiu_uso_para_treino=consentiu_treino,
         conversa_id=conversa_id,
+        unidade_id=unidade_id,
     )
     session.add(triagem)
     await session.commit()
@@ -101,7 +104,8 @@ def _prioridade(categoria: str) -> str:
 
 
 async def listar(session: AsyncSession, status: Optional[str] = None, prioridade: Optional[str] = None,
-                 categoria: Optional[str] = None, limite: int = 200):
+                 categoria: Optional[str] = None, limite: int = 200, unidade: Optional[str] = None):
+    """unidade: só as triagens daquele CRAS (conta de uma unidade). None = todas (coordenação geral)."""
     # Urgentes primeiro, depois por prioridade; dentro da mesma prioridade, as mais recentes
     ordem_prioridade = case({"URGENTE_VIOLENCIA": 0, "ALTA": 1, "MEDIA": 2}, value=Triagem.prioridade, else_=3)
     q = select(Triagem).order_by(ordem_prioridade, Triagem.criado_em.desc()).limit(limite)
@@ -111,6 +115,8 @@ async def listar(session: AsyncSession, status: Optional[str] = None, prioridade
         q = q.where(Triagem.prioridade == prioridade)
     if categoria:
         q = q.where(Triagem.categoria == categoria)
+    if unidade:
+        q = q.where(Triagem.unidade_id == unidade)
     return (await session.execute(q)).scalars().all()
 
 

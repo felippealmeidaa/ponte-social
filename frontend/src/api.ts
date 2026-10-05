@@ -7,6 +7,8 @@ const CHAVE_USUARIO = 'cras_usuario';
 export interface Usuario {
   id: string;
   login?: string;
+  /** CRAS da conta; null = coordenação geral (vê todas as unidades). */
+  unidade_id?: string | null;
   name: string;
   email: string;
   role: string;

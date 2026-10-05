@@ -9,6 +9,7 @@ import { ServicosMensagens } from './paginas/ServicosMensagens';
 import { Configuracoes } from './paginas/Configuracoes';
 import type { ResumoConversa, Triagem } from './tipos';
 import { useAtualizacao } from './useAtualizacao';
+import { nomeUnidade, useUnidades } from './unidades';
 import { ESTADOS, ORDEM_ESTADOS } from './vocabulario';
 import type { Rota } from './navegacao';
 
@@ -49,6 +50,7 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
   }, []);
 
   const fila = useAtualizacao(useCallback(() => api<Triagem[]>('/triagem/fila'), []), 5000);
+  const unidades = useUnidades();
   const conversas = useAtualizacao(useCallback(() => api<ResumoConversa[]>('/atendimento/conversas'), []), 4000);
 
   const triagens = fila.dados ?? [];
@@ -104,7 +106,10 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
         <div className="mt-auto flex items-center justify-between gap-2 rounded-lg border border-linha px-3 py-2.5">
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">{usuario.name}</p>
-            <p className="text-xs text-texto-3">{usuario.role === 'ADMIN' ? 'Coordenação' : 'Atendimento'}</p>
+            <p className="truncate text-xs text-texto-3">
+              {usuario.role === 'ADMIN' ? 'Coordenação' : 'Atendimento'}
+              {usuario.unidade_id ? ` · ${nomeUnidade(unidades.dados, usuario.unidade_id)}` : usuario.role === 'ADMIN' ? ' geral' : ''}
+            </p>
           </div>
           <button onClick={onSair} className="rounded-md p-1.5 text-texto-3 hover:bg-elevada hover:text-texto" aria-label="Sair do sistema" title="Sair">
             <LogOut className="size-4" aria-hidden />

@@ -40,6 +40,8 @@ class Triagem(Base):
     documentos_necessarios: Mapped[list] = mapped_column(JSON, default=list)
 
     conversa_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    # CRAS responsável (pelo bairro da pessoa). None = sem unidade definida: fica com a coordenação geral
+    unidade_id: Mapped[Optional[str]] = mapped_column(String(16), nullable=True, index=True)
     status: Mapped[str] = mapped_column(String(30), default="PENDENTE", index=True)
     observacoes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     consentiu_uso_para_treino: Mapped[bool] = mapped_column(default=False)
@@ -62,6 +64,7 @@ class Conversa(Base):
     consentiu_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     relato: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # já anonimizado
     bairro: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)  # para indicar o CRAS de referência
+    unidade_id: Mapped[Optional[str]] = mapped_column(String(16), nullable=True, index=True)  # CRAS do bairro; define o fluxo
     categoria_sugerida: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     categoria_escolhida: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     classificacao: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
@@ -119,6 +122,8 @@ class Usuario(Base):
     email: Mapped[str] = mapped_column(String(160), default="")
     senha_hash: Mapped[str] = mapped_column(Text)
     papel: Mapped[str] = mapped_column(String(20), default="ATENDENTE")
+    # Unidade da conta: vê e edita só o que é dela. None = coordenação geral (secretaria), vê tudo
+    unidade_id: Mapped[Optional[str]] = mapped_column(String(16), nullable=True, index=True)
     ativo: Mapped[bool] = mapped_column(default=True)
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=agora)
     ultimo_acesso: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -139,5 +144,43 @@ class UnidadeAtendimento(Base):
     fonte: Mapped[str] = mapped_column(Text, default="")
     verificado_em: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     ativo: Mapped[bool] = mapped_column(default=True)
+    atualizado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    atualizado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+
+
+class ServicoUnidade(Base):
+    """Resposta por necessidade personalizada por um CRAS. Sem linha aqui, vale o padrão da secretaria."""
+    __tablename__ = "servicos_unidade"
+
+    unidade_id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    categoria: Mapped[str] = mapped_column(String(40), primary_key=True)
+    titulo: Mapped[str] = mapped_column(String(160))
+    servicos: Mapped[list] = mapped_column(JSON, default=list)
+    documentos: Mapped[list] = mapped_column(JSON, default=list)
+    local_atendimento: Mapped[str] = mapped_column(Text)
+    contato_util: Mapped[str] = mapped_column(Text)
+    fonte: Mapped[str] = mapped_column(Text, default="")
+    verificado_em: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    atualizado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    atualizado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+
+
+class TextoUnidade(Base):
+    """Texto do bot personalizado por um CRAS. Sem linha aqui, vale o padrão da secretaria."""
+    __tablename__ = "textos_unidade"
+
+    unidade_id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    chave: Mapped[str] = mapped_column(String(40), primary_key=True)
+    texto: Mapped[str] = mapped_column(Text)
+    atualizado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    atualizado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+
+
+class OpcoesFluxo(Base):
+    """Opções do fluxo do bot. unidade_id = "padrao" para a secretaria; ou o id de um CRAS."""
+    __tablename__ = "opcoes_fluxo"
+
+    unidade_id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    opcoes: Mapped[dict] = mapped_column(JSON, default=dict)
     atualizado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     atualizado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)

@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.deps import usuario_logado
+from app.core.deps import escopo, pode_ver, usuario_logado
 from app.core.security import decrypt_secret
 from app.db import get_session
 from app.models import Conversa, Mensagem, Triagem, agora
@@ -28,9 +28,9 @@ def _iso(dt) -> Optional[str]:
     return dt.isoformat() if dt else None
 
 
-async def _conversa_ou_404(session: AsyncSession, conversa_id: str) -> Conversa:
+async def _conversa_ou_404(session: AsyncSession, conversa_id: str, usuario: Dict[str, Any]) -> Conversa:
     conversa = await session.get(Conversa, conversa_id)
-    if conversa is None:
+    if conversa is None or not pode_ver(usuario, conversa.unidade_id):
         raise HTTPException(status_code=404, detail="Conversa não encontrada")
     return conversa
 
@@ -50,9 +50,13 @@ async def enviar_pelo_canal(conversa: Conversa, texto: str) -> bool:
 
 
 @router.get("/conversas")
-async def listar_conversas(session: AsyncSession = Depends(get_session)):
-    """Conversas mais recentes primeiro, com a última mensagem e a triagem ligada (se houver)."""
-    conversas = (await session.execute(select(Conversa).order_by(Conversa.atualizado_em.desc()).limit(100))).scalars().all()
+async def listar_conversas(usuario: Dict[str, Any] = Depends(usuario_logado), session: AsyncSession = Depends(get_session)):
+    """Conversas mais recentes primeiro, com a última mensagem e a triagem ligada (se houver).
+    Conta de um CRAS vê só as conversas da sua unidade."""
+    consulta = select(Conversa).order_by(Conversa.atualizado_em.desc()).limit(100)
+    if escopo(usuario):
+        consulta = consulta.where(Conversa.unidade_id == escopo(usuario))
+    conversas = (await session.execute(consulta)).scalars().all()
     ids = [c.telefone_hash for c in conversas]
     ultimas: Dict[str, Mensagem] = {}
     triagens: Dict[str, Triagem] = {}
@@ -82,9 +86,9 @@ async def listar_conversas(session: AsyncSession = Depends(get_session)):
 
 
 @router.get("/conversas/{conversa_id}/mensagens")
-async def mensagens_da_conversa(conversa_id: str, depois_de: int = 0, session: AsyncSession = Depends(get_session)):
+async def mensagens_da_conversa(conversa_id: str, depois_de: int = 0, usuario: Dict[str, Any] = Depends(usuario_logado), session: AsyncSession = Depends(get_session)):
     """Histórico da conversa. 'depois_de' permite buscar só as mensagens novas (id maior)."""
-    conversa = await _conversa_ou_404(session, conversa_id)
+    conversa = await _conversa_ou_404(session, conversa_id, usuario)
     q = select(Mensagem).where(Mensagem.conversa_id == conversa_id, Mensagem.id > depois_de).order_by(Mensagem.id)
     mensagens = (await session.execute(q)).scalars().all()
     return {
@@ -95,8 +99,8 @@ async def mensagens_da_conversa(conversa_id: str, depois_de: int = 0, session: A
 
 
 @router.post("/conversas/{conversa_id}/lida")
-async def marcar_como_lida(conversa_id: str, session: AsyncSession = Depends(get_session)):
-    conversa = await _conversa_ou_404(session, conversa_id)
+async def marcar_como_lida(conversa_id: str, usuario: Dict[str, Any] = Depends(usuario_logado), session: AsyncSession = Depends(get_session)):
+    conversa = await _conversa_ou_404(session, conversa_id, usuario)
     conversa.nao_lidas = 0
     await session.commit()
     return {"ok": True}
@@ -106,10 +110,10 @@ async def marcar_como_lida(conversa_id: str, session: AsyncSession = Depends(get
 async def assumir_conversa(conversa_id: str, usuario: Dict[str, Any] = Depends(usuario_logado),
                            session: AsyncSession = Depends(get_session)):
     """O atendente assume: o bot para de responder e a pessoa é avisada."""
-    conversa = await _conversa_ou_404(session, conversa_id)
+    conversa = await _conversa_ou_404(session, conversa_id, usuario)
     if not conversa.atendimento_humano:
         conversa.atendimento_humano, conversa.atendente = True, usuario.get("sub")
-        aviso = catalogo.texto("atendente_assumiu")
+        aviso = catalogo.texto("atendente_assumiu", conversa.unidade_id)
         session.add(Mensagem(conversa_id=conversa_id, autor="atendente", texto=aviso))
         conversa.atualizado_em = agora()
         await session.commit()
@@ -118,9 +122,9 @@ async def assumir_conversa(conversa_id: str, usuario: Dict[str, Any] = Depends(u
 
 
 @router.post("/conversas/{conversa_id}/devolver")
-async def devolver_ao_bot(conversa_id: str, session: AsyncSession = Depends(get_session)):
+async def devolver_ao_bot(conversa_id: str, usuario: Dict[str, Any] = Depends(usuario_logado), session: AsyncSession = Depends(get_session)):
     """Encerra o atendimento humano. A próxima mensagem da pessoa recomeça a conversa com o bot."""
-    conversa = await _conversa_ou_404(session, conversa_id)
+    conversa = await _conversa_ou_404(session, conversa_id, usuario)
     conversa.atendimento_humano, conversa.atendente = False, None
     conversa.estado = "FINALIZADA"
     await session.commit()
@@ -131,7 +135,7 @@ async def devolver_ao_bot(conversa_id: str, session: AsyncSession = Depends(get_
 async def responder(conversa_id: str, req: RespostaRequest, usuario: Dict[str, Any] = Depends(usuario_logado),
                     session: AsyncSession = Depends(get_session)):
     """Resposta do atendente. Assume a conversa automaticamente, para o bot não responder junto."""
-    conversa = await _conversa_ou_404(session, conversa_id)
+    conversa = await _conversa_ou_404(session, conversa_id, usuario)
     if not conversa.atendimento_humano:
         conversa.atendimento_humano, conversa.atendente = True, usuario.get("sub")
     mensagem = Mensagem(conversa_id=conversa_id, autor="atendente", texto=req.texto.strip())

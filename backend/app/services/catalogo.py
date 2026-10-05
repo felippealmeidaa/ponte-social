@@ -4,14 +4,17 @@ Base de serviços e textos do bot editáveis pelo CRAS (tela "Serviços e mensag
 Ficam no banco; este módulo mantém uma cópia em memória para leitura rápida (o classificador
 e o fluxo da conversa leem daqui) e é recarregado sempre que alguém salva uma alteração.
 Os valores padrão vêm de train_evaluator.KNOWLEDGE_SERVICES e de TEXTOS_PADRAO abaixo.
+
+Cada CRAS pode personalizar respostas, textos e opções do fluxo. O que ele não personalizou vale o
+padrão da secretaria (tabelas servicos_categoria, textos_bot e opcoes_fluxo["padrao"]).
 """
 import copy
 from typing import Dict, List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import ServicoCategoria, TextoBot, agora
+from app.models import OpcoesFluxo, ServicoCategoria, ServicoUnidade, TextoBot, TextoUnidade, agora
 from app.services.ml.train_evaluator import KNOWLEDGE_SERVICES
 
 TEXTOS_PADRAO: Dict[str, Dict[str, str]] = {
@@ -110,6 +113,14 @@ TEXTOS_PADRAO: Dict[str, Dict[str, str]] = {
         "descricao": "A pessoa desistiu de apagar os dados",
         "texto": "Tudo bem, nada foi apagado. Se quiser continuar, me mande uma mensagem.",
     },
+    "fim_sem_contato": {
+        "descricao": "Fim do caminho quando o CRAS não oferece retorno de contato pelo bot",
+        "texto": "Procure o CRAS com os documentos da lista. Se precisar, é só mandar uma mensagem. 💚",
+    },
+    "cras_indicado": {
+        "descricao": "Depois do bairro: indica o CRAS de referência ({cras} é trocado pelo nome)",
+        "texto": "Seu CRAS de referência é o *{cras}*.",
+    },
     "atendente_assumiu": {
         "descricao": "Enviada quando um atendente assume a conversa pelo painel",
         "texto": "Olá! Agora quem fala com você é uma pessoa da equipe da Assistência Social. 🙂",
@@ -118,20 +129,61 @@ TEXTOS_PADRAO: Dict[str, Dict[str, str]] = {
 
 CAMPOS_SERVICO = ("titulo", "servicos", "documentos", "local_atendimento", "contato_util")
 OBRIGATORIOS_EMERGENCIA = ("190", "180", "100")
+PADRAO = "padrao"
+
+# Opções do fluxo que cada CRAS pode mudar. Violência, aceite (LGPD), "apagar" e "recomeçar" não estão
+# aqui de propósito: são travados e valem sempre.
+OPCOES_PADRAO: Dict[str, object] = {
+    "perguntar_bairro": True,            # só na secretaria: é o bairro que define o CRAS
+    "confirmar_necessidade": True,
+    "pedir_detalhes_relato_curto": True,
+    "menu_na_primeira_falha": False,
+    "mostrar_outras_necessidades": True,
+    "contato": "perguntar",              # perguntar | sempre | nunca
+}
+VALORES_CONTATO = ("perguntar", "sempre", "nunca")
+SO_SECRETARIA = {"perguntar_bairro"}
 
 _servicos: Dict[str, dict] = copy.deepcopy(KNOWLEDGE_SERVICES)
 _textos: Dict[str, str] = {k: v["texto"] for k, v in TEXTOS_PADRAO.items()}
+_servicos_unidade: Dict[str, Dict[str, dict]] = {}
+_textos_unidade: Dict[str, Dict[str, str]] = {}
+_opcoes: Dict[str, dict] = {}
 
 
-def servico(categoria: str) -> dict:
-    """Dados de serviço da categoria. 'urgencia' não é editável: vem sempre do padrão."""
-    dados = dict(_servicos.get(categoria) or KNOWLEDGE_SERVICES[categoria])
+def servico(categoria: str, unidade: Optional[str] = None) -> dict:
+    """Dados de serviço da categoria (do CRAS, se personalizado). 'urgencia' vem sempre do padrão."""
+    proprio = _servicos_unidade.get(unidade or "", {}).get(categoria)
+    dados = dict(proprio or _servicos.get(categoria) or KNOWLEDGE_SERVICES[categoria])
     dados["urgencia"] = KNOWLEDGE_SERVICES[categoria]["urgencia"]
     return dados
 
 
-def texto(chave: str) -> str:
-    return _textos.get(chave, TEXTOS_PADRAO[chave]["texto"])
+def texto(chave: str, unidade: Optional[str] = None) -> str:
+    proprio = _textos_unidade.get(unidade or "", {}).get(chave)
+    return proprio or _textos.get(chave, TEXTOS_PADRAO[chave]["texto"])
+
+
+def opcoes_fluxo(unidade: Optional[str] = None) -> dict:
+    """Padrão do sistema ← secretaria ← CRAS. Opções só da secretaria não são herdadas do CRAS."""
+    resultado = {**OPCOES_PADRAO, **_opcoes.get(PADRAO, {})}
+    if unidade:
+        resultado.update({k: v for k, v in _opcoes.get(unidade, {}).items() if k not in SO_SECRETARIA})
+    return resultado
+
+
+def validar_opcoes(opcoes: dict, unidade: Optional[str]) -> Optional[str]:
+    for chave, valor in opcoes.items():
+        if chave not in OPCOES_PADRAO:
+            return f"Opção desconhecida: {chave}."
+        if chave in SO_SECRETARIA and unidade:
+            return "Essa opção só pode ser mudada no padrão da secretaria."
+        if chave == "contato":
+            if valor not in VALORES_CONTATO:
+                return "Contato deve ser: perguntar, sempre ou nunca."
+        elif not isinstance(valor, bool):
+            return f"A opção {chave} deve ser ligada ou desligada."
+    return None
 
 
 def validar_texto(chave: str, valor: str) -> Optional[str]:
@@ -144,11 +196,17 @@ def validar_texto(chave: str, valor: str) -> Optional[str]:
         faltando = [n for n in OBRIGATORIOS_EMERGENCIA if n not in valor]
         if faltando:
             return f"A mensagem de emergência precisa conter os números {', '.join(faltando)}."
+    if chave == "cras_indicado" and "{cras}" not in valor:
+        return "O texto precisa conter {cras}, que é trocado pelo nome do CRAS."
     return None
 
 
 def _limpar_lista(itens: List[str]) -> List[str]:
     return [i.strip() for i in itens if i and i.strip()]
+
+
+def _iso(valor) -> Optional[str]:
+    return valor.isoformat() if valor else None
 
 
 async def carregar(session: AsyncSession) -> None:
@@ -174,25 +232,44 @@ async def carregar(session: AsyncSession) -> None:
         if chave in TEXTOS_PADRAO:
             _textos[chave] = linha.texto
 
+    _servicos_unidade.clear()
+    for linha in (await session.execute(select(ServicoUnidade))).scalars():
+        if linha.categoria in KNOWLEDGE_SERVICES:
+            _servicos_unidade.setdefault(linha.unidade_id, {})[linha.categoria] = {c: getattr(linha, c) for c in CAMPOS_SERVICO}
+    _textos_unidade.clear()
+    for linha in (await session.execute(select(TextoUnidade))).scalars():
+        if linha.chave in TEXTOS_PADRAO:
+            _textos_unidade.setdefault(linha.unidade_id, {})[linha.chave] = linha.texto
+    _opcoes.clear()
+    for linha in (await session.execute(select(OpcoesFluxo))).scalars():
+        _opcoes[linha.unidade_id] = dict(linha.opcoes or {})
 
-async def listar_servicos(session: AsyncSession) -> List[dict]:
-    linhas = {s.categoria: s for s in (await session.execute(select(ServicoCategoria))).scalars()}
+
+# ------------------------------------------------------------------------------
+# Respostas por necessidade
+# ------------------------------------------------------------------------------
+async def listar_servicos(session: AsyncSession, unidade: Optional[str] = None) -> List[dict]:
+    padroes = {s.categoria: s for s in (await session.execute(select(ServicoCategoria))).scalars()}
+    proprios = {}
+    if unidade:
+        proprios = {s.categoria: s for s in (await session.execute(
+            select(ServicoUnidade).where(ServicoUnidade.unidade_id == unidade))).scalars()}
     saida = []
     for categoria in KNOWLEDGE_SERVICES:
-        linha = linhas.get(categoria)
+        linha = proprios.get(categoria) or padroes.get(categoria)
         saida.append({
             "categoria": categoria,
-            **servico(categoria),
+            **servico(categoria, unidade),
+            "personalizado": categoria in proprios,
             "fonte": (linha.fonte or "") if linha else "",
-            "verificado_em": linha.verificado_em.isoformat() if linha and linha.verificado_em else None,
-            "atualizado_em": linha.atualizado_em.isoformat() if linha and linha.atualizado_em else None,
+            "verificado_em": _iso(linha.verificado_em) if linha else None,
+            "atualizado_em": _iso(linha.atualizado_em) if linha else None,
             "atualizado_por": linha.atualizado_por if linha else None,
         })
     return saida
 
 
-async def salvar_servico(session: AsyncSession, categoria: str, dados: dict, usuario: str) -> dict:
-    linha = await session.get(ServicoCategoria, categoria)
+def _aplicar_servico(linha, dados: dict, usuario: str) -> None:
     linha.titulo = dados["titulo"].strip()
     linha.servicos = _limpar_lista(dados["servicos"])
     linha.documentos = _limpar_lista(dados["documentos"])
@@ -201,35 +278,109 @@ async def salvar_servico(session: AsyncSession, categoria: str, dados: dict, usu
     linha.fonte = (dados.get("fonte") or "").strip()
     linha.verificado_em = dados.get("verificado_em")
     linha.atualizado_em, linha.atualizado_por = agora(), usuario
+
+
+async def salvar_servico(session: AsyncSession, categoria: str, dados: dict, usuario: str, unidade: Optional[str] = None) -> dict:
+    if unidade:
+        linha = await session.get(ServicoUnidade, (unidade, categoria))
+        if linha is None:
+            linha = ServicoUnidade(unidade_id=unidade, categoria=categoria)
+            session.add(linha)
+    else:
+        linha = await session.get(ServicoCategoria, categoria)
+    _aplicar_servico(linha, dados, usuario)
     await session.commit()
     await carregar(session)
-    return servico(categoria)
+    return servico(categoria, unidade)
 
 
-async def listar_textos(session: AsyncSession) -> List[dict]:
-    linhas = {t.chave: t for t in (await session.execute(select(TextoBot))).scalars()}
-    return [
-        {
+async def restaurar_servico(session: AsyncSession, categoria: str, usuario: str, unidade: Optional[str] = None) -> dict:
+    """No CRAS: apaga a personalização e volta ao padrão da secretaria.
+    Na secretaria: volta ao texto original do sistema (fonte e data em branco, porque não foram conferidas)."""
+    if unidade:
+        await session.execute(delete(ServicoUnidade).where(ServicoUnidade.unidade_id == unidade, ServicoUnidade.categoria == categoria))
+        await session.commit()
+        await carregar(session)
+        return servico(categoria, unidade)
+    return await salvar_servico(session, categoria, copy.deepcopy(KNOWLEDGE_SERVICES[categoria]), usuario)
+
+
+# ------------------------------------------------------------------------------
+# Textos da conversa
+# ------------------------------------------------------------------------------
+async def listar_textos(session: AsyncSession, unidade: Optional[str] = None) -> List[dict]:
+    padroes = {t.chave: t for t in (await session.execute(select(TextoBot))).scalars()}
+    proprios = {}
+    if unidade:
+        proprios = {t.chave: t for t in (await session.execute(
+            select(TextoUnidade).where(TextoUnidade.unidade_id == unidade))).scalars()}
+    saida = []
+    for chave, padrao in TEXTOS_PADRAO.items():
+        linha = proprios.get(chave) or padroes.get(chave)
+        saida.append({
             "chave": chave,
             "descricao": padrao["descricao"],
-            "texto": texto(chave),
-            "padrao": padrao["texto"],
-            "atualizado_em": linhas[chave].atualizado_em.isoformat() if chave in linhas and linhas[chave].atualizado_em else None,
-            "atualizado_por": linhas[chave].atualizado_por if chave in linhas else None,
-        }
-        for chave, padrao in TEXTOS_PADRAO.items()
-    ]
+            "texto": texto(chave, unidade),
+            # "Voltar ao padrão": no CRAS é o texto da secretaria; na secretaria, o original do sistema
+            "padrao": texto(chave) if unidade else padrao["texto"],
+            "personalizado": chave in proprios,
+            "atualizado_em": _iso(linha.atualizado_em) if linha else None,
+            "atualizado_por": linha.atualizado_por if linha else None,
+        })
+    return saida
 
 
-async def salvar_texto(session: AsyncSession, chave: str, valor: str, usuario: str) -> str:
-    linha = await session.get(TextoBot, chave)
+async def salvar_texto(session: AsyncSession, chave: str, valor: str, usuario: str, unidade: Optional[str] = None) -> str:
+    if unidade:
+        linha = await session.get(TextoUnidade, (unidade, chave))
+        if linha is None:
+            linha = TextoUnidade(unidade_id=unidade, chave=chave)
+            session.add(linha)
+    else:
+        linha = await session.get(TextoBot, chave)
     linha.texto = valor.strip()
     linha.atualizado_em, linha.atualizado_por = agora(), usuario
     await session.commit()
     await carregar(session)
-    return texto(chave)
+    return texto(chave, unidade)
 
 
-async def restaurar_servico(session: AsyncSession, categoria: str, usuario: str) -> dict:
-    # O texto original não tem fonte conferida: fonte e data voltam a ficar em branco
-    return await salvar_servico(session, categoria, copy.deepcopy(KNOWLEDGE_SERVICES[categoria]), usuario)
+async def restaurar_texto(session: AsyncSession, chave: str, usuario: str, unidade: Optional[str] = None) -> str:
+    if unidade:
+        await session.execute(delete(TextoUnidade).where(TextoUnidade.unidade_id == unidade, TextoUnidade.chave == chave))
+        await session.commit()
+        await carregar(session)
+        return texto(chave, unidade)
+    return await salvar_texto(session, chave, TEXTOS_PADRAO[chave]["texto"], usuario)
+
+
+# ------------------------------------------------------------------------------
+# Opções do fluxo
+# ------------------------------------------------------------------------------
+async def ler_opcoes(session: AsyncSession, unidade: Optional[str] = None) -> dict:
+    linha = await session.get(OpcoesFluxo, unidade or PADRAO)
+    return {
+        "opcoes": opcoes_fluxo(unidade),
+        "personalizadas": sorted((linha.opcoes or {}).keys()) if linha and unidade else [],
+        "so_secretaria": sorted(SO_SECRETARIA),
+        "atualizado_em": _iso(linha.atualizado_em) if linha else None,
+        "atualizado_por": linha.atualizado_por if linha else None,
+    }
+
+
+async def salvar_opcoes(session: AsyncSession, opcoes: dict, usuario: str, unidade: Optional[str] = None) -> dict:
+    """Mescla as opções enviadas com as já salvas. No CRAS, valor igual ao da secretaria deixa de ser personalização."""
+    chave = unidade or PADRAO
+    linha = await session.get(OpcoesFluxo, chave)
+    if linha is None:
+        linha = OpcoesFluxo(unidade_id=chave, opcoes={})
+        session.add(linha)
+    novas = {**(linha.opcoes or {}), **opcoes}
+    if unidade:
+        base = opcoes_fluxo(None)
+        novas = {k: v for k, v in novas.items() if base.get(k) != v}
+    linha.opcoes = novas
+    linha.atualizado_em, linha.atualizado_por = agora(), usuario
+    await session.commit()
+    await carregar(session)
+    return await ler_opcoes(session, unidade)

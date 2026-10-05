@@ -2,6 +2,7 @@ import { useCallback, useState, type FormEvent } from 'react';
 import { KeyRound, Save, UserPlus } from 'lucide-react';
 import { api, atualizar, enviar, ErroApi, sessaoSalva } from '../api';
 import { Aviso, Botao, Campo, classeEntrada, Esqueleto, PainelLateral, Selo } from '../components/ui';
+import { contaAtual, nomeUnidade, useUnidades, type UnidadeResumo } from '../unidades';
 import { useAtualizacao } from '../useAtualizacao';
 import { dataHora } from '../vocabulario';
 
@@ -12,6 +13,7 @@ interface Conta {
   email: string;
   role: 'ADMIN' | 'ATENDENTE';
   ativo: boolean;
+  unidade_id: string | null;
   ultimo_acesso: string | null;
 }
 
@@ -78,6 +80,8 @@ function MinhaSenha() {
 }
 
 function GestaoEquipe({ meuId }: { meuId: string }) {
+  const unidades = useUnidades();
+  const geral = contaAtual().geral;
   const { dados, erro, recarregar } = useAtualizacao(useCallback(() => api<Conta[]>('/equipe'), []), 0);
   const [editando, setEditando] = useState<Conta | 'nova' | null>(null);
   const fechar = useCallback(() => setEditando(null), []);
@@ -101,6 +105,7 @@ function GestaoEquipe({ meuId }: { meuId: string }) {
                   </span>
                   <span className="block text-[13px] text-texto-2">{c.login}{c.email ? ` · ${c.email}` : ''}</span>
                 </span>
+                {geral && <span className="text-[13px] text-texto-2">{nomeUnidade(unidades.dados, c.unidade_id)}</span>}
                 <Selo tom={c.role === 'ADMIN' ? 'ambar' : 'neutro'} semIcone>{PAPEL[c.role]}</Selo>
                 {!c.ativo && <Selo tom="neutro" semIcone>Desativada</Selo>}
                 <span className="w-full text-xs text-texto-3 sm:w-auto">
@@ -112,16 +117,18 @@ function GestaoEquipe({ meuId }: { meuId: string }) {
         </ul>
       )}
       <PainelLateral aberto={editando !== null} titulo={editando === 'nova' ? 'Nova conta' : 'Editar conta'} onFechar={fechar}>
-        {editando === 'nova' && <FormNovaConta onPronto={() => { fechar(); recarregar(); }} />}
+        {editando === 'nova' && <FormNovaConta unidades={geral ? unidades.dados : null} onPronto={() => { fechar(); recarregar(); }} />}
         {editando && editando !== 'nova' && (
-          <FormEditarConta key={editando.id} conta={editando} ehVoce={editando.id === meuId} onPronto={() => { fechar(); recarregar(); }} />
+          <FormEditarConta key={editando.id} conta={editando} ehVoce={editando.id === meuId} unidades={geral ? unidades.dados : null}
+            onPronto={() => { fechar(); recarregar(); }} />
         )}
       </PainelLateral>
     </section>
   );
 }
 
-function FormNovaConta({ onPronto }: { onPronto: () => void }) {
+function FormNovaConta({ unidades, onPronto }: { unidades: UnidadeResumo[] | null; onPronto: () => void }) {
+  const [unidade, setUnidade] = useState<string>('');
   const [login, setLogin] = useState('');
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -135,7 +142,7 @@ function FormNovaConta({ onPronto }: { onPronto: () => void }) {
     setSalvando(true);
     setErro(null);
     try {
-      await api('/equipe', enviar({ login: login.trim(), nome, email, senha, papel }));
+      await api('/equipe', enviar({ login: login.trim(), nome, email, senha, papel, unidade_id: unidade || null }));
       onPronto();
     } catch (err) {
       setErro(mensagem(err, 'Não foi possível criar a conta.'));
@@ -158,13 +165,17 @@ function FormNovaConta({ onPronto }: { onPronto: () => void }) {
         <input id="nc-senha" type="password" autoComplete="new-password" required minLength={SENHA_MINIMA} value={senha} onChange={(e) => setSenha(e.target.value)} className={classeEntrada} />
       </Campo>
       <SeletorPapel valor={papel} onMudar={setPapel} />
+      {unidades && <SeletorUnidadeConta id="nc-unidade" unidades={unidades} valor={unidade} onMudar={setUnidade} />}
       {erro && <Aviso>{erro}</Aviso>}
       <Botao type="submit" variante="primario" icone={UserPlus} carregando={salvando}>Criar conta</Botao>
     </form>
   );
 }
 
-function FormEditarConta({ conta, ehVoce, onPronto }: { conta: Conta; ehVoce: boolean; onPronto: () => void }) {
+function FormEditarConta({ conta, ehVoce, unidades, onPronto }: {
+  conta: Conta; ehVoce: boolean; unidades: UnidadeResumo[] | null; onPronto: () => void;
+}) {
+  const [unidade, setUnidade] = useState<string>(conta.unidade_id ?? '');
   const [nome, setNome] = useState(conta.name);
   const [papel, setPapel] = useState(conta.role);
   const [ativo, setAtivo] = useState(conta.ativo);
@@ -177,7 +188,8 @@ function FormEditarConta({ conta, ehVoce, onPronto }: { conta: Conta; ehVoce: bo
     setSalvando(true);
     setAviso(null);
     try {
-      await api(`/equipe/${conta.id}`, atualizar({ nome, papel, ativo }));
+      const mudouUnidade = unidades !== null && unidade !== (conta.unidade_id ?? '');
+      await api(`/equipe/${conta.id}`, atualizar({ nome, papel, ativo, ...(mudouUnidade ? { mudar_unidade: true, unidade_id: unidade || null } : {}) }));
       onPronto();
     } catch (err) {
       setAviso({ tom: 'urgente', texto: mensagem(err, 'Não foi possível salvar.') });
@@ -204,6 +216,7 @@ function FormEditarConta({ conta, ehVoce, onPronto }: { conta: Conta; ehVoce: bo
           <input id="ec-nome" required value={nome} onChange={(e) => setNome(e.target.value)} className={classeEntrada} />
         </Campo>
         <SeletorPapel valor={papel} onMudar={setPapel} />
+        {unidades && <SeletorUnidadeConta id="ec-unidade" unidades={unidades} valor={unidade} onMudar={setUnidade} />}
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} className="size-4 accent-[var(--color-ambar)]" />
           Conta ativa
@@ -244,5 +257,19 @@ function SeletorPapel({ valor, onMudar }: { valor: 'ADMIN' | 'ATENDENTE'; onMuda
         </label>
       ))}
     </fieldset>
+  );
+}
+
+function SeletorUnidadeConta({ id, unidades, valor, onMudar }: {
+  id: string; unidades: UnidadeResumo[]; valor: string; onMudar: (v: string) => void;
+}) {
+  const cras = unidades.filter((u) => u.tipo === 'CRAS');
+  return (
+    <Campo id={id} rotulo="Unidade" dica="A conta vê e edita só a fila, as conversas e a configuração da sua unidade. Coordenação geral vê todas.">
+      <select id={id} value={valor} onChange={(e) => onMudar(e.target.value)} className={classeEntrada}>
+        <option value="">Coordenação geral (todas as unidades)</option>
+        {cras.map((u) => <option key={u.id} value={u.id}>{u.nome}{u.ativo ? '' : ' (inativo)'}</option>)}
+      </select>
+    </Campo>
   );
 }
