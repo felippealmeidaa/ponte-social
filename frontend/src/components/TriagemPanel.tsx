@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ShieldAlert, CheckCircle2, Clock, MapPin, FileText, Sparkles, Send } from 'lucide-react';
 
 interface TriagemItem {
@@ -15,105 +15,79 @@ interface TriagemItem {
   metodo_decisao: string;
   status: string;
   criado_em: string;
+  canal: string;
+  necessidades_secundarias: string[];
   servicos_recomendados: string[];
   documentos_necessarios: string[];
 }
+
+const API = 'http://localhost:8000/api/v1/triagem';
+
+const STATUS_OPCOES = ['PENDENTE', 'EM_ATENDIMENTO', 'URGENTE_CREAS', 'ENCAMINHADO_CREAS', 'CONCLUIDO', 'ARQUIVADO'];
+
+const formatarData = (iso: string) => {
+  const data = new Date(iso);
+  return isNaN(data.getTime()) ? iso : data.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+};
 
 export const TriagemPanel = () => {
   const [filterPrioridade, setFilterPrioridade] = useState<string>('TODAS');
   const [novoRelato, setNovoRelato] = useState('');
   const [isClassifying, setIsClassifying] = useState(false);
   const [resultadoSimulacao, setResultadoSimulacao] = useState<any>(null);
+  const [triagens, setTriagens] = useState<TriagemItem[]>([]);
+  const [erroApi, setErroApi] = useState<string | null>(null);
 
-  const [triagens, setTriagens] = useState<TriagemItem[]>([
-    {
-      id: "trg-103",
-      nome_cidadao: "Relato Anônimo (Vítima de Violência)",
-      telefone_mascarado: "62 9****-4411",
-      bairro: "Recanto do Sol",
-      cidade: "Anápolis",
-      relato_original: "Estou sendo ameaçada de morte pelo meu ex-marido armado, ele quebrou as coisas em casa e preciso de abrigo seguro urgente!",
-      categoria: "violencia_protecao",
-      titulo_encaminhamento: "PROTEÇÃO IMEDIATA E ATENDIMENTO ESPECIALIZADO",
-      prioridade: "URGENTE_VIOLENCIA",
-      confianca: 0.99,
-      metodo_decisao: "Regra de Segurança Prioritária (Violência/Proteção)",
-      status: "ENCAMINHADO_CREAS",
-      criado_em: "Hoje às 16:05",
-      servicos_recomendados: ["Atendimento emergencial CREAS", "Acolhimento em Casa Abrigo", "Encaminhamento DEAM / Medida Protetiva"],
-      documentos_necessarios: ["Atendimento prioritário sem exigência prévia de documentos"]
-    },
-    {
-      id: "trg-101",
-      nome_cidadao: "Maria Silva",
-      telefone_mascarado: "62 9****-3321",
-      bairro: "Vila Jaiara",
-      cidade: "Anápolis",
-      relato_original: "Perdi meu emprego e estou sem conseguir colocar comida na mesa para meus 3 filhos. Preciso de ajuda com bolsa família e cesta básica.",
-      categoria: "renda_beneficio",
-      titulo_encaminhamento: "Programas de Transferência de Renda (Bolsa Família / BPC)",
-      prioridade: "ALTA",
-      confianca: 0.98,
-      metodo_decisao: "Modelo de Machine Learning (Linear SVM / NLP)",
-      status: "PENDENTE",
-      criado_em: "Hoje às 14:22",
-      servicos_recomendados: ["Inscrição no Cadastro Único", "Encaminhamento para Bolsa Família"],
-      documentos_necessarios: ["RG ou CNH", "CPF de todos os membros", "Comprovante de residência", "Declaração escolar"]
-    },
-    {
-      id: "trg-102",
-      nome_cidadao: "João Pereira",
-      telefone_mascarado: "62 9****-9988",
-      bairro: "Jundiaí",
-      cidade: "Anápolis",
-      relato_original: "Preciso urgente atualizar os dados da minha família no Cadastro Único para não bloquear meu benefício.",
-      categoria: "cadastro_atualizacao",
-      titulo_encaminhamento: "Cadastro Único para Programas Sociais (CadÚnico)",
-      prioridade: "MEDIA",
-      confianca: 0.96,
-      metodo_decisao: "Modelo de Machine Learning (Linear SVM / NLP)",
-      status: "EM_ATENDIMENTO",
-      criado_em: "Hoje às 15:10",
-      servicos_recomendados: ["Atualização cadastral bienal", "Emissão de Folha Resumo"],
-      documentos_necessarios: ["RG e CPF do Responsável", "Certidões de nascimento", "Conta de energia recente"]
+  const carregarFila = useCallback(async () => {
+    try {
+      const response = await fetch(`${API}/fila`);
+      if (!response.ok) throw new Error();
+      setTriagens(await response.json());
+      setErroApi(null);
+    } catch {
+      setErroApi('Não foi possível carregar a fila. Verifique se o backend está rodando na porta 8000.');
     }
-  ]);
+  }, []);
+
+  useEffect(() => {
+    carregarFila();
+    const intervalo = setInterval(carregarFila, 5000);
+    return () => clearInterval(intervalo);
+  }, [carregarFila]);
 
   const handleSimularTriagem = async () => {
     if (!novoRelato.trim()) return;
     setIsClassifying(true);
     try {
-      const response = await fetch('http://localhost:8000/api/v1/triagem/predizer', {
+      const response = await fetch(`${API}/submeter`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ relato: novoRelato })
+        body: JSON.stringify({ relato: novoRelato, nome: 'Registrado pelo painel' })
       });
+      if (!response.ok) throw new Error();
       const data = await response.json();
-      setResultadoSimulacao(data);
-
-      const novoItem: TriagemItem = {
-        id: `trg-${Math.floor(100 + Math.random() * 900)}`,
-        nome_cidadao: "Cidadão Simulado (Web)",
-        telefone_mascarado: "62 9****-0000",
-        bairro: "Centro",
-        cidade: "Anápolis",
-        relato_original: novoRelato,
-        categoria: data.categoria,
-        titulo_encaminhamento: data.titulo_encaminhamento,
-        prioridade: data.prioridade,
-        confianca: data.confianca,
-        metodo_decisao: data.metodo_decisao,
-        status: data.is_urgente ? "ENCAMINHADO_CREAS" : "PENDENTE",
-        criado_em: "Agora mesmo",
-        servicos_recomendados: data.servicos_recomendados,
-        documentos_necessarios: data.documentos_necessarios
-      };
-      setTriagens([novoItem, ...triagens]);
+      setResultadoSimulacao(data.classificacao);
       setNovoRelato('');
+      await carregarFila();
     } catch {
-      alert("Erro ao conectar à API FastAPI (Verifique se o backend está ativo na porta 8000).");
+      setErroApi('Erro ao enviar o relato. Verifique se o backend está rodando na porta 8000.');
     } finally {
       setIsClassifying(false);
+    }
+  };
+
+  const atualizarStatus = async (id: string, status: string) => {
+    setTriagens((atual) => atual.map((t) => (t.id === id ? { ...t, status } : t)));
+    try {
+      const response = await fetch(`${API}/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      if (!response.ok) throw new Error();
+    } catch {
+      setErroApi('Não foi possível atualizar o status.');
+      carregarFila();
     }
   };
 
@@ -152,7 +126,7 @@ export const TriagemPanel = () => {
             {isClassifying ? "Analisando..." : (
               <>
                 <Send className="w-4 h-4" />
-                Classificar Relato
+                Classificar e Enviar à Fila
               </>
             )}
           </button>
@@ -173,6 +147,10 @@ export const TriagemPanel = () => {
         )}
       </div>
 
+      {erroApi && (
+        <div role="alert" className="p-3 rounded-xl bg-amber-950/40 border border-amber-800 text-amber-200 text-xs">{erroApi}</div>
+      )}
+
       {/* Header da Fila e Filtros */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -182,11 +160,11 @@ export const TriagemPanel = () => {
               {triagensFiltradas.length} casos
             </span>
           </h2>
-          <p className="text-sm text-gray-400">Demandas triadas automaticamente pelo WhatsApp e organizadas por prioridade.</p>
+          <p className="text-sm text-gray-400">Demandas triadas pelo WhatsApp e pelo painel, urgentes primeiro. Atualiza a cada 5 segundos.</p>
         </div>
 
         <div className="flex items-center gap-2">
-          {['TODAS', 'URGENTE_VIOLENCIA', 'ALTA', 'MEDIA'].map((prio) => (
+          {['TODAS', 'URGENTE_VIOLENCIA', 'ALTA', 'MEDIA', 'BAIXA'].map((prio) => (
             <button
               key={prio}
               onClick={() => setFilterPrioridade(prio)}
@@ -227,7 +205,8 @@ export const TriagemPanel = () => {
                     </h3>
                     <div className="flex items-center gap-3 text-xs text-gray-400 mt-0.5">
                       <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5 text-gray-500" /> {item.bairro} - {item.cidade}</span>
-                      <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-gray-500" /> {item.criado_em}</span>
+                      <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-gray-500" /> {formatarData(item.criado_em)}</span>
+                      <span className="uppercase tracking-wide text-[10px] text-gray-500">{item.canal}</span>
                     </div>
                   </div>
                 </div>
@@ -242,15 +221,20 @@ export const TriagemPanel = () => {
                   }`}>
                     {item.prioridade}
                   </span>
-                  <span className="px-3 py-1 rounded-full text-xs bg-gray-800 text-gray-300 font-medium">
-                    {item.status}
-                  </span>
+                  <select
+                    value={item.status}
+                    onChange={(e) => atualizarStatus(item.id, e.target.value)}
+                    aria-label="Status do atendimento"
+                    className="px-3 py-1 rounded-full text-xs bg-gray-800 text-gray-200 font-medium border border-gray-700 focus:outline-none focus:border-emerald-500"
+                  >
+                    {STATUS_OPCOES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
                 </div>
               </div>
 
               {/* Relato do Cidadão */}
               <div className="bg-gray-950/60 p-3.5 rounded-xl border border-gray-800/80 mb-3">
-                <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Relato Original do Cidadão:</p>
+                <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">Relato do Cidadão (anonimizado):</p>
                 <p className="text-sm text-gray-200 italic">"{item.relato_original}"</p>
               </div>
 
@@ -259,7 +243,10 @@ export const TriagemPanel = () => {
                 <div className="p-3 bg-gray-900/40 rounded-xl border border-gray-800/60">
                   <p className="font-semibold text-emerald-400 mb-1">Encaminhamento Sugerido pela IA:</p>
                   <p className="text-gray-300 font-medium">{item.titulo_encaminhamento}</p>
-                  <p className="text-gray-500 text-[11px] mt-1 font-mono">{item.metodo_decisao}</p>
+                  <p className="text-gray-500 text-[11px] mt-1 font-mono">{item.metodo_decisao} · confiança {(item.confianca * 100).toFixed(0)}%</p>
+                  {item.necessidades_secundarias?.length > 0 && (
+                    <p className="text-gray-400 text-[11px] mt-1">Também pode envolver: {item.necessidades_secundarias.join(', ')}</p>
+                  )}
                 </div>
                 <div className="p-3 bg-gray-900/40 rounded-xl border border-gray-800/60">
                   <p className="font-semibold text-blue-400 mb-1">Documentos Necessários:</p>

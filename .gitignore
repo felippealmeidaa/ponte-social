@@ -47,3 +47,6 @@ yarn-error.log*
 *.swo
 .DS_Store
 Thumbs.db
+
+# Banco SQLite local de desenvolvimento
+*.db

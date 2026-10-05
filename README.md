@@ -17,41 +17,75 @@ Sistema Inteligente de Triagem e Encaminhamento Social desenvolvido para o **Pro
 
 ## 🚀 Como Executar o Projeto
 
-### 1. Iniciar os Serviços Docker (Banco PostgreSQL + pgvector, Redis e Evolution API)
+### 1. Ambiente Python (uma vez)
+```bash
+python -m venv backend/.venv
+backend/.venv/Scripts/python -m pip install -r backend/requirements.txt   # Linux/Mac: backend/.venv/bin/python
+cd frontend && npm install && cd ..
+```
+Opcional: copie `.env.example` para `backend/.env`. **Sem `.env` o projeto roda com um SQLite local** (`backend/triagens_dev.db`); com ele, usa o Postgres do Docker.
+
+### 2. (Opcional) Serviços Docker — Postgres, Redis e Evolution API
 ```bash
 docker compose -f docker/docker-compose.yml up -d
 ```
 
-### 2. Treinar os Modelos de Machine Learning & Gerar Métricas Científicas
+### 3. Treinar e avaliar o modelo
 ```bash
-python backend/app/services/ml/generate_dataset.py
-python backend/app/services/ml/train_evaluator.py
+$env:PYTHONPATH="backend"   # Linux/Mac: export PYTHONPATH=backend
+backend/.venv/Scripts/python backend/app/services/ml/train_evaluator.py
+```
+Gera `model_social_classifier.joblib` e `mlops_evaluation_report.json` (lido pela aba **MLOps** do painel).
+
+### 4. Testes
+```bash
+backend/.venv/Scripts/python -m pytest backend/tests -q
 ```
 
-### 3. Rodar os Testes Unitários de Segurança e IA (Pytest)
+### 5. Backend + frontend juntos
 ```bash
-$env:PYTHONPATH="backend"
-python -m pytest backend/tests/ -v
+backend/.venv/Scripts/python run_dev.py
 ```
-
-### 4. Iniciar o Backend e o Frontend Simultaneamente
-```bash
-python run_dev.py
-```
-- **Painel Web (React + Vite)**: [http://localhost:5173](http://localhost:5173)
-- **Documentação Interativa da API (Swagger)**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **Painel (React + Vite)**: http://localhost:5173 — usuário de teste definido em `backend/app/api/v1/endpoints/auth.py`
+- **API (Swagger)**: http://localhost:8000/docs
+- **Sem WhatsApp conectado**: a aba *Canais WhatsApp* tem um simulador que conversa com o bot pelo mesmo fluxo e banco (`POST /api/v1/webhooks/simular`).
 
 ---
 
-## 📊 Métricas Científicas de Avaliação (Marco 2)
+## 🔁 Caminho principal (Fase 1)
 
-| Modelo / Linha de Base | F1-Macro ($k=5$) | Acurácia | Recall Violência | Decisão |
+`WhatsApp → Evolution API → /webhooks/evolution → fluxo da conversa → classificador → banco → fila do painel`
+
+Fluxo da conversa (`backend/app/services/bot/fluxo_conversa.py`), conforme a seção 4 do plano:
+consentimento → relato → "Entendi que você precisa de X. Está certo?" → caminho completo (serviços, documentos, onde ir) → "Quer que o CRAS entre em contato?" → fila.
+Sinal de violência em qualquer etapa interrompe tudo e mostra 190 / 180 / 100 / CREAS. Nada identificado → Disque Social 121, sem inventar resposta.
+
+LGPD: relato gravado sem CPF/telefone/e-mail, telefone mascarado + criptografado, conversa identificada por hash, prazo de retenção (`RETENCAO_DIAS`).
+
+---
+
+## 📊 Avaliação do Modelo (honesta)
+
+**Metodologia** (`backend/app/services/ml/train_evaluator.py`):
+- Treino: 84 relatos **únicos** (o arquivo tinha 240 linhas, mas eram 80 frases-modelo repetidas — a versão anterior relatava F1 = 1,0 porque as cópias caíam no treino e no teste ao mesmo tempo).
+- Validação cruzada **StratifiedGroupKFold (k=5)** agrupando variações da mesma frase; hiperparâmetros por GridSearch; modelo escolhido pela validação cruzada.
+- Teste: 80 relatos informais (`data/relatos_teste_informais.json`), escritos à parte em linguagem de WhatsApp e nunca usados para treinar ou escolher modelo.
+- IC 95% por bootstrap e teste de McNemar entre os dois melhores.
+
+| Abordagem | F1 macro (CV) | F1 macro (teste) | IC 95% (teste) | Recall violência (teste) |
 | :--- | :--- | :--- | :--- | :--- |
-| **Linha de Base 1: Classe Majoritária** | `0.0500` | 24.0% | 0.0% | Superada |
-| **Linha de Base 2: Regras Palavra-Chave** | `0.6840` | 71.2% | 80.0% | Superada |
-| **Multinomial Naive Bayes** | `0.9867` | 98.7% | 100.0% | Candidato |
-| **Regressão Logística (TF-IDF)** | `0.9867` | 98.7% | 100.0% | Candidato |
-| **Linear SVM (TF-IDF)** | **`1.0000`** | **100.0%** | **100.0%** | **Modelo Campeão (Em Produção)** |
+| Linha de base 1: classe majoritária | 0,036 | 0,028 | — | 0% |
+| Linha de base 2: palavras-chave | 0,873* | 0,613 | — | 0% |
+| Regressão Logística (TF-IDF) | 0,570 ± 0,120 | 0,717 | 0,614–0,801 | 60% |
+| Naive Bayes Multinomial | 0,473 ± 0,129 | 0,697 | 0,585–0,783 | 30% |
+| Linear SVM (escolhido pela CV) | 0,581 ± 0,125 | 0,692 | 0,582–0,774 | 60% |
+| **Sistema em produção** (regra de violência + SVM + palavras-chave) | — | **0,678** | 0,552–0,763 | **70%** |
+
+\* As palavras-chave foram escritas olhando as próprias frases de treino, por isso vão tão bem no CV e caem no teste.
+
+**Leitura para a banca:** os modelos superam com folga a classe majoritária e superam as palavras-chave no teste, mas a diferença entre eles não é significativa (McNemar p = 0,63) e **a revocação de violência (70%) ainda não atinge um piso aceitável**. A causa principal é a falta de relatos reais: com 84 exemplos simulados o modelo não aprende a variedade da fala. Próximo passo: relatos anonimizados do CRAS parceiro + definir o piso de revocação com um profissional. Os números acima se referem a dados simulados e devem ser refeitos com dados reais.
+
+> O notebook `notebooks/analise_e_avaliacao_modelos.ipynb` ainda usa a metodologia antiga (avaliação no próprio treino) e precisa ser atualizado.
 
 ---
 

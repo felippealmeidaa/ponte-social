@@ -1,164 +1,92 @@
-import uuid
-from datetime import datetime
-from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
-from app.services.ml.classifier_service import SocialClassifierService
-from app.core.security import mask_phone, mask_cpf
+from datetime import datetime, timezone
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.db import get_session
+from app.models import Triagem
 from app.services.live_chat.manager import live_chat_manager
+from app.services.ml.classifier_service import SocialClassifierService
+from app.services.triagens import STATUS_VALIDOS, TENANT_PADRAO, criar_triagem, listar, para_dict
 
 router = APIRouter()
 
-# Armazenamento em memória das triagens sociais
-TRIAGENS_DB: List[Dict[str, Any]] = [
-    {
-        "id": "trg-101",
-        "nome_cidadao": "Maria Silva",
-        "telefone_mascarado": "62 9****-3321",
-        "telefone_raw": "5562988883321",
-        "cpf_mascarado": "***.382.910-**",
-        "bairro": "Vila Jaiara",
-        "cidade": "Anápolis",
-        "relato_original": "Perdi meu emprego e estou sem conseguir colocar comida na mesa para meus 3 filhos. Preciso de ajuda com bolsa família e cesta básica.",
-        "categoria": "renda_beneficio",
-        "titulo_encaminhamento": "Programas de Transferência de Renda (Bolsa Família / BPC)",
-        "prioridade": "ALTA",
-        "confianca": 0.98,
-        "metodo_decisao": "Modelo de Machine Learning (Linear SVM / NLP)",
-        "status": "PENDENTE",
-        "criado_em": "2026-10-03T14:22:00Z",
-        "servicos_recomendados": ["Inscrição no Cadastro Único", "Encaminhamento para Bolsa Família"],
-        "documentos_necessarios": ["RG ou CNH", "CPF de todos os membros", "Comprovante de residência", "Declaração escolar"]
-    },
-    {
-        "id": "trg-102",
-        "nome_cidadao": "João Pereira",
-        "telefone_mascarado": "62 9****-9988",
-        "telefone_raw": "5562991119988",
-        "cpf_mascarado": "***.124.776-**",
-        "bairro": "Jundiaí",
-        "cidade": "Anápolis",
-        "relato_original": "Preciso urgente atualizar os dados da minha família no Cadastro Único para não bloquear meu benefício.",
-        "categoria": "cadastro_atualizacao",
-        "titulo_encaminhamento": "Cadastro Único para Programas Sociais (CadÚnico)",
-        "prioridade": "MEDIA",
-        "confianca": 0.96,
-        "metodo_decisao": "Modelo de Machine Learning (Linear SVM / NLP)",
-        "status": "EM_ATENDIMENTO",
-        "criado_em": "2026-10-03T15:10:00Z",
-        "servicos_recomendados": ["Atualização cadastral bienal", "Emissão de Folha Resumo"],
-        "documentos_necessarios": ["RG e CPF do Responsável", "Certidões de nascimento", "Conta de energia recente"]
-    },
-    {
-        "id": "trg-103",
-        "nome_cidadao": "Relato Anônimo (Vítima)",
-        "telefone_mascarado": "62 9****-4411",
-        "telefone_raw": "5562981234411",
-        "cpf_mascarado": "Não informado",
-        "bairro": "Recanto do Sol",
-        "cidade": "Anápolis",
-        "relato_original": "Estou sendo ameaçada de morte pelo meu ex-marido armado, ele quebrou as coisas em casa e preciso de abrigo seguro urgente!",
-        "categoria": "violencia_protecao",
-        "titulo_encaminhamento": "PROTEÇÃO IMEDIATA E ATENDIMENTO ESPECIALIZADO",
-        "prioridade": "URGENTE_VIOLENCIA",
-        "confianca": 0.99,
-        "metodo_decisao": "Regra de Segurança Prioritária (Violência/Proteção)",
-        "status": "ENCAMINHADO_CREAS",
-        "criado_em": "2026-10-03T16:05:00Z",
-        "servicos_recomendados": ["Atendimento emergencial CREAS", "Acolhimento em Casa Abrigo", "Encaminhamento DEAM / Medida Protetiva"],
-        "documentos_necessarios": ["Atendimento prioritário sem exigência prévia de documentos"]
-    }
-]
 
 class TriagemRequest(BaseModel):
-    relato: str
-    nome: Optional[str] = "Cidadão Não Identificado"
-    telefone: Optional[str] = "Não informado"
-    cpf: Optional[str] = None
-    bairro: Optional[str] = "Não informado"
+    relato: str = Field(min_length=1, max_length=4000)
+    nome: Optional[str] = None
+    telefone: Optional[str] = None
+    bairro: Optional[str] = None
     cidade: Optional[str] = "Anápolis"
+
 
 class UpdateStatusRequest(BaseModel):
     status: str
     observacoes: Optional[str] = None
 
+
 @router.post("/predizer")
 async def predizer_relato(payload: TriagemRequest):
-    """Executa a inferência direta no relato do cidadão sem salvar na fila"""
-    resultado = SocialClassifierService.classify_relato(payload.relato)
-    return resultado
+    """Classifica o relato sem salvar (simulador do painel)."""
+    return SocialClassifierService.classify_relato(payload.relato)
+
 
 @router.post("/submeter")
-async def submeter_triagem(payload: TriagemRequest):
-    """Submete um relato, classifica com IA e insere na fila de triagem do CRAS"""
+async def submeter_triagem(payload: TriagemRequest, session: AsyncSession = Depends(get_session)):
+    """Classifica o relato e coloca na fila do CRAS (entrada pelo painel/web)."""
     classificacao = SocialClassifierService.classify_relato(payload.relato)
-    
-    triagem_id = f"trg-{uuid.uuid4().hex[:6]}"
-    nova_triagem = {
-        "id": triagem_id,
-        "nome_cidadao": payload.nome,
-        "telefone_mascarado": mask_phone(payload.telefone) if payload.telefone else "Não informado",
-        "telefone_raw": payload.telefone,
-        "cpf_mascarado": mask_cpf(payload.cpf) if payload.cpf else "Não informado",
-        "bairro": payload.bairro,
-        "cidade": payload.cidade,
-        "relato_original": payload.relato,
-        "categoria": classificacao["categoria"],
-        "titulo_encaminhamento": classificacao["titulo_encaminhamento"],
-        "prioridade": classificacao["prioridade"],
-        "confianca": classificacao["confianca"],
-        "metodo_decisao": classificacao["metodo_decisao"],
-        "status": "PENDENTE" if not classificacao["is_urgente"] else "URGENTE_CREAS",
-        "criado_em": datetime.utcnow().isoformat() + "Z",
-        "servicos_recomendados": classificacao["servicos_recomendados"],
-        "documentos_necessarios": classificacao["documentos_necessarios"]
-    }
-    
-    TRIAGENS_DB.insert(0, nova_triagem)
-    
-    # Notifica o painel web do CRAS via WebSockets em tempo real
-    await live_chat_manager.broadcast_to_tenant("cras-anapolis-01", {
-        "event": "NOVA_TRIAGEM",
-        "data": nova_triagem
-    })
-    
+    triagem = await criar_triagem(
+        session, payload.relato, classificacao, canal="web",
+        telefone=payload.telefone, nome=payload.nome, bairro=payload.bairro, cidade=payload.cidade,
+    )
     return {
-        "triagem_id": triagem_id,
+        "triagem_id": triagem.id,
         "classificacao": classificacao,
-        "mensagem": "Triagem registrada e encaminhada para a equipe do CRAS"
+        "mensagem": "Triagem registrada e encaminhada para a equipe do CRAS",
     }
+
 
 @router.get("/fila")
 async def listar_fila_triagens(
     status_filter: Optional[str] = None,
     prioridade_filter: Optional[str] = None,
-    categoria_filter: Optional[str] = None
+    categoria_filter: Optional[str] = None,
+    session: AsyncSession = Depends(get_session),
 ):
-    """Retorna a lista de triagens sociais filtradas para o painel do CRAS"""
-    itens = TRIAGENS_DB
-    if status_filter:
-        itens = [t for t in itens if t["status"] == status_filter]
-    if prioridade_filter:
-        itens = [t for t in itens if t["prioridade"] == prioridade_filter]
-    if categoria_filter:
-        itens = [t for t in itens if t["categoria"] == categoria_filter]
-    return itens
+    """Fila de triagens para o painel do CRAS, mais recentes primeiro."""
+    itens = await listar(session, status_filter, prioridade_filter, categoria_filter)
+    return [para_dict(t) for t in itens]
+
 
 @router.patch("/{triagem_id}/status")
-async def atualizar_status_triagem(triagem_id: str, payload: UpdateStatusRequest):
-    """Atualiza o status do atendimento de uma triagem"""
-    for item in TRIAGENS_DB:
-        if item["id"] == triagem_id:
-            item["status"] = payload.status
-            item["atualizado_em"] = datetime.utcnow().isoformat() + "Z"
-            if payload.observacoes:
-                item["observacoes"] = payload.observacoes
-            
-            await live_chat_manager.broadcast_to_tenant("cras-anapolis-01", {
-                "event": "STATUS_ATUALIZADO",
-                "triagem_id": triagem_id,
-                "novo_status": payload.status
-            })
-            return {"message": "Status atualizado com sucesso", "triagem": item}
-    
-    raise HTTPException(status_code=404, detail="Triagem não encontrada")
+async def atualizar_status_triagem(triagem_id: str, payload: UpdateStatusRequest, session: AsyncSession = Depends(get_session)):
+    if payload.status not in STATUS_VALIDOS:
+        raise HTTPException(status_code=422, detail=f"Status inválido. Use um de: {sorted(STATUS_VALIDOS)}")
+    triagem = await session.get(Triagem, triagem_id)
+    if triagem is None:
+        raise HTTPException(status_code=404, detail="Triagem não encontrada")
+    triagem.status = payload.status
+    triagem.atualizado_em = datetime.now(timezone.utc)
+    if payload.observacoes:
+        triagem.observacoes = payload.observacoes
+    await session.commit()
+    await live_chat_manager.broadcast_to_tenant(TENANT_PADRAO, {
+        "event": "STATUS_ATUALIZADO", "triagem_id": triagem_id, "novo_status": payload.status,
+    })
+    return {"message": "Status atualizado com sucesso", "triagem": para_dict(triagem)}
+
+
+@router.get("/exemplos-rotulados")
+async def exportar_exemplos_rotulados(session: AsyncSession = Depends(get_session)):
+    """Relatos (já anonimizados) cuja categoria o próprio cidadão confirmou ou corrigiu no WhatsApp,
+    com consentimento. São candidatos a novos exemplos de treino — revisar antes de usar."""
+    q = select(Triagem).where(Triagem.categoria_confirmada_pelo_cidadao.is_(True), Triagem.consentiu_uso_para_treino.is_(True))
+    itens = (await session.execute(q)).scalars().all()
+    return [
+        {"texto": t.relato_anonimizado, "categoria": t.categoria, "categoria_sugerida_pelo_modelo": t.categoria_modelo,
+         "modelo_acertou": t.categoria == t.categoria_modelo}
+        for t in itens
+    ]

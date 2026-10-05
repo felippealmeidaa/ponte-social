@@ -1,122 +1,247 @@
 {
-  "timestamp": "2026-10-04T00:40:00Z",
-  "dataset_size": 240,
+  "timestamp": "2026-10-05T02:06:44.319013+00:00",
+  "metodologia": {
+    "treino": "84 relatos únicos (80 frases-modelo) após remover duplicatas",
+    "validacao": "StratifiedGroupKFold k=5 agrupando variações da mesma frase-modelo; GridSearchCV para hiperparâmetros",
+    "teste": "80 relatos informais simulados, escritos à parte e nunca usados no treino nem na escolha do modelo",
+    "escolha_do_modelo": "maior F1 macro na validação cruzada; empate (<0,01) favorece Regressão Logística",
+    "limiares": "escolhidos com probabilidades fora da dobra: primeiro a maior revocação de violência, depois o maior F1 macro",
+    "decisao": "regra de violência → modelo (se confiante) → palavras-chave → não identificado (Disque Social 121)",
+    "limitacao": "treino e teste ainda são simulados; os números precisam ser refeitos com relatos reais do CRAS"
+  },
+  "dataset_size": 84,
+  "test_size": 80,
   "classes": [
-    "alimentacao",
-    "cadastro_atualizacao",
-    "documentacao",
-    "moradia",
-    "pessoa_idosa_pcd",
     "renda_beneficio",
+    "cadastro_atualizacao",
+    "moradia",
+    "documentacao",
+    "alimentacao",
+    "pessoa_idosa_pcd",
     "trabalho_renda",
     "violencia_protecao"
   ],
   "baselines": {
     "classe_majoritaria": {
+      "descricao": "Responde sempre 'renda_beneficio'",
+      "validacao_cruzada": {
+        "f1_macro": 0.03571428571428571,
+        "acuracia": 0.16666666666666666,
+        "recall_violencia": 0.0
+      },
+      "teste_informal": {
+        "f1_macro": 0.027777777777777776,
+        "acuracia": 0.125,
+        "recall_violencia": 0.0
+      },
       "f1_macro": 0.027777777777777776,
-      "recall_violencia": 0.0,
-      "descricao": "Responde sempre 'cadastro_atualizacao'"
+      "recall_violencia": 0.0
     },
     "regras_palavras_chave": {
-      "f1_macro": 0.6475376304132424,
-      "recall_violencia": 0.8,
-      "descricao": "Dicionário de termos estáticos"
+      "descricao": "Palavras e radicais por categoria (text_rules.py), violência primeiro",
+      "validacao_cruzada": {
+        "f1_macro": 0.8728607671138631,
+        "acuracia": 0.8452380952380952,
+        "recall_violencia": 1.0
+      },
+      "teste_informal": {
+        "f1_macro": 0.6128739316239317,
+        "acuracia": 0.55,
+        "recall_violencia": 0.0
+      },
+      "f1_macro": 0.6128739316239317,
+      "recall_violencia": 0.0
     }
   },
   "modelos_avaliados_cv5": {
+    "Regressão Logística": {
+      "melhores_hiperparametros": {
+        "clf__C": 20.0,
+        "tfidf__analyzer": "char_wb",
+        "tfidf__ngram_range": [
+          3,
+          5
+        ]
+      },
+      "f1_macro_mean": 0.5697023809523809,
+      "f1_macro_std": 0.12008246646715108,
+      "accuracy_mean": 0.6190476190476191,
+      "recall_violencia_cv": 1.0,
+      "teste_informal": {
+        "f1_macro": 0.7167821944137733,
+        "acuracia": 0.7125,
+        "recall_violencia": 0.6,
+        "f1_macro_ic95": [
+          0.6140773417919799,
+          0.800988818461287
+        ]
+      }
+    },
     "Multinomial Naive Bayes": {
-      "f1_macro_mean": 0.9866666666666667,
-      "f1_macro_std": 0.02666666666666666,
-      "accuracy_mean": 0.9875,
-      "precision_mean": 0.9916666666666666,
-      "recall_mean": 0.9875
+      "melhores_hiperparametros": {
+        "clf__alpha": 0.1,
+        "tfidf__analyzer": "char_wb",
+        "tfidf__ngram_range": [
+          3,
+          5
+        ]
+      },
+      "f1_macro_mean": 0.4733134920634921,
+      "f1_macro_std": 0.12884548491162334,
+      "accuracy_mean": 0.5476190476190477,
+      "recall_violencia_cv": 0.8,
+      "teste_informal": {
+        "f1_macro": 0.6967531629876831,
+        "acuracia": 0.6875,
+        "recall_violencia": 0.3,
+        "f1_macro_ic95": [
+          0.5846547088639774,
+          0.782648051036782
+        ]
+      }
     },
     "Linear SVM": {
-      "f1_macro_mean": 1.0,
-      "f1_macro_std": 0.0,
-      "accuracy_mean": 1.0,
-      "precision_mean": 1.0,
-      "recall_mean": 1.0
-    },
-    "Regressão Logística": {
-      "f1_macro_mean": 0.9866666666666667,
-      "f1_macro_std": 0.02666666666666666,
-      "accuracy_mean": 0.9875,
-      "precision_mean": 0.9916666666666666,
-      "recall_mean": 0.9875
+      "melhores_hiperparametros": {
+        "clf__C": 10.0,
+        "tfidf__analyzer": "char_wb",
+        "tfidf__ngram_range": [
+          3,
+          5
+        ]
+      },
+      "f1_macro_mean": 0.580952380952381,
+      "f1_macro_std": 0.12499546477033449,
+      "accuracy_mean": 0.6309523809523809,
+      "recall_violencia_cv": 1.0,
+      "teste_informal": {
+        "f1_macro": 0.6918448510553774,
+        "acuracia": 0.6875,
+        "recall_violencia": 0.6,
+        "f1_macro_ic95": [
+          0.5819143904609753,
+          0.7740060485656712
+        ]
+      }
     }
+  },
+  "comparacao_mcnemar": {
+    "modelo_a": "Linear SVM",
+    "modelo_b": "Regressão Logística",
+    "a_certo_b_errado": 1,
+    "a_errado_b_certo": 3,
+    "p_valor": 0.625
   },
   "modelo_final": {
     "nome": "Linear SVM",
-    "f1_macro": 1.0,
-    "recall_violencia": 1.0,
-    "precision_macro": 1.0,
+    "limiar_confianca": 0.5,
+    "limiar_violencia": 0.7,
+    "teste_modelo_sozinho": {
+      "f1_macro": 0.6836446508427932,
+      "acuracia": 0.6875,
+      "recall_violencia": 0.7
+    },
+    "teste_sistema_completo": {
+      "f1_macro": 0.6777319902319903,
+      "acuracia": 0.6125,
+      "recall_violencia": 0.7,
+      "f1_macro_ic95": [
+        0.5515190116995073,
+        0.7625446608130431
+      ],
+      "taxa_nao_identificado": 0.2375,
+      "metodos": {
+        "palavras_chave": 40,
+        "nao_identificado": 19,
+        "modelo_violencia": 11,
+        "modelo": 10
+      }
+    },
+    "f1_macro": 0.6777319902319903,
+    "recall_violencia": 0.7,
     "classification_report": {
-      "alimentacao": {
-        "precision": 1.0,
+      "renda_beneficio": {
+        "precision": 0.6666666666666666,
         "recall": 1.0,
-        "f1-score": 1.0,
-        "support": 30.0
+        "f1-score": 0.8,
+        "support": 10.0
       },
       "cadastro_atualizacao": {
         "precision": 1.0,
-        "recall": 1.0,
-        "f1-score": 1.0,
-        "support": 30.0
-      },
-      "documentacao": {
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1-score": 1.0,
-        "support": 30.0
+        "recall": 0.5,
+        "f1-score": 0.6666666666666666,
+        "support": 10.0
       },
       "moradia": {
         "precision": 1.0,
-        "recall": 1.0,
-        "f1-score": 1.0,
-        "support": 30.0
+        "recall": 0.5,
+        "f1-score": 0.6666666666666666,
+        "support": 10.0
+      },
+      "documentacao": {
+        "precision": 1.0,
+        "recall": 0.8,
+        "f1-score": 0.8888888888888888,
+        "support": 10.0
+      },
+      "alimentacao": {
+        "precision": 1.0,
+        "recall": 0.4,
+        "f1-score": 0.5714285714285714,
+        "support": 10.0
       },
       "pessoa_idosa_pcd": {
         "precision": 1.0,
-        "recall": 1.0,
-        "f1-score": 1.0,
-        "support": 30.0
-      },
-      "renda_beneficio": {
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1-score": 1.0,
-        "support": 30.0
+        "recall": 0.3,
+        "f1-score": 0.46153846153846156,
+        "support": 10.0
       },
       "trabalho_renda": {
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1-score": 1.0,
-        "support": 30.0
+        "precision": 0.7,
+        "recall": 0.7,
+        "f1-score": 0.7,
+        "support": 10.0
       },
       "violencia_protecao": {
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1-score": 1.0,
-        "support": 30.0
+        "precision": 0.6363636363636364,
+        "recall": 0.7,
+        "f1-score": 0.6666666666666666,
+        "support": 10.0
       },
-      "accuracy": 1.0,
+      "nao_identificado": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1-score": 0.0,
+        "support": 0.0
+      },
+      "accuracy": 0.6125,
       "macro avg": {
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1-score": 1.0,
-        "support": 240.0
+        "precision": 0.7781144781144781,
+        "recall": 0.5444444444444444,
+        "f1-score": 0.6024284357617691,
+        "support": 80.0
       },
       "weighted avg": {
-        "precision": 1.0,
-        "recall": 1.0,
-        "f1-score": 1.0,
-        "support": 240.0
+        "precision": 0.8753787878787879,
+        "recall": 0.6125,
+        "f1-score": 0.6777319902319902,
+        "support": 80.0
       }
     },
+    "confusion_matrix_labels": [
+      "renda_beneficio",
+      "cadastro_atualizacao",
+      "moradia",
+      "documentacao",
+      "alimentacao",
+      "pessoa_idosa_pcd",
+      "trabalho_renda",
+      "violencia_protecao",
+      "nao_identificado"
+    ],
     "confusion_matrix": [
       [
-        30,
+        10,
+        0,
         0,
         0,
         0,
@@ -126,42 +251,35 @@
         0
       ],
       [
-        0,
-        30,
-        0,
-        0,
+        2,
+        5,
         0,
         0,
         0,
-        0
+        0,
+        0,
+        0,
+        3
       ],
       [
         0,
         0,
-        30,
+        5,
         0,
         0,
         0,
         0,
-        0
+        1,
+        4
       ],
       [
+        1,
         0,
         0,
-        0,
-        30,
-        0,
+        8,
         0,
         0,
-        0
-      ],
-      [
-        0,
-        0,
-        0,
-        0,
-        30,
-        0,
+        1,
         0,
         0
       ],
@@ -170,10 +288,22 @@
         0,
         0,
         0,
+        4,
         0,
-        30,
         0,
-        0
+        3,
+        3
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        3,
+        2,
+        0,
+        4
       ],
       [
         0,
@@ -182,8 +312,20 @@
         0,
         0,
         0,
-        30,
-        0
+        7,
+        0,
+        3
+      ],
+      [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        7,
+        2
       ],
       [
         0,
@@ -193,8 +335,166 @@
         0,
         0,
         0,
-        30
+        0,
+        0
       ]
+    ],
+    "erros_no_teste": [
+      {
+        "texto": "meu cad unico ta vencido, preciso ir aonde pra arrumar?",
+        "esperado": "cadastro_atualizacao",
+        "previsto": "nao_identificado"
+      },
+      {
+        "texto": "nasceu meu neto e preciso colocar ele no cadastro da familia, como faz",
+        "esperado": "cadastro_atualizacao",
+        "previsto": "nao_identificado"
+      },
+      {
+        "texto": "chegou mensagem dizendo q tenho q fazer revisao cadastral senao perco o beneficio",
+        "esperado": "cadastro_atualizacao",
+        "previsto": "renda_beneficio"
+      },
+      {
+        "texto": "meu filho mais velho saiu de casa, preciso tirar ele da composicao familiar do cadastro",
+        "esperado": "cadastro_atualizacao",
+        "previsto": "nao_identificado"
+      },
+      {
+        "texto": "minha renda mudou, comecei a trabalhar registrada, preciso informar no cad?",
+        "esperado": "cadastro_atualizacao",
+        "previsto": "renda_beneficio"
+      },
+      {
+        "texto": "o dono da casa mandou a gente sair ate o fim do mes e nao tenho pra onde ir",
+        "esperado": "moradia",
+        "previsto": "nao_identificado"
+      },
+      {
+        "texto": "choveu e a parede do quarto caiu, to com medo do resto da casa desabar",
+        "esperado": "moradia",
+        "previsto": "violencia_protecao"
+      },
+      {
+        "texto": "to dormindo na praca faz uma semana, tem lugar pra eu passar a noite?",
+        "esperado": "moradia",
+        "previsto": "nao_identificado"
+      },
+      {
+        "texto": "como faz pra se inscrever nas casinha da prefeitura",
+        "esperado": "moradia",
+        "previsto": "nao_identificado"
+      },
+      {
+        "texto": "moro de favor na casa da minha sogra com meus 4 filhos num comodo so",
+        "esperado": "moradia",
+        "previsto": "nao_identificado"
+      },
+      {
+        "texto": "preciso fazer a identidade nova mas nao tenho dinheiro pra taxa",
+        "esperado": "documentacao",
+        "previsto": "renda_beneficio"
+      },
+      {
+        "texto": "perdi minha carteira de trabalho, como faz outra",
+        "esperado": "documentacao",
+        "previsto": "trabalho_renda"
+      },
+      {
+        "texto": "nao tem nada na geladeira hoje, so agua",
+        "esperado": "alimentacao",
+        "previsto": "nao_identificado"
+      },
+      {
+        "texto": "tem aquele restaurante de 1 real aqui na cidade? onde fica",
+        "esperado": "alimentacao",
+        "previsto": "nao_identificado"
+      },
+      {
+        "texto": "a gente ta comendo uma vez por dia so pra dar pras criancas",
+        "esperado": "alimentacao",
+        "previsto": "violencia_protecao"
+      },
+      {
+        "texto": "o cras ainda ta dando cesta? fui la mes passado e falaram q tinha acabado",
+        "esperado": "alimentacao",
+        "previsto": "nao_identificado"
+      },
+      {
+        "texto": "meu vizinho idoso ta sem comer faz dias, ninguem leva nada pra ele",
+        "esperado": "alimentacao",
+        "previsto": "violencia_protecao"
+      },
+      {
+        "texto": "to passando fome mesmo, nao e exagero",
+        "esperado": "alimentacao",
+        "previsto": "violencia_protecao"
+      },
+      {
+        "texto": "meu pai tem alzheimer e fica sozinho o dia todo enquanto eu trabalho, tem algum lugar q cuida dele de dia?",
+        "esperado": "pessoa_idosa_pcd",
+        "previsto": "trabalho_renda"
+      },
+      {
+        "texto": "sou cadeirante e quero saber se tenho direito a algum beneficio",
+        "esperado": "pessoa_idosa_pcd",
+        "previsto": "renda_beneficio"
+      },
+      {
+        "texto": "tenho 70 anos, moro sozinho e nao tenho ninguem pra me ajudar",
+        "esperado": "pessoa_idosa_pcd",
+        "previsto": "nao_identificado"
+      },
+      {
+        "texto": "minha filha tem sindrome de down, o que ela tem direito",
+        "esperado": "pessoa_idosa_pcd",
+        "previsto": "nao_identificado"
+      },
+      {
+        "texto": "perdi a perna num acidente e nao consigo mais trabalhar",
+        "esperado": "pessoa_idosa_pcd",
+        "previsto": "nao_identificado"
+      },
+      {
+        "texto": "tem grupo de convivencia pra terceira idade aqui perto?",
+        "esperado": "pessoa_idosa_pcd",
+        "previsto": "nao_identificado"
+      },
+      {
+        "texto": "como consigo uma vaga em casa de repouso publica pra minha avo",
+        "esperado": "pessoa_idosa_pcd",
+        "previsto": "trabalho_renda"
+      },
+      {
+        "texto": "to procurando servico de qualquer coisa, sei fazer limpeza e cozinhar",
+        "esperado": "trabalho_renda",
+        "previsto": "nao_identificado"
+      },
+      {
+        "texto": "queria aprender um oficio pra conseguir trabalhar",
+        "esperado": "trabalho_renda",
+        "previsto": "nao_identificado"
+      },
+      {
+        "texto": "faco artesanato e queria vender numa feira da prefeitura",
+        "esperado": "trabalho_renda",
+        "previsto": "nao_identificado"
+      },
+      {
+        "texto": "meu filho bate na minha mae idosa pra pegar o dinheiro da aposentadoria dela",
+        "esperado": "violencia_protecao",
+        "previsto": "renda_beneficio"
+      },
+      {
+        "texto": "meu ex nao para de me perseguir, aparece no meu servico e fica me vigiando",
+        "esperado": "violencia_protecao",
+        "previsto": "nao_identificado"
+      },
+      {
+        "texto": "fui estuprada e nao tive coragem de contar pra ninguem",
+        "esperado": "violencia_protecao",
+        "previsto": "nao_identificado"
+      }
     ]
   }
 }

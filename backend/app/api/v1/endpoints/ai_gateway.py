@@ -143,10 +143,8 @@ async def hybrid_routing(req: HybridRouteRequest):
             "response": f"Encaminhamento imediato para {ml_result.get('titulo_encaminhamento', ml_result.get('categoria'))}"
         }
     
-    gemini_resp = await gemini_service.generate_empathetic_response(
-        citizen_text=req.text,
-        cras_unit={"nome": "Triagem Avançada com IA", "endereco": "Online"}
-    )
+    # O LLM só reescreve a orientação em linguagem simples; a categoria continua vindo do classificador.
+    gemini_resp = await gemini_service.humanize_triage_message(ml_result)
     latency_ms = round((time.perf_counter() - start_time) * 1000, 2)
     
     return {

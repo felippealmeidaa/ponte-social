@@ -1,21 +1,51 @@
+"""
+Treino e avaliação do classificador de necessidades sociais.
+
+Metodologia (pensada para não inflar métricas):
+1. As frases de treino vêm de frases-modelo; variações da mesma frase (só muda um número)
+   formam um GRUPO. Duplicatas exatas são removidas.
+2. Validação cruzada StratifiedGroupKFold (k=5): um grupo nunca aparece no treino e na
+   validação ao mesmo tempo. É nela que os hiperparâmetros são ajustados e o modelo é escolhido.
+3. O número que vale para a banca é o do CONJUNTO DE TESTE separado
+   (data/relatos_teste_informais.json), escrito à parte, com linguagem de WhatsApp.
+   Ele nunca é usado para treinar nem para escolher modelo.
+4. No teste: F1 macro com intervalo de confiança por bootstrap, revocação da classe
+   violência (modelo sozinho e sistema completo = regra de segurança + modelo),
+   matriz de confusão e teste de McNemar entre os dois melhores modelos.
+"""
 import json
 import os
+import re
+from datetime import datetime, timezone
+
+import joblib
 import numpy as np
 import pandas as pd
-import joblib
+from scipy.stats import binomtest
+from sklearn.base import clone
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, confusion_matrix, f1_score, recall_score, accuracy_score
+from sklearn.model_selection import GridSearchCV, StratifiedGroupKFold, cross_val_predict
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.svm import LinearSVC
 from sklearn.pipeline import Pipeline
-from sklearn.model_selection import StratifiedKFold, cross_validate
-from sklearn.metrics import classification_report, confusion_matrix, f1_score, recall_score, precision_score
+from sklearn.svm import LinearSVC
+
+from app.services.ml.text_rules import KEYWORDS_HEURISTIC, detectar_violencia, normalizar, predict_heuristic  # noqa: F401 (reexport)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "..", "..", "..", "data"))
 DATASET_PATH = os.path.join(DATA_DIR, "relatos_treino_social.json")
+TEST_PATH = os.path.join(DATA_DIR, "relatos_teste_informais.json")
 MODEL_OUTPUT = os.path.join(BASE_DIR, "model_social_classifier.joblib")
 REPORT_OUTPUT = os.path.join(BASE_DIR, "mlops_evaluation_report.json")
+
+VIOLENCIA = "violencia_protecao"
+NAO_IDENTIFICADO = "nao_identificado"
+# Os limiares de decisão (confiança mínima e probabilidade de violência que já dispara urgência)
+# são escolhidos na validação cruzada em escolher_limiares() e salvos junto com o modelo.
+SEED = 42
 
 # Dicionário de serviços e orientações por categoria
 KNOWLEDGE_SERVICES = {
@@ -82,124 +112,264 @@ KNOWLEDGE_SERVICES = {
         "local_atendimento": "CREAS (Centro de Referência Especializado de Assistência Social) ou Delegacia",
         "contato_util": "EMERGÊNCIA: Polícia Militar 190 | Mulher: Ligue 180 | Crianças/Idosos: Disque 100",
         "urgencia": True
+    },
+    NAO_IDENTIFICADO: {
+        "titulo": "Orientação geral da Assistência Social",
+        "servicos": ["Atendimento de acolhida no CRAS", "Orientação telefônica pelo Disque Social 121"],
+        "documentos": ["Documento com foto (RG ou CNH)", "CPF", "Comprovante de residência"],
+        "local_atendimento": "CRAS de referência do seu bairro",
+        "contato_util": "Disque Social 121 (gratuito)",
+        "urgencia": False
     }
 }
 
-# Palavras-chave para a Linha de Base Heurística
-KEYWORDS_HEURISTIC = {
-    "violencia_protecao": ["violência", "agrediu", "agressao", "bateu", "ameaca", "morte", "medida protetiva", "abuso", "espancou", "maltrato", "socorro", "apanhando"],
-    "renda_beneficio": ["bolsa familia", "bpc", "auxilio", "beneficio", "dinheiro", "renda", "sustentar", "financeira", "loas", "passando necessidade"],
-    "cadastro_atualizacao": ["cadunico", "cadastro unico", "nis", "recadastramento", "atualizar", "atualizacao", "folha resumo"],
-    "moradia": ["morar", "aluguel", "despejado", "desabamento", "desabrigado", "rua", "barraco", "casa", "defesa civil"],
-    "documentacao": ["rg", "identidade", "certidao", "nascimento", "cpf", "segunda via", "cartorio", "documentos"],
-    "alimentacao": ["comida", "fome", "cesta basica", "leite", "arroz", "feijao", "restaurante popular", "alimentacao", "despensa"],
-    "pessoa_idosa_pcd": ["idoso", "idosa", "deficiencia", "pcd", "cadeira de rodas", "fraldas", "autista", "65 anos", "passe livre"],
-    "trabalho_renda": ["emprego", "trabalho", "vagas", "curriculo", "curso", "capacitacao", "sine", "microempreendedor"]
-}
+CATEGORIAS = [c for c in KNOWLEDGE_SERVICES if c != NAO_IDENTIFICADO]
 
-def predict_heuristic(text: str) -> str:
-    text_lower = text.lower()
-    for cat, words in KEYWORDS_HEURISTIC.items():
-        if any(w in text_lower for w in words):
-            return cat
-    return "renda_beneficio"  # fallback majoritário
 
-def train_and_evaluate(dataset_path: str = DATASET_PATH, output_model_path: str = MODEL_OUTPUT, report_output_path: str = REPORT_OUTPUT):
-    print("=" * 70)
-    print("INICIANDO TREINAMENTO E AVALIAÇÃO CIENTÍFICA DO MODELO SOCIAL")
-    print("=" * 70)
-    
-    with open(dataset_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-    
-    df = pd.DataFrame(data)
-    X = df["texto"].values
-    y = df["categoria"].values
-    
-    # 1. Linha de Base 1: Classe Majoritária
-    majority_class = df["categoria"].value_counts().index[0]
-    y_pred_majority = [majority_class] * len(y)
-    f1_maj = f1_score(y, y_pred_majority, average="macro", zero_division=0)
-    rec_maj_violencia = recall_score(y == "violencia_protecao", np.array(y_pred_majority) == "violencia_protecao", zero_division=0)
-    
-    # 2. Linha de Base 2: Heurística por Palavras-Chave
-    y_pred_heur = [predict_heuristic(t) for t in X]
-    f1_heur = f1_score(y, y_pred_heur, average="macro", zero_division=0)
-    rec_heur_violencia = recall_score(y == "violencia_protecao", np.array(y_pred_heur) == "violencia_protecao", zero_division=0)
-    
-    # Modelos Candidatos
-    models = {
-        "Multinomial Naive Bayes": Pipeline([
-            ("tfidf", TfidfVectorizer(ngram_range=(1, 2), min_df=1)),
-            ("clf", MultinomialNB(alpha=0.5))
-        ]),
-        "Linear SVM": Pipeline([
-            ("tfidf", TfidfVectorizer(ngram_range=(1, 2), min_df=1)),
-            ("clf", LinearSVC(C=1.0, random_state=42))
-        ]),
-        "Regressão Logística": Pipeline([
-            ("tfidf", TfidfVectorizer(ngram_range=(1, 2), min_df=1)),
-            ("clf", LogisticRegression(C=2.0, max_iter=1000, random_state=42, class_weight="balanced"))
-        ])
+def carregar_treino(path: str = DATASET_PATH) -> pd.DataFrame:
+    with open(path, "r", encoding="utf-8") as f:
+        df = pd.DataFrame(json.load(f))
+    df = df.drop_duplicates(subset="texto").reset_index(drop=True)
+    # Variações da mesma frase-modelo diferem só nos números: tirando os dígitos, sobra a frase-modelo.
+    df["grupo"] = df["texto"].map(lambda t: re.sub(r"\d+", "#", t)).factorize()[0]
+    return df
+
+
+def carregar_teste(path: str = TEST_PATH) -> pd.DataFrame:
+    with open(path, "r", encoding="utf-8") as f:
+        return pd.DataFrame(json.load(f)["relatos"])
+
+
+def _tfidf() -> TfidfVectorizer:
+    return TfidfVectorizer(strip_accents="unicode", lowercase=True, sublinear_tf=True)
+
+
+def modelos_candidatos():
+    """Pipelines e grades de hiperparâmetros. A grade inclui n-gramas de caracteres, que
+    toleram erros de digitação ("cad unico", "cadunico") melhor que palavras inteiras."""
+    grade_texto = [
+        {"tfidf__analyzer": ["word"], "tfidf__ngram_range": [(1, 1), (1, 2)]},
+        {"tfidf__analyzer": ["char_wb"], "tfidf__ngram_range": [(2, 4), (3, 5)]},
+    ]
+    def com(grade_clf):
+        return [{**g, **grade_clf} for g in grade_texto]
+
+    return {
+        "Regressão Logística": (
+            Pipeline([("tfidf", _tfidf()), ("clf", LogisticRegression(max_iter=2000, class_weight="balanced", random_state=SEED))]),
+            com({"clf__C": [1.0, 5.0, 20.0]}),
+        ),
+        "Multinomial Naive Bayes": (
+            Pipeline([("tfidf", _tfidf()), ("clf", MultinomialNB())]),
+            com({"clf__alpha": [0.1, 0.5, 1.0]}),
+        ),
+        "Linear SVM": (
+            Pipeline([("tfidf", _tfidf()), ("clf", LinearSVC(class_weight="balanced", random_state=SEED))]),
+            com({"clf__C": [0.1, 1.0, 10.0]}),
+        ),
     }
-    
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    results = {}
-    
-    for name, pipeline in models.items():
-        scoring = ["f1_macro", "accuracy", "precision_macro", "recall_macro"]
-        scores = cross_validate(pipeline, X, y, cv=cv, scoring=scoring)
-        
-        results[name] = {
-            "f1_macro_mean": float(np.mean(scores["test_f1_macro"])),
-            "f1_macro_std": float(np.std(scores["test_f1_macro"])),
-            "accuracy_mean": float(np.mean(scores["test_accuracy"])),
-            "precision_mean": float(np.mean(scores["test_precision_macro"])),
-            "recall_mean": float(np.mean(scores["test_recall_macro"]))
+
+
+def bootstrap_f1(y_true, y_pred, n: int = 2000, seed: int = SEED):
+    rng = np.random.default_rng(seed)
+    y_true, y_pred = np.asarray(y_true), np.asarray(y_pred)
+    amostras = []
+    for _ in range(n):
+        idx = rng.integers(0, len(y_true), len(y_true))
+        amostras.append(f1_score(y_true[idx], y_pred[idx], average="macro", labels=CATEGORIAS, zero_division=0))
+    return float(np.percentile(amostras, 2.5)), float(np.percentile(amostras, 97.5))
+
+
+def mcnemar(y_true, pred_a, pred_b):
+    """McNemar exato: só os casos em que um modelo acerta e o outro erra importam."""
+    y_true, pred_a, pred_b = map(np.asarray, (y_true, pred_a, pred_b))
+    a_certo_b_errado = int(np.sum((pred_a == y_true) & (pred_b != y_true)))
+    a_errado_b_certo = int(np.sum((pred_a != y_true) & (pred_b == y_true)))
+    discordantes = a_certo_b_errado + a_errado_b_certo
+    p = 1.0 if discordantes == 0 else float(binomtest(a_certo_b_errado, discordantes, 0.5).pvalue)
+    return {"a_certo_b_errado": a_certo_b_errado, "a_errado_b_certo": a_errado_b_certo, "p_valor": p}
+
+
+def recall_violencia(y_true, y_pred) -> float:
+    return float(recall_score(np.asarray(y_true) == VIOLENCIA, np.asarray(y_pred) == VIOLENCIA, zero_division=0))
+
+
+def metricas(y_true, y_pred) -> dict:
+    return {
+        "f1_macro": float(f1_score(y_true, y_pred, average="macro", labels=CATEGORIAS, zero_division=0)),
+        "acuracia": float(accuracy_score(y_true, y_pred)),
+        "recall_violencia": recall_violencia(y_true, y_pred),
+    }
+
+
+def decidir(texto: str, probs, classes, limiar_confianca: float, limiar_violencia: float):
+    """Decisão usada em produção e na avaliação. Devolve (categoria, método).
+    Ordem: regra de violência → modelo (se confiante) → palavras-chave → não identificado."""
+    i_viol = classes.index(VIOLENCIA)
+    topo = classes[int(np.argmax(probs))]
+    if detectar_violencia(texto):
+        return VIOLENCIA, "regra_violencia"
+    if topo == VIOLENCIA or probs[i_viol] >= limiar_violencia:
+        return VIOLENCIA, "modelo_violencia"
+    if max(probs) >= limiar_confianca:
+        return topo, "modelo"
+    heuristica = predict_heuristic(texto)
+    if heuristica:
+        return heuristica, "palavras_chave"
+    return NAO_IDENTIFICADO, "nao_identificado"
+
+
+def predizer_sistema(probs_por_texto, textos, classes, limiar_confianca: float, limiar_violencia: float):
+    return [decidir(t, p, classes, limiar_confianca, limiar_violencia)[0] for t, p in zip(textos, probs_por_texto)]
+
+
+def escolher_limiares(probs_oof, X, y, classes):
+    """Escolhe os limiares na validação cruzada (probabilidades fora da dobra), nunca no teste.
+    Critério: respeitar a revocação de violência máxima alcançável e, entre as opções, maior F1 macro."""
+    opcoes = []
+    for lc in [0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50]:
+        for lv in [0.15, 0.20, 0.25, 0.30, 0.40, 0.50, 0.70]:
+            pred = predizer_sistema(probs_oof, X, classes, lc, lv)
+            opcoes.append((recall_violencia(y, pred), metricas(y, pred)["f1_macro"], lv, lc))
+    melhor_recall = max(o[0] for o in opcoes)
+    _, _, lv, lc = max(o for o in opcoes if o[0] == melhor_recall)
+    return lc, lv
+
+
+def train_and_evaluate(dataset_path: str = DATASET_PATH, output_model_path: str = MODEL_OUTPUT,
+                       report_output_path: str = REPORT_OUTPUT, test_path: str = TEST_PATH):
+    print("=" * 70)
+    print("TREINO E AVALIAÇÃO DO CLASSIFICADOR DE NECESSIDADES SOCIAIS")
+    print("=" * 70)
+
+    df = carregar_treino(dataset_path)
+    teste = carregar_teste(test_path)
+    X, y, grupos = df["texto"].values, df["categoria"].values, df["grupo"].values
+    X_teste, y_teste = teste["texto"].values, teste["categoria"].values
+    print(f"Treino: {len(df)} relatos únicos em {df['grupo'].nunique()} frases-modelo | Teste: {len(teste)} relatos informais")
+
+    cv = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=SEED)
+
+    # Linhas de base
+    classe_majoritaria = pd.Series(y).value_counts().index[0]
+    baselines = {}
+    for nome, prever, descricao in [
+        ("classe_majoritaria", lambda textos: [classe_majoritaria] * len(textos), f"Responde sempre '{classe_majoritaria}'"),
+        ("regras_palavras_chave", lambda textos: [predict_heuristic(t) or NAO_IDENTIFICADO for t in textos],
+         "Palavras e radicais por categoria (text_rules.py), violência primeiro"),
+    ]:
+        baselines[nome] = {
+            "descricao": descricao,
+            "validacao_cruzada": metricas(y, prever(X)),
+            "teste_informal": metricas(y_teste, prever(X_teste)),
         }
-    
-    best_model_name = max(results, key=lambda k: results[k]["f1_macro_mean"])
-    best_pipeline = models[best_model_name]
-    best_pipeline.fit(X, y)
-    y_pred_final = best_pipeline.predict(X)
-    
-    report = classification_report(y, y_pred_final, output_dict=True, zero_division=0)
-    cm = confusion_matrix(y, y_pred_final, labels=sorted(list(set(y))))
-    classes_sorted = sorted(list(set(y)))
-    
-    os.makedirs(os.path.dirname(output_model_path), exist_ok=True)
-    joblib.dump(best_pipeline, output_model_path)
-    
-    mlops_report = {
-        "timestamp": "2026-10-04T02:00:00Z",
-        "dataset_size": len(df),
-        "classes": classes_sorted,
-        "baselines": {
-            "classe_majoritaria": {
-                "f1_macro": float(f1_maj),
-                "recall_violencia": float(rec_maj_violencia),
-                "descricao": f"Responde sempre '{majority_class}'"
-            },
-            "regras_palavras_chave": {
-                "f1_macro": float(f1_heur),
-                "recall_violencia": float(rec_heur_violencia),
-                "descricao": "Dicionário de termos estáticos"
-            }
+        # Compatibilidade com o formato antigo do relatório
+        baselines[nome]["f1_macro"] = baselines[nome]["teste_informal"]["f1_macro"]
+        baselines[nome]["recall_violencia"] = baselines[nome]["teste_informal"]["recall_violencia"]
+
+    # Modelos: ajuste de hiperparâmetros com CV agrupada, depois avaliação no teste
+    resultados, ajustados, preds_teste = {}, {}, {}
+    for nome, (pipeline, grade) in modelos_candidatos().items():
+        busca = GridSearchCV(pipeline, grade, scoring="f1_macro", cv=cv, n_jobs=-1)
+        busca.fit(X, y, groups=grupos)
+        i = busca.best_index_
+        oof = cross_val_predict(busca.best_estimator_, X, y, groups=grupos, cv=cv)
+        pred = busca.best_estimator_.predict(X_teste)
+        ajustados[nome], preds_teste[nome] = busca.best_estimator_, pred
+        teste_m = metricas(y_teste, pred)
+        teste_m["f1_macro_ic95"] = bootstrap_f1(y_teste, pred)
+        resultados[nome] = {
+            "melhores_hiperparametros": {k: (list(v) if isinstance(v, tuple) else v) for k, v in busca.best_params_.items()},
+            "f1_macro_mean": float(busca.cv_results_["mean_test_score"][i]),
+            "f1_macro_std": float(busca.cv_results_["std_test_score"][i]),
+            "accuracy_mean": float(accuracy_score(y, oof)),
+            "recall_violencia_cv": recall_violencia(y, oof),
+            "teste_informal": teste_m,
+        }
+        print(f"{nome:26s} CV F1={resultados[nome]['f1_macro_mean']:.3f}±{resultados[nome]['f1_macro_std']:.3f} | "
+              f"teste F1={teste_m['f1_macro']:.3f} IC95={teste_m['f1_macro_ic95'][0]:.3f}-{teste_m['f1_macro_ic95'][1]:.3f} "
+              f"recall_viol={teste_m['recall_violencia']:.2f}")
+
+    # Escolha pelo CV (nunca pelo teste). Empate técnico (< 0,01) favorece a Regressão Logística, que é explicável.
+    ordem = sorted(resultados, key=lambda n: resultados[n]["f1_macro_mean"], reverse=True)
+    melhor = ordem[0]
+    if melhor != "Regressão Logística" and resultados[melhor]["f1_macro_mean"] - resultados["Regressão Logística"]["f1_macro_mean"] < 0.01:
+        melhor = "Regressão Logística"
+    segundo = next(n for n in ordem if n != melhor)
+
+    final = ajustados[melhor]
+    if not hasattr(final, "predict_proba"):
+        # O SVM não dá probabilidade; calibramos para poder usar limiar de confiança e confirmação por botões.
+        final = CalibratedClassifierCV(clone(final), method="sigmoid", cv=3)
+    probs_oof = cross_val_predict(clone(final), X, y, groups=grupos, cv=cv, method="predict_proba")
+    final.fit(X, y)
+    classes = list(final.classes_)
+    limiar_confianca, limiar_violencia = escolher_limiares(probs_oof, X, y, classes)
+    print(f"Limiares escolhidos na validação cruzada: confiança={limiar_confianca} violência={limiar_violencia}")
+
+    pred_modelo = final.predict(X_teste)
+    pred_sistema = predizer_sistema(final.predict_proba(X_teste), X_teste, classes, limiar_confianca, limiar_violencia)
+    classes_cm = CATEGORIAS + [NAO_IDENTIFICADO]
+    erros = [
+        {"texto": t, "esperado": e, "previsto": p}
+        for t, e, p in zip(X_teste, y_teste, pred_sistema) if e != p
+    ]
+
+    joblib.dump({
+        "pipeline": final,
+        "nome": melhor,
+        "limiar_confianca": limiar_confianca,
+        "limiar_violencia": limiar_violencia,
+        "treinado_em": datetime.now(timezone.utc).isoformat(),
+    }, output_model_path)
+
+    sistema_m = metricas(y_teste, pred_sistema)
+    sistema_m["f1_macro_ic95"] = bootstrap_f1(y_teste, pred_sistema)
+    sistema_m["taxa_nao_identificado"] = float(np.mean(np.asarray(pred_sistema) == NAO_IDENTIFICADO))
+    sistema_m["metodos"] = pd.Series([decidir(t, p, classes, limiar_confianca, limiar_violencia)[1] for t, p in zip(X_teste, final.predict_proba(X_teste))]).value_counts().to_dict()
+
+    relatorio = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "metodologia": {
+            "treino": f"{len(df)} relatos únicos ({df['grupo'].nunique()} frases-modelo) após remover duplicatas",
+            "validacao": "StratifiedGroupKFold k=5 agrupando variações da mesma frase-modelo; GridSearchCV para hiperparâmetros",
+            "teste": f"{len(teste)} relatos informais simulados, escritos à parte e nunca usados no treino nem na escolha do modelo",
+            "escolha_do_modelo": "maior F1 macro na validação cruzada; empate (<0,01) favorece Regressão Logística",
+            "limiares": "escolhidos com probabilidades fora da dobra: primeiro a maior revocação de violência, depois o maior F1 macro",
+            "decisao": "regra de violência → modelo (se confiante) → palavras-chave → não identificado (Disque Social 121)",
+            "limitacao": "treino e teste ainda são simulados; os números precisam ser refeitos com relatos reais do CRAS",
         },
-        "modelos_avaliados_cv5": results,
+        "dataset_size": int(len(df)),
+        "test_size": int(len(teste)),
+        "classes": CATEGORIAS,
+        "baselines": baselines,
+        "modelos_avaliados_cv5": resultados,
+        "comparacao_mcnemar": {"modelo_a": melhor, "modelo_b": segundo, **mcnemar(y_teste, preds_teste[melhor], preds_teste[segundo])},
         "modelo_final": {
-            "nome": best_model_name,
-            "f1_macro": float(f1_score(y, y_pred_final, average="macro")),
-            "recall_violencia": float(report.get("violencia_protecao", {}).get("recall", 1.0)),
-            "precision_macro": float(precision_score(y, y_pred_final, average="macro")),
-            "classification_report": report,
-            "confusion_matrix": cm.tolist()
-        }
+            "nome": melhor,
+            "limiar_confianca": limiar_confianca,
+            "limiar_violencia": limiar_violencia,
+            "teste_modelo_sozinho": metricas(y_teste, pred_modelo),
+            "teste_sistema_completo": sistema_m,
+            # Campos do formato antigo, agora medidos no TESTE (antes eram no próprio treino)
+            "f1_macro": sistema_m["f1_macro"],
+            "recall_violencia": sistema_m["recall_violencia"],
+            "classification_report": classification_report(y_teste, pred_sistema, labels=classes_cm, output_dict=True, zero_division=0),
+            "confusion_matrix_labels": classes_cm,
+            "confusion_matrix": confusion_matrix(y_teste, pred_sistema, labels=classes_cm).tolist(),
+            "erros_no_teste": erros,
+        },
     }
-    
     with open(report_output_path, "w", encoding="utf-8") as f:
-        json.dump(mlops_report, f, indent=2, ensure_ascii=False)
-    print("Modelo e relatório MLOps atualizados com sucesso!")
+        json.dump(relatorio, f, indent=2, ensure_ascii=False)
+
+    print("-" * 70)
+    print(f"Modelo escolhido: {melhor} (McNemar vs {segundo}: p={relatorio['comparacao_mcnemar']['p_valor']:.3f})")
+    print(f"Sistema completo no teste: F1={sistema_m['f1_macro']:.3f} IC95={sistema_m['f1_macro_ic95'][0]:.3f}-{sistema_m['f1_macro_ic95'][1]:.3f} "
+          f"| recall violência={sistema_m['recall_violencia']:.2f} | não identificado={sistema_m['taxa_nao_identificado']:.0%}")
+    print(f"Erros no teste: {len(erros)} de {len(teste)}")
+    return relatorio
+
 
 if __name__ == "__main__":
     train_and_evaluate()

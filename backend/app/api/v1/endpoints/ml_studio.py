@@ -1,6 +1,7 @@
 import os
 import json
 from fastapi import APIRouter, HTTPException, BackgroundTasks
+from app.services.ml.classifier_service import SocialClassifierService
 from app.services.ml.train_evaluator import train_and_evaluate, DATASET_PATH, MODEL_OUTPUT, REPORT_OUTPUT
 
 router = APIRouter()
@@ -18,8 +19,13 @@ async def get_ml_metrics():
 @router.post("/retrain")
 async def retrain_model(background_tasks: BackgroundTasks):
     """Dispara o retreinamento do modelo em background com os dados atualizados"""
-    background_tasks.add_task(train_and_evaluate, DATASET_PATH, MODEL_OUTPUT, REPORT_OUTPUT)
+    background_tasks.add_task(_retreinar)
     return {
         "status": "training_started",
-        "message": "Retreinamento dos modelos supervisionados iniciado com validação cruzada k=5."
+        "message": "Retreino iniciado (validação cruzada agrupada k=5 + avaliação no conjunto de teste)."
     }
+
+
+def _retreinar():
+    train_and_evaluate(DATASET_PATH, MODEL_OUTPUT, REPORT_OUTPUT)
+    SocialClassifierService._artefato = None  # a próxima classificação carrega o modelo novo

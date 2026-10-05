@@ -1,10 +1,28 @@
+import json
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.v1.api import api_router
+from app.db import abrir_sessao, init_db
 from app.services.live_chat.manager import live_chat_manager
+from app.services.triagens import aplicar_retencao, popular_demo_se_vazio
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    async with abrir_sessao() as session:
+        apagadas = await aplicar_retencao(session)
+        if apagadas:
+            print(f"[LGPD] {apagadas} triagens apagadas por passarem do prazo de retenção.")
+        await popular_demo_se_vazio(session)
+    yield
+
 
 app = FastAPI(
+    lifespan=lifespan,
     title=settings.PROJECT_NAME,
     description="Plataforma Omnichannel de Atendimento Inteligente & CRM Social com IA Híbrida",
     version="1.0.0",

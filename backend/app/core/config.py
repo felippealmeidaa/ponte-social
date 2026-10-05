@@ -45,6 +45,14 @@ class Settings(BaseSettings):
     META_PHONE_NUMBER_ID: str = os.getenv("META_PHONE_NUMBER_ID", "")
     META_WEBHOOK_VERIFY_TOKEN: str = os.getenv("META_WEBHOOK_VERIFY_TOKEN", "meu_token_de_verificacao_meta_crm_2026")
 
+    # Banco de dados: Postgres do Docker (postgresql+asyncpg://...) ou, sem configuração, SQLite local
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
+    # LGPD: triagens mais antigas que isso são apagadas na inicialização da API
+    RETENCAO_DIAS: int = int(os.getenv("RETENCAO_DIAS", "180"))
+    # Conversa parada há mais tempo que isso recomeça do início
+    CONVERSA_EXPIRA_MIN: int = int(os.getenv("CONVERSA_EXPIRA_MIN", "120"))
+    EVOLUTION_INSTANCE_NAME: str = os.getenv("EVOLUTION_INSTANCE_NAME", "cras-anapolis")
+
     # Google Gemini LLM API
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")

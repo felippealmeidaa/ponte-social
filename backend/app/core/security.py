@@ -110,6 +110,8 @@ def decode_token(token: str) -> Optional[Dict[str, Any]]:
 # --------------------------------------------------------------------------
 def mask_phone(phone: str) -> str:
     digits = ''.join(c for c in phone if c.isdigit())
+    if digits.startswith("55") and len(digits) >= 12:
+        digits = digits[2:]  # remove o código do país para mostrar o DDD
     if len(digits) >= 10:
         return f"{digits[:2]} 9****-{digits[-4:]}"
     return "****-****"

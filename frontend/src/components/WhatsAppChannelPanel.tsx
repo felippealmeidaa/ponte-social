@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   QrCode, 
   Smartphone, 
@@ -22,8 +22,13 @@ export const WhatsAppChannelPanel: React.FC = () => {
 
   // Test message simulator
   const [testPhone, setTestPhone] = useState('5562999998888');
-  const [testMessage, setTestMessage] = useState('Preciso saber os documentos para o Bolsa Família');
-  const [simulationResponse, setSimulationResponse] = useState<any>(null);
+  const [testMessage, setTestMessage] = useState('oi');
+  const [conversa, setConversa] = useState<{ de: 'cidadao' | 'bot'; texto: string }[]>([]);
+  const fimDaConversa = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fimDaConversa.current?.scrollIntoView({ block: 'nearest' });
+  }, [conversa]);
   const [isSimulating, setIsSimulating] = useState(false);
 
   const fetchStatus = async () => {
@@ -62,41 +67,25 @@ export const WhatsAppChannelPanel: React.FC = () => {
     fetchStatus();
   }, []);
 
+  // Conversa com o bot pelo mesmo fluxo e banco do WhatsApp, mas mostrando as respostas na tela
   const handleSimulateWebhook = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!testMessage.trim()) return;
+    const texto = testMessage.trim();
+    if (!texto) return;
     setIsSimulating(true);
-    setSimulationResponse(null);
-
+    setConversa((c) => [...c, { de: 'cidadao', texto }]);
+    setTestMessage('');
     try {
-      const res = await fetch('http://localhost:8000/api/v1/webhooks/evolution', {
+      const res = await fetch('http://localhost:8000/api/v1/webhooks/simular', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event: 'messages.upsert',
-          instance: 'cras-anapolis',
-          data: {
-            key: {
-              remoteJid: `${testPhone}@s.whatsapp.net`,
-              fromMe: false,
-              id: `SIM_${Date.now()}`
-            },
-            pushName: 'Cidadão Anápolis (Teste)',
-            message: {
-              conversation: testMessage
-            },
-            messageType: 'conversation',
-            messageTimestamp: Math.floor(Date.now() / 1000)
-          }
-        })
+        body: JSON.stringify({ telefone: testPhone, texto })
       });
-
-      if (res.ok) {
-        const data = await res.json();
-        setSimulationResponse(data);
-      }
-    } catch (err) {
-      console.error(err);
+      if (!res.ok) throw new Error();
+      const data: { respostas: string[] } = await res.json();
+      setConversa((c) => [...c, ...data.respostas.map((r) => ({ de: 'bot' as const, texto: r }))]);
+    } catch {
+      setConversa((c) => [...c, { de: 'bot', texto: '[Erro: backend fora do ar na porta 8000]' }]);
     } finally {
       setIsSimulating(false);
     }
@@ -216,51 +205,54 @@ export const WhatsAppChannelPanel: React.FC = () => {
               Simulador de Mensagem WhatsApp (Webhook Live)
             </h3>
             <p className="text-xs text-slate-400">
-              Dispare uma mensagem simulada do WhatsApp para testar a triagem de IA, classificação e resposta automática sem precisar do celular.
+              Converse com o bot sem celular: mesmo fluxo e mesmo banco do WhatsApp real. Triagens confirmadas aparecem na fila do CRAS.
             </p>
 
-            <form onSubmit={handleSimulateWebhook} className="space-y-3">
-              <div>
-                <label className="block text-[11px] text-slate-400 mb-1">Telefone Cidadão</label>
+            <div className="bg-slate-950 border border-white/5 rounded-xl p-3 h-72 overflow-y-auto space-y-2" aria-live="polite">
+              {conversa.length === 0 && <p className="text-[11px] text-slate-500">Mande "oi" para começar.</p>}
+              {conversa.map((m, i) => (
+                <div key={i} className={`flex ${m.de === 'cidadao' ? 'justify-end' : 'justify-start'}`}>
+                  <p className={`max-w-[85%] whitespace-pre-wrap text-xs px-3 py-2 rounded-xl ${m.de === 'cidadao' ? 'bg-emerald-700 text-white' : 'bg-slate-800 text-slate-100'}`}>
+                    {m.texto.replace(/\*/g, '')}
+                  </p>
+                </div>
+              ))}
+              <div ref={fimDaConversa} />
+            </div>
+
+            <form onSubmit={handleSimulateWebhook} className="space-y-2">
+              <div className="flex gap-2">
                 <input
+                  type="text"
+                  value={testMessage}
+                  onChange={(e) => setTestMessage(e.target.value)}
+                  placeholder="Mensagem do cidadão"
+                  aria-label="Mensagem do cidadão"
+                  className="flex-1 bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                />
+                <button
+                  type="submit"
+                  disabled={isSimulating}
+                  className="bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs px-4 rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                >
+                  {isSimulating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  Enviar
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <label htmlFor="sim-telefone" className="text-[11px] text-slate-400">Telefone fictício</label>
+                <input
+                  id="sim-telefone"
                   type="text"
                   value={testPhone}
                   onChange={(e) => setTestPhone(e.target.value)}
-                  className="w-full bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-white mono-font focus:outline-none focus:border-sky-500"
+                  className="w-40 bg-slate-950 border border-white/10 rounded-lg px-2 py-1 text-[11px] text-white mono-font focus:outline-none focus:border-sky-500"
                 />
+                <button type="button" onClick={() => setConversa([])} className="text-[11px] text-slate-400 hover:text-slate-200 underline">
+                  limpar tela
+                </button>
               </div>
-
-              <div>
-                <label className="block text-[11px] text-slate-400 mb-1">Mensagem Enviada</label>
-                <textarea
-                  rows={3}
-                  value={testMessage}
-                  onChange={(e) => setTestMessage(e.target.value)}
-                  className="w-full bg-slate-950 border border-white/10 rounded-lg p-3 text-xs text-white focus:outline-none focus:border-sky-500 font-sans"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isSimulating}
-                className="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold text-xs py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-sky-500/10 disabled:opacity-50"
-              >
-                {isSimulating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                Disparar Webhook & Executar IA
-              </button>
             </form>
-
-            {simulationResponse && (
-              <div className="bg-slate-950 p-3 rounded-xl border border-white/5 space-y-1.5 mono-font text-[11px]">
-                <div className="flex items-center justify-between text-emerald-400 font-bold">
-                  <span>Webhook 200 OK</span>
-                  <span>{simulationResponse.triagem?.categoria_predita}</span>
-                </div>
-                <pre className="text-slate-400 overflow-x-auto text-[10px]">
-                  {JSON.stringify(simulationResponse, null, 2)}
-                </pre>
-              </div>
-            )}
           </div>
 
           {/* Webhook URLs Specification */}
