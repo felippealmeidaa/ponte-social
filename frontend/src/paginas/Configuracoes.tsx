@@ -95,7 +95,9 @@ function TestarBot() {
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const rolagem = useRef<HTMLDivElement>(null);
-  useEffect(() => rolagem.current?.scrollTo({ top: rolagem.current.scrollHeight }), [conversa.length]);
+  // Chaves de propósito: em navegadores novos scrollTo devolve uma Promise, e o React trataria
+  // o retorno como função de limpeza do efeito (a tela inteira quebrava).
+  useEffect(() => { rolagem.current?.scrollTo({ top: rolagem.current.scrollHeight }); }, [conversa.length]);
 
   const mandar = async (e: FormEvent) => {
     e.preventDefault();
