@@ -1,13 +1,16 @@
 """Tela "Serviços e mensagens": o CRAS edita o que o bot responde, sem mexer em código."""
-from datetime import date
+from datetime import date, timedelta
 from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.deps import usuario_logado
 from app.db import get_session
+from app.models import Conversa, agora
 from app.services import catalogo, unidades
 from app.services.bot.fluxo_conversa import caminho_completo
 from app.services.ml.train_evaluator import KNOWLEDGE_SERVICES
@@ -136,3 +139,26 @@ async def buscar_por_bairro(bairro: str, session: AsyncSession = Depends(get_ses
     """Testa qual CRAS o bot indicaria para um bairro."""
     unidade = await unidades.cras_do_bairro(session, bairro)
     return {"bairro": bairro, "unidade": unidades.para_dict(unidade) if unidade else None}
+
+
+# ------------------------------------------------------------------------------
+# Mapa do fluxo: quantas conversas estão em cada etapa agora
+# ------------------------------------------------------------------------------
+@router.get("/fluxo/agora")
+async def conversas_por_etapa(session: AsyncSession = Depends(get_session)):
+    """Conversas ativas (mexidas dentro do prazo de expiração) por estado do fluxo, mais as que estão
+    com um atendente. Mostra no mapa onde as pessoas estão paradas."""
+    limite = agora() - timedelta(minutes=settings.CONVERSA_EXPIRA_MIN)
+    linhas = (await session.execute(
+        select(Conversa.estado, Conversa.atendimento_humano, func.count())
+        .where(Conversa.atualizado_em >= limite, Conversa.estado != "FINALIZADA")
+        .group_by(Conversa.estado, Conversa.atendimento_humano)
+    )).all()
+    por_estado: Dict[str, int] = {}
+    com_atendente = 0
+    for estado, humano, total in linhas:
+        if humano:
+            com_atendente += total
+        else:
+            por_estado[estado] = por_estado.get(estado, 0) + total
+    return {"por_estado": por_estado, "com_atendente": com_atendente, "janela_minutos": settings.CONVERSA_EXPIRA_MIN}

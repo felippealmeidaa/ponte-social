@@ -120,3 +120,30 @@
 .trilho > * {
   scroll-snap-align: start;
 }
+
+/* Mapa do fluxo (React Flow): controles e créditos na paleta do painel */
+.mapa-fluxo .react-flow {
+  --xy-background-color: var(--color-fundo);
+  --xy-controls-button-background-color: var(--color-superficie);
+  --xy-controls-button-background-color-hover: var(--color-elevada);
+  --xy-controls-button-color: var(--color-texto-2);
+  --xy-controls-button-color-hover: var(--color-texto);
+  --xy-controls-button-border-color: var(--color-linha);
+  --xy-controls-box-shadow: 0 8px 24px -12px rgb(0 0 0 / 0.7);
+  --xy-attribution-background-color: transparent;
+  font-family: var(--font-sans);
+}
+.mapa-fluxo .react-flow__controls {
+  border: 1px solid var(--color-linha);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.mapa-fluxo .react-flow__attribution a {
+  color: var(--color-texto-3);
+}
+.mapa-fluxo .react-flow__pane {
+  cursor: grab;
+}
+.mapa-fluxo .react-flow__pane.dragging {
+  cursor: grabbing;
+}

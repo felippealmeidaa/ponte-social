@@ -42,6 +42,7 @@ Painel do CRAS (React + Vite)
 | Catálogo de serviços e textos do bot | `services/catalogo.py` | Implementado e editável pelo painel, com fonte oficial e data de conferência por necessidade; **nenhuma fonte preenchida ainda** |
 | Banco de triagens e conversas | `models.py`, `db.py`, `services/triagens.py` | Implementado |
 | Painel do CRAS | `frontend/src/paginas/` | Fila, Conversas, Indicadores, Serviços e mensagens, Configurações |
+| Mapa do fluxo do bot | `frontend/src/fluxoBot.ts`, `components/MapaFluxo.tsx` | Aba *Serviços e mensagens → Fluxo da conversa*: etapas ligadas por setas (estilo n8n), quantas conversas estão em cada etapa agora, clique para editar os textos daquela etapa. Só leitura do fluxo: a lógica fica em `fluxo_conversa.py` e o mapa precisa acompanhar qualquer mudança nela. |
 | Contas do painel | `services/usuarios.py`, `endpoints/auth.py`, `endpoints/equipe.py`, `core/deps.py` | Contas no banco (coordenação e atendimento), gerenciadas em *Configurações → Equipe e acesso*; conta de demonstração só em `development` |
 | Unidades de atendimento | `services/unidades.py`, aba *Serviços e mensagens → Unidades* | CRAS/CREAS/Centro POP com bairros atendidos; **tabela vazia até receber a lista oficial** |
 

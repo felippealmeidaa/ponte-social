@@ -189,3 +189,15 @@ def test_indicadores_ignoram_demonstracao():
         assert len(dados["por_dia"]) == 7
         assert "demo" not in dados["por_canal"]
         assert dados["total"] == sum(d["total"] for d in dados["por_dia"])
+
+
+def test_mapa_do_fluxo_conta_conversas_por_etapa():
+    with TestClient(app) as client:
+        autenticar(client)
+        _simular(client, "5562922229001", "oi")                       # parada no aceite
+        _simular(client, "5562922229002", "oi", "1")                  # parada no relato
+        agora = client.get("/api/v1/configuracao/fluxo/agora").json()
+        assert agora["por_estado"].get("AGUARDANDO_CONSENTIMENTO", 0) >= 1
+        assert agora["por_estado"].get("AGUARDANDO_RELATO", 0) >= 1
+        assert "FINALIZADA" not in agora["por_estado"]
+        assert client.get("/api/v1/configuracao/fluxo/agora", headers={"Authorization": ""}).status_code == 401

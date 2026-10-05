@@ -1,7 +1,9 @@
-import { useCallback, useState } from 'react';
-import { CircleAlert, RotateCcw, Save, ShieldAlert } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowRight, CircleAlert, RotateCcw, Save, ShieldAlert } from 'lucide-react';
 import { api, atualizar, ErroApi } from '../api';
-import { Aviso, Botao, Campo, classeEntrada, Esqueleto } from '../components/ui';
+import { ListaFluxo, MapaFluxo } from '../components/MapaFluxo';
+import { Aviso, Botao, Campo, classeEntrada, Esqueleto, PainelLateral } from '../components/ui';
+import { contagemPorEtapa, ETAPAS } from '../fluxoBot';
 import { useAtualizacao } from '../useAtualizacao';
 import { Unidades } from './Unidades';
 import { dataHora, nomeCategoria } from '../vocabulario';
@@ -40,48 +42,23 @@ interface TextoBot {
   atualizado_por: string | null;
 }
 
-const ETAPAS = [
-  { titulo: 'Boas-vindas', detalhe: 'Apresenta o serviço e pede consentimento.' },
-  { titulo: 'Relato', detalhe: 'A pessoa conta a situação com as palavras dela.' },
-  { titulo: 'Confirmação', detalhe: '“Entendi que é X. Está certo?” Se não, ela escolhe no menu.' },
-  { titulo: 'Caminho', detalhe: 'Serviços, documentos e onde ir da necessidade.' },
-  { titulo: 'Contato', detalhe: 'Se pedir, o caso entra na fila do CRAS.' },
-];
+type Aba = 'fluxo' | 'respostas' | 'unidades';
+
+const ABAS: [Aba, string][] = [['fluxo', 'Fluxo da conversa'], ['respostas', 'Respostas por necessidade'], ['unidades', 'Unidades de atendimento']];
 
 export function ServicosMensagens() {
-  const [aba, setAba] = useState<'respostas' | 'textos' | 'unidades'>('respostas');
+  const [aba, setAba] = useState<Aba>('fluxo');
   return (
     <>
-      <header className="mb-8">
+      <header className="mb-6">
         <h1 className="font-display text-[44px] leading-[0.95] tracking-[0.03em]">Serviços e mensagens</h1>
         <p className="mt-2 max-w-[75ch] text-texto-2">
           O que o bot responde no WhatsApp. As mudanças valem na hora para as próximas conversas, sem precisar de programador.
         </p>
       </header>
 
-      <section aria-labelledby="t-percurso" className="mb-10">
-        <h2 id="t-percurso" className="font-display text-[28px] leading-none tracking-[0.04em] mb-4">Como o bot conversa</h2>
-        <ol className="grid gap-px overflow-hidden rounded-xl border border-linha bg-linha sm:grid-cols-5">
-          {ETAPAS.map((e, i) => (
-            <li key={e.titulo} className="grid grid-cols-[1.25rem_1fr] gap-x-2 bg-superficie px-4 py-3">
-              <span className="text-sm text-texto-3 tabular leading-6" aria-hidden>{i + 1}</span>
-              <p className="font-medium leading-6"><span className="sr-only">Etapa {i + 1}: </span>{e.titulo}</p>
-              <p className="col-start-2 mt-1 text-[13px] leading-snug text-texto-2">{e.detalhe}</p>
-            </li>
-          ))}
-        </ol>
-        <p className="mt-3 flex items-center gap-2 text-[13px] text-texto-2">
-          <ShieldAlert className="size-4 shrink-0 text-urgente" aria-hidden />
-          Em qualquer etapa, sinal de violência interrompe a conversa: o bot manda os contatos de emergência e o caso entra como urgente.
-        </p>
-        <p className="mt-1 pl-6 text-[13px] text-texto-2">
-          A pessoa também pode enviar <strong className="font-medium text-texto">apagar</strong> para excluir os dados dela
-          ou <strong className="font-medium text-texto">recomeçar</strong> para contar de novo. Quem já aceitou não precisa aceitar outra vez.
-        </p>
-      </section>
-
-      <div role="tablist" aria-label="O que editar" className="mb-6 flex gap-1 overflow-x-auto border-b border-linha">
-        {([['respostas', 'Respostas por necessidade'], ['textos', 'Textos da conversa'], ['unidades', 'Unidades de atendimento']] as const).map(([id, rotulo]) => (
+      <div role="tablist" aria-label="O que ver ou editar" className="mb-6 flex gap-1 overflow-x-auto border-b border-linha">
+        {ABAS.map(([id, rotulo]) => (
           <button key={id} role="tab" aria-selected={aba === id} onClick={() => setAba(id)}
             className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm ${aba === id ? 'border-ambar text-texto font-semibold' : 'border-transparent text-texto-2 hover:text-texto'}`}>
             {rotulo}
@@ -89,10 +66,137 @@ export function ServicosMensagens() {
         ))}
       </div>
 
+      {aba === 'fluxo' && <Fluxo irPara={setAba} />}
       {aba === 'respostas' && <Respostas />}
-      {aba === 'textos' && <Textos />}
       {aba === 'unidades' && <Unidades />}
     </>
+  );
+}
+
+function useTelaLarga() {
+  const consulta = '(min-width: 1024px)';
+  const [larga, setLarga] = useState(() => {
+    try { return window.matchMedia(consulta).matches; } catch { return true; }
+  });
+  useEffect(() => {
+    let mq: MediaQueryList;
+    try { mq = window.matchMedia(consulta); } catch { return; }
+    const mudou = () => setLarga(mq.matches);
+    mq.addEventListener('change', mudou);
+    return () => mq.removeEventListener('change', mudou);
+  }, []);
+  return larga;
+}
+
+interface Agora { por_estado: Record<string, number>; com_atendente: number; janela_minutos: number }
+
+function Fluxo({ irPara }: { irPara: (aba: Aba) => void }) {
+  const textos = useAtualizacao(useCallback(() => api<TextoBot[]>('/configuracao/textos'), []), 0);
+  const agora = useAtualizacao(useCallback(() => api<Agora>('/configuracao/fluxo/agora'), []), 10000);
+  const unidades = useAtualizacao(useCallback(() => api<{ tipo: string; ativo: boolean }[]>('/configuracao/unidades'), []), 0);
+  const [selecionada, setSelecionada] = useState<string | null>(null);
+  const larga = useTelaLarga();
+
+  const contagem = useMemo(() => (agora.dados ? contagemPorEtapa(agora.dados.por_estado, agora.dados.com_atendente) : {}), [agora.dados]);
+  const puladas = useMemo<Record<string, string>>(() => {
+    const temCras = unidades.dados?.some((u) => u.tipo === 'CRAS' && u.ativo);
+    const saida: Record<string, string> = {};
+    if (unidades.dados && !temCras) saida.bairro = 'Pulada agora: nenhum CRAS cadastrado em Unidades de atendimento.';
+    return saida;
+  }, [unidades.dados]);
+  const fechar = useCallback(() => setSelecionada(null), []);
+  const abrir = useCallback((id: string) => setSelecionada((atual) => (atual === id ? null : id)), []);
+
+  const etapa = ETAPAS.find((e) => e.id === selecionada) ?? null;
+  const usados = new Set(ETAPAS.flatMap((e) => e.textos));
+  const avulsos = textos.dados?.filter((t) => !usados.has(t.chave)) ?? [];
+  const totalAgora = Object.values(contagem).reduce((a, b) => a + b, 0);
+  const props = { selecionada, contagem, puladas, onAbrir: abrir };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-2">
+        <p className="max-w-[78ch] text-sm text-texto-2">
+          Cada caixa é uma etapa da conversa no WhatsApp; as setas mostram para onde ela vai. Clique numa etapa para ver quando ela acontece e editar o que o bot diz.
+        </p>
+        <div className="flex flex-col gap-1 text-[13px] text-texto-2" role="status">
+          <p className="flex items-center gap-2">
+            <ShieldAlert className="size-4 shrink-0 text-urgente" aria-hidden />
+            Violência interrompe qualquer etapa.
+          </p>
+          {agora.dados && (
+            <p className="pl-6 text-texto-3">
+              {totalAgora ? `${totalAgora} conversa${totalAgora > 1 ? 's' : ''} em andamento` : 'Nenhuma conversa em andamento'} nos últimos {agora.dados.janela_minutos} min
+            </p>
+          )}
+        </div>
+      </div>
+
+      {larga ? <MapaFluxo {...props} /> : <ListaFluxo {...props} />}
+
+      {avulsos.length > 0 && (
+        <section aria-labelledby="t-avulsos" className="mt-4">
+          <h2 id="t-avulsos" className="mb-3 font-display text-[24px] leading-none tracking-[0.04em]">Outros textos</h2>
+          <ul className="flex flex-col gap-4">
+            {avulsos.map((t) => <li key={t.chave + (t.atualizado_em ?? '')}><EditorTexto texto={t} onSalvo={textos.recarregar} /></li>)}
+          </ul>
+        </section>
+      )}
+
+      <PainelLateral aberto={etapa !== null} titulo={etapa?.titulo ?? ''} onFechar={fechar}>
+        {etapa && (
+          <div className="flex flex-col gap-6">
+            <dl className="flex flex-col gap-4 text-sm">
+              <div>
+                <dt className="text-[13px] font-medium text-texto-3">Quando acontece</dt>
+                <dd className="mt-1 leading-relaxed">{puladas[etapa.id] ?? etapa.quando}</dd>
+              </div>
+              {etapa.depois && (
+                <div>
+                  <dt className="text-[13px] font-medium text-texto-3">Depois</dt>
+                  <dd className="mt-1 leading-relaxed">{etapa.depois}</dd>
+                </div>
+              )}
+              {(contagem[etapa.id] ?? 0) > 0 && (
+                <div>
+                  <dt className="text-[13px] font-medium text-texto-3">Agora</dt>
+                  <dd className="mt-1">{contagem[etapa.id]} conversa(s) parada(s) nesta etapa.</dd>
+                </div>
+              )}
+            </dl>
+
+            {etapa.exemplo && (
+              <div>
+                <p className="mb-2 text-[13px] font-medium text-texto-3">Texto automático (montado pelo sistema)</p>
+                <p className="whitespace-pre-line rounded-2xl rounded-tl-sm bg-[#1f2c26] px-4 py-3 text-[13px] leading-relaxed text-[#e9efe9]">{etapa.exemplo}</p>
+              </div>
+            )}
+
+            {etapa.editarEm && (
+              <Botao icone={ArrowRight} onClick={() => { fechar(); irPara(etapa.editarEm!); }}>
+                {etapa.editarEm === 'respostas' ? 'Editar respostas por necessidade' : 'Cadastrar unidades de atendimento'}
+              </Botao>
+            )}
+
+            {etapa.textos.length > 0 && (
+              textos.erro ? <Aviso>{textos.erro}</Aviso> : !textos.dados ? <Esqueleto className="h-40" /> : (
+                <div className="flex flex-col gap-4">
+                  <p className="text-[13px] font-medium text-texto-3">O que o bot diz nesta etapa</p>
+                  {etapa.textos.map((chave) => {
+                    const t = textos.dados!.find((x) => x.chave === chave);
+                    return t ? <EditorTexto key={t.chave + (t.atualizado_em ?? '')} texto={t} onSalvo={textos.recarregar} /> : null;
+                  })}
+                </div>
+              )
+            )}
+
+            {etapa.textos.length === 0 && !etapa.exemplo && !etapa.editarEm && (
+              <p className="text-sm text-texto-2">Esta etapa não envia texto próprio.</p>
+            )}
+          </div>
+        )}
+      </PainelLateral>
+    </div>
   );
 }
 
@@ -250,17 +354,6 @@ function EditorServico({ servico, onSalvo }: { servico: Servico; onSalvo: () => 
         </div>
       </aside>
     </div>
-  );
-}
-
-function Textos() {
-  const { dados, erro, recarregar } = useAtualizacao(useCallback(() => api<TextoBot[]>('/configuracao/textos'), []), 0);
-  if (erro) return <Aviso>{erro}</Aviso>;
-  if (!dados) return <Esqueleto className="h-96" />;
-  return (
-    <ul className="flex flex-col gap-6">
-      {dados.map((t) => <li key={t.chave + (t.atualizado_em ?? '')}><EditorTexto texto={t} onSalvo={recarregar} /></li>)}
-    </ul>
   );
 }
 
