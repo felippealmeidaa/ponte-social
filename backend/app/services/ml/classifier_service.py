@@ -2,7 +2,8 @@ import os
 import joblib
 from typing import Dict, Any, List
 from app.services.ml.text_rules import predict_heuristic
-from app.services.ml.train_evaluator import KNOWLEDGE_SERVICES, NAO_IDENTIFICADO, VIOLENCIA, decidir
+from app.services import catalogo
+from app.services.ml.train_evaluator import NAO_IDENTIFICADO, VIOLENCIA, decidir
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "model_social_classifier.joblib")
 
@@ -67,7 +68,7 @@ class SocialClassifierService:
             metodo = "regra_violencia" if categoria == VIOLENCIA else ("palavras_chave" if categoria != NAO_IDENTIFICADO else "nao_identificado")
             confianca = 0.0
 
-        info_servico = KNOWLEDGE_SERVICES[categoria]
+        info_servico = catalogo.servico(categoria)
         return {
             "categoria": categoria,
             "titulo_encaminhamento": info_servico["titulo"],

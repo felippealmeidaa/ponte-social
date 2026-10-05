@@ -1,11 +1,12 @@
 import time
 import httpx
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from app.core.config import settings
+from app.core.deps import usuario_logado
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(usuario_logado)])
 
 class CreateInstanceRequest(BaseModel):
     instance_name: str = Field("cras-anapolis", description="Nome único da instância")
@@ -61,20 +62,19 @@ async def generate_qr_code(instance_name: str = "cras-anapolis"):
                     "success": True,
                     "instance_name": instance_name,
                     "qrcode": qrcode_base64,
-                    "pairing_code": data.get("pairingCode", "4829-1032"),
+                    "pairing_code": data.get("pairingCode"),
                     "source": "evolution_v2"
                 }
     except Exception:
         pass
         
-    # Fallback visual demonstrativo para desenvolvimento rápido
+    # Sem Evolution API respondendo não há QR Code: não inventar um código de pareamento
     return {
-        "success": True,
+        "success": False,
         "instance_name": instance_name,
-        "pairing_code": "CRAS-2026-GO",
-        "instructions": "Abra o WhatsApp no seu celular > Aparelhos Conectados > Conectar um Aparelho.",
-        "simulated": True
+        "erro": f"A Evolution API não respondeu em {settings.EVOLUTION_API_URL}. Suba o Docker (docker compose -f docker/docker-compose.yml up -d) e tente de novo.",
     }
+
 
 @router.post("/disconnect", summary="Desconectar instância do WhatsApp")
 async def disconnect_instance(instance_name: str = "cras-anapolis"):

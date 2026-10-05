@@ -13,21 +13,25 @@ Regras:
 - Nada identificado: oferece o Disque Social 121 e o CRAS, sem inventar resposta.
 - Conversa parada além de CONVERSA_EXPIRA_MIN recomeça do início.
 - A triagem só entra na fila se a pessoa pedir contato do CRAS.
+- Com um atendente na conversa (atendimento_humano), o bot só registra as mensagens.
 
+Os textos vêm de services/catalogo.py e podem ser editados pelo CRAS no painel.
 Respostas são texto com opções numeradas (1/2): botões interativos não funcionam de forma
 confiável na Evolution/Baileys.
 """
 from datetime import timedelta
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.models import Conversa, agora
+from app.core.security import encrypt_secret, mask_phone
+from app.models import Conversa, Mensagem, agora
+from app.services import catalogo
 from app.services.anonimizacao import anonimizar_texto, hash_telefone
 from app.services.ml.classifier_service import SocialClassifierService
 from app.services.ml.text_rules import normalizar
-from app.services.ml.train_evaluator import CATEGORIAS, KNOWLEDGE_SERVICES, NAO_IDENTIFICADO, VIOLENCIA
+from app.services.ml.train_evaluator import CATEGORIAS, NAO_IDENTIFICADO, VIOLENCIA
 from app.services.triagens import criar_triagem
 
 NOMES_CATEGORIA = {
@@ -40,35 +44,6 @@ NOMES_CATEGORIA = {
     "trabalho_renda": "trabalho e cursos",
     "violencia_protecao": "violência ou ameaça",
 }
-
-MSG_BOAS_VINDAS = (
-    "Olá! Sou o assistente de orientação da Assistência Social de Anápolis. 👋\n\n"
-    "Eu ajudo a descobrir *qual serviço procurar, quais documentos levar e onde ir*. "
-    "Sou só uma orientação: *não decido quem tem direito a benefício* — isso é feito pelos profissionais do CRAS.\n\n"
-    "Vou usar o que você me contar para te orientar e, *sem identificar você*, para melhorar este serviço. "
-    "Não escreva nome, CPF ou endereço.\n\n"
-    "Você concorda?\n*1* - Sim, concordo\n*2* - Não"
-)
-MSG_PEDIR_RELATO = "Obrigado! Agora me conte, com suas palavras, o que está acontecendo e com o que você precisa de ajuda."
-MSG_RELATO_CURTO = "Pode me contar um pouco mais? Por exemplo: o que aconteceu e com o que você precisa de ajuda."
-MSG_SEM_CONSENTIMENTO = (
-    "Tudo bem, respeitamos sua escolha. Se precisar, você pode ligar grátis para o *Disque Social 121* "
-    "ou ir ao CRAS do seu bairro. Se mudar de ideia, é só mandar uma mensagem aqui."
-)
-MSG_EMERGENCIA = (
-    "🚨 *Sua segurança vem primeiro.*\n\n"
-    "Se estiver em perigo agora, ligue *190* (Polícia).\n"
-    "Violência contra a mulher: *Ligue 180*.\n"
-    "Crianças, idosos ou pessoas com deficiência: *Disque 100*.\n"
-    "Você também pode procurar o *CREAS* de Anápolis, que atende casos de violência.\n\n"
-    "Sua mensagem foi enviada com prioridade para a equipe da assistência social."
-)
-MSG_NAO_ENTENDI = (
-    "Não consegui entender com segurança qual é a sua necessidade, e não quero te orientar errado.\n\n"
-    "Você pode ligar grátis para o *Disque Social 121* ou procurar o *CRAS* do seu bairro, "
-    "onde um profissional vai te ouvir. Se quiser, me conte de outro jeito."
-)
-MSG_AUDIO = "Por enquanto eu só consigo ler mensagens escritas. Pode me contar por texto? 🙏"
 
 SIM = {"1", "sim", "s", "ss", "isso", "certo", "concordo", "aceito", "pode", "quero", "claro", "ok", "beleza", "isso mesmo"}
 NAO = {"2", "nao", "n", "nao quero", "errado", "nao e isso", "negativo"}
@@ -88,8 +63,8 @@ def _menu_categorias() -> str:
     return "Sem problema! Qual destes assuntos combina mais com a sua situação? Responda com o número:\n\n" + "\n".join(linhas)
 
 
-def _caminho_completo(categoria: str) -> str:
-    info = KNOWLEDGE_SERVICES[categoria]
+def caminho_completo(categoria: str) -> str:
+    info = catalogo.servico(categoria)
     servicos = "\n".join(f"• {s}" for s in info["servicos"])
     documentos = "\n".join(f"• {d}" for d in info["documentos"])
     return (
@@ -103,33 +78,58 @@ def _caminho_completo(categoria: str) -> str:
     )
 
 
-async def _emergencia(session: AsyncSession, conversa: Conversa, telefone: str, texto: str) -> List[str]:
-    classificacao = SocialClassifierService.classify_relato(texto)
-    await criar_triagem(session, texto, classificacao, canal="whatsapp", telefone=telefone,
-                        nome="Contato via WhatsApp", categoria_final=VIOLENCIA)
-    conversa.estado = "FINALIZADA"
-    return [MSG_EMERGENCIA]
+def registrar(session: AsyncSession, conversa: Conversa, autor: str, texto: str) -> None:
+    session.add(Mensagem(conversa_id=conversa.telefone_hash, autor=autor, texto=texto))
 
 
-async def processar_mensagem(session: AsyncSession, telefone: str, texto: str) -> List[str]:
-    """Recebe uma mensagem do cidadão e devolve as mensagens a enviar. Persiste o estado."""
+async def obter_conversa(session: AsyncSession, telefone: str, canal: str) -> Conversa:
     chave = hash_telefone(telefone)
     conversa = await session.get(Conversa, chave)
-    expirada = conversa is not None and conversa.atualizado_em.replace(tzinfo=agora().tzinfo) < agora() - timedelta(minutes=settings.CONVERSA_EXPIRA_MIN)
     if conversa is None:
-        conversa = Conversa(telefone_hash=chave, estado="NOVA")
+        conversa = Conversa(
+            telefone_hash=chave, estado="NOVA", canal=canal,
+            telefone_cifrado=encrypt_secret(telefone), telefone_mascarado=mask_phone(telefone),
+        )
         session.add(conversa)
-    elif expirada or conversa.estado == "FINALIZADA":
-        conversa.estado, conversa.tentativas, conversa.relato = "NOVA", 0, None
-        conversa.categoria_sugerida = conversa.categoria_escolhida = None
-        conversa.classificacao = None
+    return conversa
+
+
+async def processar_mensagem(session: AsyncSession, telefone: str, texto: Optional[str],
+                             canal: str = "evolution", is_audio: bool = False) -> List[str]:
+    """Recebe uma mensagem do cidadão e devolve as mensagens que o bot deve enviar.
+    Persiste estado e histórico."""
+    conversa = await obter_conversa(session, telefone, canal)
+    texto = (texto or "").strip()
+    registrar(session, conversa, "cidadao", "[áudio]" if is_audio else anonimizar_texto(texto))
+    conversa.nao_lidas = (conversa.nao_lidas or 0) + 1
 
     try:
-        respostas = await _passo(session, conversa, telefone, texto.strip())
+        if conversa.atendimento_humano:
+            return []  # o atendente responde pelo painel
+        if is_audio:
+            respostas = [catalogo.texto("audio")]
+        else:
+            expirada = conversa.atualizado_em is not None and \
+                conversa.atualizado_em.replace(tzinfo=agora().tzinfo) < agora() - timedelta(minutes=settings.CONVERSA_EXPIRA_MIN)
+            if expirada or conversa.estado == "FINALIZADA":
+                conversa.estado, conversa.tentativas, conversa.relato = "NOVA", 0, None
+                conversa.categoria_sugerida = conversa.categoria_escolhida = None
+                conversa.classificacao = None
+            respostas = await _passo(session, conversa, telefone, texto)
+        for r in respostas:
+            registrar(session, conversa, "bot", r)
+        return respostas
     finally:
         conversa.atualizado_em = agora()
         await session.commit()
-    return respostas
+
+
+async def _emergencia(session: AsyncSession, conversa: Conversa, telefone: str, texto: str) -> List[str]:
+    classificacao = SocialClassifierService.classify_relato(anonimizar_texto(texto))
+    await criar_triagem(session, texto, classificacao, canal="whatsapp", telefone=telefone,
+                        nome="Contato via WhatsApp", categoria_final=VIOLENCIA, conversa_id=conversa.telefone_hash)
+    conversa.estado = "FINALIZADA"
+    return [catalogo.texto("emergencia")]
 
 
 async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto: str) -> List[str]:
@@ -143,25 +143,25 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
 
     if estado == "NOVA":
         conversa.estado = "AGUARDANDO_CONSENTIMENTO"
-        return [MSG_BOAS_VINDAS]
+        return [catalogo.texto("boas_vindas")]
 
     if estado == "AGUARDANDO_CONSENTIMENTO":
         resposta = _resposta(texto)
         if resposta is True:
             conversa.estado = "AGUARDANDO_RELATO"
-            return [MSG_PEDIR_RELATO]
+            return [catalogo.texto("pedir_relato")]
         if resposta is False:
             conversa.estado = "FINALIZADA"
-            return [MSG_SEM_CONSENTIMENTO]
+            return [catalogo.texto("sem_consentimento")]
         return ["Para continuar, responda *1* (Sim, concordo) ou *2* (Não)."]
 
     if estado == "AGUARDANDO_RELATO":
         if len(texto.split()) < 4 and conversa.tentativas == 0:
             conversa.tentativas = 1
-            return [MSG_RELATO_CURTO]
+            return [catalogo.texto("relato_curto")]
         if classificacao["categoria"] == NAO_IDENTIFICADO:
             conversa.estado = "FINALIZADA"
-            return [MSG_NAO_ENTENDI]
+            return [catalogo.texto("nao_entendi")]
         conversa.relato = anonimizar_texto(texto)
         conversa.classificacao = classificacao
         conversa.categoria_sugerida = classificacao["categoria"]
@@ -176,7 +176,7 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
         if resposta is True:
             conversa.categoria_escolhida = conversa.categoria_sugerida
             conversa.estado = "AGUARDANDO_CONTATO"
-            return [_caminho_completo(conversa.categoria_escolhida)]
+            return [caminho_completo(conversa.categoria_escolhida)]
         if resposta is False:
             conversa.estado = "AGUARDANDO_CORRECAO"
             return [_menu_categorias()]
@@ -189,7 +189,7 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
                 return await _emergencia(session, conversa, telefone, conversa.relato or texto)
             conversa.categoria_escolhida = escolhida
             conversa.estado = "AGUARDANDO_CONTATO"
-            return [_caminho_completo(escolhida)]
+            return [caminho_completo(escolhida)]
         return [f"Responda só com o número, de 1 a {len(CATEGORIAS)}."]
 
     if estado == "AGUARDANDO_CONTATO":
@@ -198,14 +198,13 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
             return ["Responda *1* para o CRAS entrar em contato ou *2* para não."]
         conversa.estado = "FINALIZADA"
         if resposta is False:
-            return ["Tudo bem! Se precisar de novo, é só mandar uma mensagem. Cuide-se. 💚"]
+            return [catalogo.texto("contato_recusado")]
         await criar_triagem(
             session, conversa.relato, conversa.classificacao, canal="whatsapp", telefone=telefone,
             nome="Contato via WhatsApp", categoria_final=conversa.categoria_escolhida,
-            confirmada=True, consentiu_treino=True,
+            confirmada=True, consentiu_treino=True, conversa_id=conversa.telefone_hash,
         )
-        return ["Pronto! ✅ Sua solicitação foi enviada para a equipe do CRAS, que vai entrar em contato por este número. "
-                "Enquanto isso, separe os documentos da lista acima."]
+        return [catalogo.texto("contato_confirmado")]
 
     conversa.estado = "AGUARDANDO_CONSENTIMENTO"
-    return [MSG_BOAS_VINDAS]
+    return [catalogo.texto("boas_vindas")]

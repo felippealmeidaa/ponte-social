@@ -66,6 +66,8 @@ def test_knowledge_base_endpoints():
     assert "results" in query_resp.json()
 
 def test_whatsapp_instance_status():
+    from conftest import autenticar
+    autenticar(client)
     resp = client.get("/api/v1/whatsapp/status?instance_name=cras-anapolis")
     assert resp.status_code == 200
     assert "connected" in resp.json()

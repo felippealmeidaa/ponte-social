@@ -1,4 +1,3 @@
-import json
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -7,6 +6,7 @@ from app.core.config import settings
 from app.api.v1.api import api_router
 from app.db import abrir_sessao, init_db
 from app.services.live_chat.manager import live_chat_manager
+from app.services import catalogo
 from app.services.triagens import aplicar_retencao, popular_demo_se_vazio
 
 
@@ -14,6 +14,7 @@ from app.services.triagens import aplicar_retencao, popular_demo_se_vazio
 async def lifespan(app: FastAPI):
     await init_db()
     async with abrir_sessao() as session:
+        await catalogo.carregar(session)
         apagadas = await aplicar_retencao(session)
         if apagadas:
             print(f"[LGPD] {apagadas} triagens apagadas por passarem do prazo de retenção.")
@@ -56,20 +57,8 @@ def health_check():
 async def websocket_chat_endpoint(websocket: WebSocket, tenant_id: str):
     await live_chat_manager.connect(websocket, tenant_id)
     try:
+        # Só notificações do servidor para o painel; assumir/devolver conversa é feito pelas rotas /atendimento
         while True:
-            data = await websocket.receive_text()
-            # Processa mensagens vindas do atendente do painel web
-            # Ex: {"action": "SEND_MESSAGE", "phone": "556299999999", "text": "Olá"}
-            try:
-                msg_json = json.loads(data)
-                action = msg_json.get("action")
-                if action == "PAUSE_BOT":
-                    phone = msg_json.get("phone")
-                    live_chat_manager.pause_bot_for_contact(phone, agent_id="operador-cras")
-                elif action == "RESUME_BOT":
-                    phone = msg_json.get("phone")
-                    live_chat_manager.resume_bot_for_contact(phone)
-            except Exception:
-                pass
+            await websocket.receive_text()
     except WebSocketDisconnect:
         live_chat_manager.disconnect(websocket, tenant_id)

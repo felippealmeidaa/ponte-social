@@ -1,175 +1,134 @@
-import { useState, useEffect } from 'react';
-import { TriagemPanel } from './components/TriagemPanel';
-import { FlowBuilder } from './components/FlowBuilder';
-import { LiveChatInbox } from './components/LiveChatInbox';
-import { MlStudioPanel } from './components/MlStudioPanel';
-import { AiServerPanel } from './components/AiServerPanel';
-import { KnowledgeBasePanel } from './components/KnowledgeBasePanel';
-import { WhatsAppChannelPanel } from './components/WhatsAppChannelPanel';
+import { useCallback, useEffect, useState } from 'react';
+import { BarChart3, ListOrdered, LogOut, MessagesSquare, NotebookPen, Settings, type LucideIcon } from 'lucide-react';
+import { api, encerrarSessao, sessaoSalva, type Usuario } from './api';
 import { LoginPage } from './components/LoginPage';
-import { 
-  Users, 
-  GitBranch, 
-  MessageSquare, 
-  Brain, 
-  Shield, 
-  LogOut, 
-  UserCheck,
-  Cpu,
-  BookOpen,
-  QrCode
-} from 'lucide-react';
+import { Fila } from './paginas/Fila';
+import { Conversas } from './paginas/Conversas';
+import { Indicadores } from './paginas/Indicadores';
+import { ServicosMensagens } from './paginas/ServicosMensagens';
+import { Configuracoes } from './paginas/Configuracoes';
+import type { ResumoConversa, Triagem } from './tipos';
+import { useAtualizacao } from './useAtualizacao';
+import { ESTADOS, ORDEM_ESTADOS } from './vocabulario';
+import type { Rota } from './navegacao';
 
-export function App() {
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<
-    'triagem' | 'flows' | 'chat' | 'aiserver' | 'knowledge' | 'ml' | 'channels'
-  >('triagem');
+
+const NAVEGACAO: { id: Rota; rotulo: string; curto: string; icone: LucideIcon }[] = [
+  { id: 'fila', rotulo: 'Fila', curto: 'Fila', icone: ListOrdered },
+  { id: 'conversas', rotulo: 'Conversas', curto: 'Conversas', icone: MessagesSquare },
+  { id: 'indicadores', rotulo: 'Indicadores', curto: 'Números', icone: BarChart3 },
+  { id: 'servicos', rotulo: 'Serviços e mensagens', curto: 'Serviços', icone: NotebookPen },
+  { id: 'configuracoes', rotulo: 'Configurações', curto: 'Ajustes', icone: Settings },
+];
+
+function rotaAtual(): { rota: Rota; parametro?: string } {
+  const [, rota, parametro] = window.location.hash.split('/');
+  const valida = NAVEGACAO.some((n) => n.id === rota) ? (rota as Rota) : 'fila';
+  return { rota: valida, parametro: parametro ? decodeURIComponent(parametro) : undefined };
+}
+
+export default function App() {
+  const [usuario, setUsuario] = useState<Usuario | null>(sessaoSalva);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('social_crm_user');
-    if (savedUser) {
-      try {
-        setCurrentUser(JSON.parse(savedUser));
-      } catch {
-        localStorage.removeItem('social_crm_user');
-      }
-    }
+    const aoExpirar = () => setUsuario(null);
+    window.addEventListener('sessao-expirada', aoExpirar);
+    return () => window.removeEventListener('sessao-expirada', aoExpirar);
   }, []);
 
-  const handleLoginSuccess = (user: any, token: string) => {
-    setCurrentUser(user);
-    localStorage.setItem('social_crm_user', JSON.stringify(user));
-    localStorage.setItem('social_crm_token', token);
-  };
+  if (!usuario) return <LoginPage onEntrar={setUsuario} />;
+  return <Painel usuario={usuario} onSair={() => { encerrarSessao(); setUsuario(null); }} />;
+}
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    localStorage.removeItem('social_crm_user');
-    localStorage.removeItem('social_crm_token');
-  };
+function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
+  const [{ rota, parametro }, setLocal] = useState(rotaAtual);
+  useEffect(() => {
+    const aoMudar = () => setLocal(rotaAtual());
+    window.addEventListener('hashchange', aoMudar);
+    return () => window.removeEventListener('hashchange', aoMudar);
+  }, []);
 
-  if (!currentUser) {
-    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
-  }
+  const fila = useAtualizacao(useCallback(() => api<Triagem[]>('/triagem/fila'), []), 5000);
+  const conversas = useAtualizacao(useCallback(() => api<ResumoConversa[]>('/atendimento/conversas'), []), 4000);
 
-  const navItems = [
-    { id: 'triagem', label: 'Triagem Social', icon: Users },
-    { id: 'chat', label: 'Live Chat', icon: MessageSquare },
-    { id: 'flows', label: 'Flow Studio', icon: GitBranch },
-    { id: 'aiserver', label: 'AI Server & Gateway', icon: Cpu, badge: 'PRO' },
-    { id: 'knowledge', label: 'Base RAG', icon: BookOpen },
-    { id: 'ml', label: 'MLOps & Treino', icon: Brain },
-    { id: 'channels', label: 'Canais WhatsApp', icon: QrCode }
-  ];
+  const triagens = fila.dados ?? [];
+  const porEstado = Object.fromEntries(ORDEM_ESTADOS.map((s) => [s, triagens.filter((t) => t.status === s).length]));
+  const naoLidas = (conversas.dados ?? []).filter((c) => c.atendimento_humano && c.nao_lidas > 0).length;
 
   return (
-    <div className="min-h-screen bg-[#07080b] text-slate-100 flex flex-col selection:bg-sky-500/30 selection:text-sky-300">
-      {/* Top Navbar */}
-      <header className="border-b border-white/5 bg-[#090b10]/90 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-slate-900 border border-white/10 flex items-center justify-center text-sky-400 shadow-sm">
-              <Shield className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-sm font-bold text-white tracking-tight">SocialCRM & AI Gateway</h1>
-                <span className="text-[10px] uppercase font-mono font-semibold bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20">
-                  v2.0 Enterprise
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400">UniEVANGÉLICA 2026/2 • ODS 16 & 10</p>
-            </div>
-          </div>
-
-          {/* Navigation Tabs */}
-          <nav className="hidden lg:flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-white/5">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id as any)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all relative ${
-                    isActive
-                      ? 'bg-slate-800 text-white shadow-sm border border-white/10'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'
-                  }`}
-                >
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-sky-400' : 'text-slate-500'}`} />
-                  <span>{item.label}</span>
-                  {item.badge && (
-                    <span className="text-[9px] font-mono bg-sky-500/20 text-sky-400 px-1 py-0.2 rounded">
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* User Info & Logout */}
-          <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-950 border border-white/5 text-xs text-slate-300">
-              <UserCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="font-medium">{currentUser.name}</span>
-            </div>
-
-            <button
-              onClick={handleLogout}
-              title="Encerrar Sessão"
-              className="p-2 rounded-xl bg-slate-950 hover:bg-rose-950/30 text-slate-400 hover:text-rose-400 border border-white/5 hover:border-rose-500/30 transition-all"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
+    <div className="min-h-dvh md:grid md:grid-cols-[232px_1fr]">
+      <aside className="hidden md:flex sticky top-0 h-dvh flex-col border-r border-linha bg-[#0d1016] px-4 py-6">
+        <div className="px-2 mb-8">
+          <p className="font-display text-[30px] leading-[0.9] tracking-[0.06em]">CRAS Anápolis</p>
+          <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.22em] text-ambar">Encaminhamento social</p>
         </div>
 
-        {/* Mobile Navigation Row */}
-        <div className="lg:hidden flex items-center gap-1 overflow-x-auto p-2 bg-slate-950 border-t border-white/5">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
+        <nav aria-label="Principal" className="flex flex-col gap-1">
+          {NAVEGACAO.map(({ id, rotulo, icone: Icone }) => {
+            const ativo = rota === id;
             return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id as any)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 flex items-center gap-1.5 transition-all ${
-                  isActive
-                    ? 'bg-slate-800 text-white'
-                    : 'text-slate-400 hover:text-white'
+              <a
+                key={id}
+                href={`#/${id}`}
+                aria-current={ativo ? 'page' : undefined}
+                className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 text-sm transition-colors duration-150 ${
+                  ativo ? 'border-ambar/70 bg-ambar-escuro text-ambar font-semibold' : 'border-transparent text-texto-2 hover:text-texto hover:bg-elevada'
                 }`}
               >
-                <Icon className="w-3.5 h-3.5" />
-                <span>{item.label}</span>
-              </button>
+                <Icone className="size-[18px] shrink-0" aria-hidden />
+                <span className="flex-1">{rotulo}</span>
+                {id === 'conversas' && naoLidas > 0 && (
+                  <span className="rounded-full bg-ambar px-1.5 text-[11px] font-bold text-[#1b1406] tabular" aria-label={`${naoLidas} conversas com mensagens novas`}>{naoLidas}</span>
+                )}
+              </a>
             );
           })}
-        </div>
-      </header>
+        </nav>
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {activeTab === 'triagem' && <TriagemPanel />}
-        {activeTab === 'chat' && <LiveChatInbox />}
-        {activeTab === 'flows' && <FlowBuilder />}
-        {activeTab === 'aiserver' && <AiServerPanel />}
-        {activeTab === 'knowledge' && <KnowledgeBasePanel />}
-        {activeTab === 'ml' && <MlStudioPanel />}
-        {activeTab === 'channels' && <WhatsAppChannelPanel />}
+        <div className="mt-8 border-t border-linha pt-6 px-2">
+          <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-texto-3 mb-3">Situação da fila</p>
+          <ul className="flex flex-col gap-2 text-[13px]">
+            {ORDEM_ESTADOS.slice(0, 5).map((s) => (
+              <li key={s}>
+                <a href={`#/fila/${s}`} className="flex items-center justify-between text-texto-2 hover:text-texto">
+                  <span>{ESTADOS[s].rotulo}</span>
+                  <span className={`tabular ${s === 'URGENTE_CREAS' && porEstado[s] > 0 ? 'text-urgente font-semibold' : 'text-texto'}`}>
+                    {fila.dados ? porEstado[s] : '–'}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mt-auto flex items-center justify-between gap-2 rounded-lg border border-linha px-3 py-2.5">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{usuario.name}</p>
+            <p className="text-xs text-texto-3">{usuario.role === 'ADMIN' ? 'Coordenação' : 'Atendimento'}</p>
+          </div>
+          <button onClick={onSair} className="rounded-md p-1.5 text-texto-3 hover:bg-elevada hover:text-texto" aria-label="Sair do sistema" title="Sair">
+            <LogOut className="size-4" aria-hidden />
+          </button>
+        </div>
+      </aside>
+
+      <main className="min-w-0 px-4 pb-24 pt-6 md:px-8 md:pb-10 lg:px-10">
+        {rota === 'fila' && <Fila fila={fila} filtroEstado={parametro} />}
+        {rota === 'conversas' && <Conversas conversas={conversas} selecionada={parametro} />}
+        {rota === 'indicadores' && <Indicadores />}
+        {rota === 'servicos' && <ServicosMensagens />}
+        {rota === 'configuracoes' && <Configuracoes aba={parametro} />}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-white/5 bg-[#07080b] py-4">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center text-xs text-slate-500 gap-2">
-          <span>Sistema Inteligente de Encaminhamento Social • ODS 16 (16.6) & ODS 10 (10.2)</span>
-          <span className="mono-font text-[11px]">Linear SVM (TF-IDF) • Gemini 3.5 Flash Lite • Faster-Whisper • pgvector</span>
-        </div>
-      </footer>
+      <nav aria-label="Principal" className="md:hidden fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-linha bg-[#0d1016]">
+        {NAVEGACAO.map(({ id, rotulo, curto, icone: Icone }) => (
+          <a key={id} href={`#/${id}`} aria-label={rotulo} aria-current={rota === id ? 'page' : undefined}
+            className={`flex flex-col items-center gap-1 py-2.5 text-[10px] ${rota === id ? 'text-ambar' : 'text-texto-3'}`}>
+            <Icone className="size-5" aria-hidden />
+            <span className="truncate max-w-full px-1">{curto}</span>
+          </a>
+        ))}
+      </nav>
     </div>
   );
 }
-
-export default App;

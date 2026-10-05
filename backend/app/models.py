@@ -39,6 +39,7 @@ class Triagem(Base):
     servicos_recomendados: Mapped[list] = mapped_column(JSON, default=list)
     documentos_necessarios: Mapped[list] = mapped_column(JSON, default=list)
 
+    conversa_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
     status: Mapped[str] = mapped_column(String(30), default="PENDENTE", index=True)
     observacoes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     consentiu_uso_para_treino: Mapped[bool] = mapped_column(default=False)
@@ -46,14 +47,57 @@ class Triagem(Base):
 
 class Conversa(Base):
     """Estado da conversa de cada contato no WhatsApp (ver services/bot/fluxo_conversa.py).
-    A chave é um hash do telefone, não o número."""
+    A chave é um hash do telefone, não o número; o número fica só criptografado, para responder."""
     __tablename__ = "conversas"
 
     telefone_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    telefone_cifrado: Mapped[str] = mapped_column(Text, default="")
+    telefone_mascarado: Mapped[str] = mapped_column(String(32), default="")
+    canal: Mapped[str] = mapped_column(String(20), default="evolution")  # evolution | meta | simulador
     estado: Mapped[str] = mapped_column(String(40))
-    atualizado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=agora)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=agora)
+    atualizado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=agora, index=True)
     tentativas: Mapped[int] = mapped_column(Integer, default=0)
     relato: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # já anonimizado
     categoria_sugerida: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     categoria_escolhida: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     classificacao: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    # Atendimento humano: com um atendente na conversa, o bot fica em silêncio
+    atendimento_humano: Mapped[bool] = mapped_column(default=False)
+    atendente: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    nao_lidas: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class Mensagem(Base):
+    """Histórico da conversa para o atendimento humano. Mensagens do cidadão são gravadas anonimizadas."""
+    __tablename__ = "mensagens"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    conversa_id: Mapped[str] = mapped_column(String(64), index=True)
+    autor: Mapped[str] = mapped_column(String(20))  # cidadao | bot | atendente
+    texto: Mapped[str] = mapped_column(Text)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=agora, index=True)
+
+
+class ServicoCategoria(Base):
+    """Base de serviços editável pelo CRAS: o que o bot responde para cada categoria."""
+    __tablename__ = "servicos_categoria"
+
+    categoria: Mapped[str] = mapped_column(String(40), primary_key=True)
+    titulo: Mapped[str] = mapped_column(String(160))
+    servicos: Mapped[list] = mapped_column(JSON, default=list)
+    documentos: Mapped[list] = mapped_column(JSON, default=list)
+    local_atendimento: Mapped[str] = mapped_column(Text)
+    contato_util: Mapped[str] = mapped_column(Text)
+    atualizado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    atualizado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+
+
+class TextoBot(Base):
+    """Textos da conversa do bot editáveis pelo CRAS."""
+    __tablename__ = "textos_bot"
+
+    chave: Mapped[str] = mapped_column(String(40), primary_key=True)
+    texto: Mapped[str] = mapped_column(Text)
+    atualizado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    atualizado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)

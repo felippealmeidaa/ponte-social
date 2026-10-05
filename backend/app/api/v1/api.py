@@ -9,7 +9,9 @@ from app.api.v1.endpoints import (
     api_keys,
     knowledge_base,
     whatsapp_instances,
-    apps_workspace
+    apps_workspace,
+    atendimento,
+    configuracao,
 )
 
 api_router = APIRouter()
@@ -19,6 +21,10 @@ api_router.include_router(auth.router, prefix="/auth", tags=["Autenticação & S
 
 # Triagem Social & CRAS (Operação)
 api_router.include_router(triagem.router, prefix="/triagem", tags=["Triagem Social & CRAS"])
+
+# Conversas (atendimento humano) e base de serviços editável
+api_router.include_router(atendimento.router, prefix="/atendimento", tags=["Atendimento (conversas)"])
+api_router.include_router(configuracao.router, prefix="/configuracao", tags=["Serviços e mensagens do bot"])
 
 # Webhooks & Mensagens de Entrada
 api_router.include_router(whatsapp_webhooks.router, prefix="/webhooks", tags=["WhatsApp Webhooks"])

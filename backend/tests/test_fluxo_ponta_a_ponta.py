@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.services.anonimizacao import anonimizar_texto
+from conftest import autenticar
 
 
 def _conversa(client, telefone, *mensagens):
@@ -20,6 +21,7 @@ def _fila(client):
 
 def test_fluxo_completo_entra_na_fila_com_dados_protegidos():
     with TestClient(app) as client:
+        autenticar(client)
         antes = {t["id"] for t in _fila(client)}
         r = _conversa(
             client, "5562911110001",
@@ -48,6 +50,7 @@ def test_fluxo_completo_entra_na_fila_com_dados_protegidos():
 
 def test_correcao_pelo_cidadao_vira_exemplo_rotulado():
     with TestClient(app) as client:
+        autenticar(client)
         _conversa(client, "5562911110002", "ola", "sim", "preciso de ajuda com o cadastro unico da minha familia", "2")
         # menu: 1 renda, 2 cadastro, 3 moradia, 4 documentação ...
         r = _conversa(client, "5562911110002", "4", "1")
@@ -58,6 +61,7 @@ def test_correcao_pelo_cidadao_vira_exemplo_rotulado():
 
 def test_violencia_interrompe_em_qualquer_etapa():
     with TestClient(app) as client:
+        autenticar(client)
         antes = {t["id"] for t in _fila(client)}
         r = _conversa(client, "5562911110003", "meu marido me agrediu e estou com medo")
         assert "190" in r[0][0] and "180" in r[0][0]
@@ -68,6 +72,7 @@ def test_violencia_interrompe_em_qualquer_etapa():
 
 def test_fila_vem_com_urgentes_primeiro():
     with TestClient(app) as client:
+        autenticar(client)
         ordem = {"URGENTE_VIOLENCIA": 0, "ALTA": 1, "MEDIA": 2}
         prioridades = [ordem.get(t["prioridade"], 3) for t in _fila(client)]
         assert prioridades == sorted(prioridades)
@@ -75,6 +80,7 @@ def test_fila_vem_com_urgentes_primeiro():
 
 def test_sem_consentimento_nao_grava_nada():
     with TestClient(app) as client:
+        autenticar(client)
         antes = len(_fila(client))
         r = _conversa(client, "5562911110004", "oi", "2")
         assert "121" in r[1][0]
@@ -83,12 +89,14 @@ def test_sem_consentimento_nao_grava_nada():
 
 def test_relato_curto_pede_mais_detalhes_uma_vez():
     with TestClient(app) as client:
+        autenticar(client)
         r = _conversa(client, "5562911110005", "oi", "1", "ajuda")
         assert "um pouco mais" in r[2][0]
 
 
 def test_mudar_status_no_painel():
     with TestClient(app) as client:
+        autenticar(client)
         alvo = _fila(client)[0]["id"]
         r = client.patch(f"/api/v1/triagem/{alvo}/status", json={"status": "EM_ATENDIMENTO"})
         assert r.status_code == 200
@@ -98,6 +106,7 @@ def test_mudar_status_no_painel():
 
 def test_webhook_ignora_grupos_e_proprio_bot():
     with TestClient(app) as client:
+        autenticar(client)
         base = {"event": "messages.upsert", "data": {"message": {"conversation": "oi"}}}
         grupo = {**base, "data": {**base["data"], "key": {"remoteJid": "123@g.us", "fromMe": False}}}
         proprio = {**base, "data": {**base["data"], "key": {"remoteJid": "5562@s.whatsapp.net", "fromMe": True}}}

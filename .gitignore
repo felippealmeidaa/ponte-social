@@ -50,3 +50,9 @@ Thumbs.db
 
 # Banco SQLite local de desenvolvimento
 *.db
+
+# Arquivos de trabalho da skill de design (Impeccable)
+.impeccable/ref/
+.impeccable/review/
+.impeccable/questions/
+.impeccable/decision-*.json

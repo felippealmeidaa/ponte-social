@@ -8,11 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.security import encrypt_secret, mask_phone
-from app.models import Triagem, agora
+from app.models import Conversa, Mensagem, Triagem, agora
 from app.services.anonimizacao import anonimizar_texto
 from app.services.live_chat.manager import live_chat_manager
 from app.services.ml.classifier_service import PRIORIDADE_POR_CATEGORIA, SocialClassifierService
-from app.services.ml.train_evaluator import KNOWLEDGE_SERVICES
+from app.services import catalogo
 
 TENANT_PADRAO = "cras-anapolis-01"
 STATUS_VALIDOS = {"PENDENTE", "EM_ATENDIMENTO", "ENCAMINHADO_CREAS", "URGENTE_CREAS", "CONCLUIDO", "ARQUIVADO"}
@@ -40,6 +40,8 @@ def para_dict(t: Triagem) -> Dict[str, Any]:
         "metodo_decisao": t.metodo_decisao,
         "status": t.status,
         "observacoes": t.observacoes,
+        "conversa_id": t.conversa_id,
+        "tem_contato": bool(t.telefone_cifrado),
         "servicos_recomendados": t.servicos_recomendados or [],
         "documentos_necessarios": t.documentos_necessarios or [],
     }
@@ -58,11 +60,12 @@ async def criar_triagem(
     categoria_final: Optional[str] = None,
     confirmada: bool = False,
     consentiu_treino: bool = False,
+    conversa_id: Optional[str] = None,
 ) -> Triagem:
     """categoria_final: categoria depois da confirmação/correção do cidadão. Se diferente da sugerida,
     os dados de serviço/documentos passam a ser os da categoria corrigida."""
     categoria = categoria_final or classificacao["categoria"]
-    info = KNOWLEDGE_SERVICES[categoria]
+    info = catalogo.servico(categoria)
     urgente = info["urgencia"]
     triagem = Triagem(
         id=f"trg-{uuid.uuid4().hex[:8]}",
@@ -85,6 +88,7 @@ async def criar_triagem(
         documentos_necessarios=info["documentos"],
         status="URGENTE_CREAS" if urgente else "PENDENTE",
         consentiu_uso_para_treino=consentiu_treino,
+        conversa_id=conversa_id,
     )
     session.add(triagem)
     await session.commit()
@@ -114,6 +118,8 @@ async def aplicar_retencao(session: AsyncSession) -> int:
     """Apaga triagens mais antigas que RETENCAO_DIAS (LGPD: prazo de retenção definido)."""
     limite = agora() - timedelta(days=settings.RETENCAO_DIAS)
     res = await session.execute(delete(Triagem).where(Triagem.criado_em < limite))
+    await session.execute(delete(Mensagem).where(Mensagem.criado_em < limite))
+    await session.execute(delete(Conversa).where(Conversa.atualizado_em < limite))
     await session.commit()
     return res.rowcount or 0
 

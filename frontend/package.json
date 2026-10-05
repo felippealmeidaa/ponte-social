@@ -10,7 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@xyflow/react": "^12.12.0",
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource/bebas-neue": "^5.3.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.51.0",
     "react": "^19.2.8",

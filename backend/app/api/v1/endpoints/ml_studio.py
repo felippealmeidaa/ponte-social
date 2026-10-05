@@ -1,10 +1,11 @@
 import os
 import json
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from app.core.deps import usuario_logado
 from app.services.ml.classifier_service import SocialClassifierService
 from app.services.ml.train_evaluator import train_and_evaluate, DATASET_PATH, MODEL_OUTPUT, REPORT_OUTPUT
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(usuario_logado)])
 
 @router.get("/metrics")
 async def get_ml_metrics():

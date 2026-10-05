@@ -29,7 +29,8 @@ class Settings(BaseSettings):
     # JWT
     SECRET_KEY: str = os.getenv("SECRET_KEY", "crm_social_secret_key_jwt_super_segura_2026_dev")
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    # Um turno de trabalho: o painel fica aberto o dia todo no CRAS
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "480"))
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     
     # AES-256 Fernet Encryption

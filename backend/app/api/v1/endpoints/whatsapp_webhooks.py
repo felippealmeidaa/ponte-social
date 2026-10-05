@@ -5,8 +5,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.deps import usuario_logado
 from app.db import abrir_sessao, get_session, init_db
-from app.services.bot.fluxo_conversa import MSG_AUDIO, processar_mensagem
+from app.services.anonimizacao import hash_telefone
+from app.services.bot.fluxo_conversa import processar_mensagem
 from app.services.channels.evolution_adapter import EvolutionApiAdapter
 from app.services.channels.meta_cloud_adapter import MetaCloudApiAdapter
 from app.services.live_chat.manager import live_chat_manager
@@ -26,21 +28,13 @@ async def _enviar(canal: str, telefone: str, mensagens: List[str]) -> None:
 
 
 async def process_whatsapp_message_background(phone: str, text: Optional[str], canal: str = "evolution", is_audio: bool = False):
-    """Adaptador de canal → fluxo da conversa → envio da resposta pelo mesmo canal."""
-    await live_chat_manager.broadcast_to_tenant(TENANT_PADRAO, {
-        "event": "NOVA_MENSAGEM_CHAT", "phone": phone, "sender": "CONTACT", "text": text or "[áudio]",
-    })
-    # Transbordo humano: com um atendente na conversa, o bot só repassa a mensagem ao painel
-    if live_chat_manager.is_bot_paused(phone):
-        return
-    if is_audio:
-        await _enviar(canal, phone, [MSG_AUDIO])
-        return
-
+    """Adaptador de canal → fluxo da conversa (grava o histórico) → envio da resposta pelo mesmo canal.
+    Se um atendente assumiu a conversa, o fluxo não devolve respostas e o painel mostra a mensagem."""
     await init_db()
     async with abrir_sessao() as session:
-        respostas = await processar_mensagem(session, phone, text)
+        respostas = await processar_mensagem(session, phone, text, canal=canal, is_audio=is_audio)
     await _enviar(canal, phone, respostas)
+    await live_chat_manager.broadcast_to_tenant(TENANT_PADRAO, {"event": "NOVA_MENSAGEM", "conversa_id": hash_telefone(phone)})
 
 
 @router.post("/evolution")
@@ -113,8 +107,9 @@ class SimulacaoRequest(BaseModel):
     texto: str = Field(min_length=1, max_length=4000)
 
 
-@router.post("/simular")
+@router.post("/simular", dependencies=[Depends(usuario_logado)])
 async def simular_conversa(req: SimulacaoRequest, session: AsyncSession = Depends(get_session)):
     """Conversa com o bot sem WhatsApp: mesmo fluxo e mesmo banco, mas devolve as respostas em vez
     de enviá-las. Serve para testes, para o painel e como plano B na apresentação."""
-    return {"respostas": await processar_mensagem(session, req.telefone, req.texto)}
+    respostas = await processar_mensagem(session, req.telefone, req.texto, canal="simulador")
+    return {"respostas": respostas, "conversa_id": hash_telefone(req.telefone)}

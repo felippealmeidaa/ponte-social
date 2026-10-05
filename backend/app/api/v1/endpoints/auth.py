@@ -69,7 +69,7 @@ async def login(credentials: LoginRequest, response: Response):
     if not user or not verify_password(credentials.password, user["password_hash"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciais inválidas. Use o login 'teste' e senha '123'."
+            detail="Usuário ou senha incorretos."
         )
     
     access_token = create_access_token(
