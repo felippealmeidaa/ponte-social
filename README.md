@@ -6,12 +6,14 @@ Sistema Inteligente de Triagem e Encaminhamento Social desenvolvido para o **Pro
 
 ## 🏛 Arquitetura do Sistema
 
-- **Backend**: Python 3.12, FastAPI (Assíncrono), Pydantic v2, Uvicorn, WebSockets.
-- **Inteligência Artificial**: Scikit-Learn (Linear SVM, Regressão Logística, Naive Bayes), TF-IDF, PyTorch, Validação Cruzada Estratificada ($k=5$).
-- **Segurança & LGPD**: Hash de senhas com **Argon2id** (PHC winner), Criptografia de segredos com **AES-256-GCM** (Fernet), **JWT com Refresh Token em Cookie HttpOnly** (`Secure`, `SameSite=Lax`), Mascaramento automático de CPF e Telefone.
-- **WhatsApp Híbrido**: Adaptador modular para **Evolution API v2** (autohospedado em Docker) e **WhatsApp Cloud API Oficial da Meta** (Graph v20+).
-- **Frontend SPA**: React 18, Vite, TypeScript, Tailwind CSS, **@xyflow/react** (Visual Flow Builder estilo n8n), Lucide Icons.
-- **Banco de Dados & Filas**: PostgreSQL 16 com extensão `pgvector` e Redis 7.
+Detalhes do que está implementado e do que ficou para a fase 2: [`ARQUITETURA_E_ESPECIFICACAO_PROJETO.md`](ARQUITETURA_E_ESPECIFICACAO_PROJETO.md).
+
+- **Backend**: Python 3.12, FastAPI (assíncrono), Pydantic v2, SQLAlchemy, WebSockets.
+- **Inteligência Artificial**: scikit-learn (Regressão Logística, Naive Bayes, SVM linear) com TF-IDF; validação cruzada agrupada (StratifiedGroupKFold, $k=5$), bootstrap e McNemar.
+- **Segurança & LGPD**: senhas com **Argon2id**, telefone criptografado com **Fernet** (AES-128-CBC + HMAC), JWT com refresh token em cookie HttpOnly (`SameSite=Lax`; `Secure` a ativar quando houver HTTPS), relato anonimizado e prazo de retenção.
+- **WhatsApp**: adaptador de canal para **Evolution API v2** (autohospedada em Docker) e para a **WhatsApp Cloud API** da Meta.
+- **Frontend**: React 19, Vite, TypeScript, Tailwind CSS, Lucide Icons.
+- **Banco de Dados**: PostgreSQL 16 no Docker (imagem com `pgvector`, ainda não usado) ou SQLite local; Redis 7 só para a Evolution API.
 
 ---
 
@@ -91,7 +93,7 @@ Flow Builder (`/flows`), AI Gateway (`/models`), API Keys (`/api-keys`), Base RA
 
 **Leitura para a banca:** os modelos superam com folga a classe majoritária e superam as palavras-chave no teste, mas a diferença entre eles não é significativa (McNemar p = 0,63) e **a revocação de violência (70%) ainda não atinge um piso aceitável**. A causa principal é a falta de relatos reais: com 84 exemplos simulados o modelo não aprende a variedade da fala. Próximo passo: relatos anonimizados do CRAS parceiro + definir o piso de revocação com um profissional. Os números acima se referem a dados simulados e devem ser refeitos com dados reais.
 
-> O notebook `notebooks/analise_e_avaliacao_modelos.ipynb` ainda usa a metodologia antiga (avaliação no próprio treino) e precisa ser atualizado.
+> O notebook `notebooks/analise_e_avaliacao_modelos.ipynb` reproduz esta avaliação passo a passo (com a demonstração do vazamento, matriz de confusão, análise de erros e palavras de maior peso). Para executá-lo: `pip install jupyter` no mesmo ambiente e abra a partir da pasta `notebooks/`.
 
 ---
 

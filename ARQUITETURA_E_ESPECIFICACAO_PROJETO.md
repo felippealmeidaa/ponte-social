@@ -1,38 +1,117 @@
-# DOCUMENTO DE ESPECIFICAÇÃO ARQUITETURAL, TÉCNICA E PLANO INTEGRAL DE PROJETO
-## Sistema Inteligente de Encaminhamento Social & Plataforma Omnichannel de Atendimento Inteligente com IA Híbrida (ML, PyTorch, Google Gemini Flash Lite, LangGraph, Whisper e Visual Flow Builder)
+# Arquitetura e Especificação Técnica
+## Sistema Inteligente de Encaminhamento Social
+
+Projeto Integrador · 3º Período de Inteligência Artificial · UniEVANGÉLICA 2026/2
+Integrantes: Paula Tomazzelli, Guilherme Henrique Carvalhal, Felippe Almeida, João Victor Domingues
+ODS 16 (meta 16.6, principal) e ODS 10 (meta 10.2)
+
+Este documento descreve **o que está implementado hoje** no repositório. As decisões e o cronograma estão no `Plano_Projeto_Encaminhamento_Social.pdf`; quando algo aqui divergir do plano, o motivo está indicado.
 
 ---
 
-### 1. Resumo Executivo e Alinhamento Estratégico
+### 1. Resumo
 
-Este projeto integra dois objetivos sinérgicos em uma única solução tecnológica de ponta a ponta:
+O cidadão conta sua situação pelo WhatsApp. Um classificador supervisionado identifica a necessidade (8 categorias) e o sistema responde com serviços, documentos, onde procurar e próximos passos. Se a pessoa quiser, a triagem entra na fila de um painel web usado pelo CRAS.
 
-1. **Requisitos Acadêmicos (Projeto Integrador - UniEVANGÉLICA 2026/2 - Inteligência Artificial - 3º Período)**:
-   - **Problema Real**: Dificuldade do cidadão em vulnerabilidade social em descobrir o serviço público correto (CRAS, CREAS, Cadastro Único, Bolsa Família, BPC, Tarifa Social, etc.), documentos exigidos, requisitos e locais de atendimento, evitando filas e retrabalho de servidores públicos.
-   - **Ciência de Dados & Machine Learning Rigoroso**:
-     - Modelos Supervisionados Clássicos: Regressão Logística com TF-IDF, Naive Bayes Multinomial e SVM Linear (Modelo Campeão com $F_1\text{-Macro} = 1.0000$).
-     - **LLM Oficial Adotada**: **Google Gemini (Modelo Flash Lite)** para reescrita semântica de intenções (*Query Rewriter*), humanização empática e acolhedora de respostas no WhatsApp e copiloto de criação de fluxos.
-     - Modelos Não-Supervisionados: **HDBSCAN** e **K-Means** com **UMAP/PCA** para clusterização de relatos não mapeados e descoberta de novos padrões de demanda.
-     - **Processamento de Áudio**: Transcrição inteligente de mensagens de voz via **Whisper (Faster-Whisper)** para garantir acessibilidade a cidadãos analfabetos ou com baixa escolaridade.
-     - **Tratamento da Base A Real do MDS**: Limpeza de 133.704 registros municipais para 116.991 linhas úteis com derivação de UF e diagnóstico oficial de Anápolis-GO.
-     - Avaliação Científica: Linha de base da classe majoritária ($F_1 = 0.05$) + Linha de base heurística por palavras-chave ($F_1 = 0.68$); Métrica principal **F1-Macro**; Piso de **Revocação (Recall = 100%) crítico para situações de violência/proteção**; Validação Cruzada Estratificada ($k=5$).
-   - **Impacto Social & ODS**: ODS 16 (Meta 16.6 - Instituições eficazes, transparentes e acessíveis) e ODS 10 (Meta 10.2 - Redução das desigualdades sociais).
-   - **Legislação & Ética**: Conformidade total com a **LGPD** (tratamento de dados sensíveis de renda, menores e violência com consentimento e anonimização prévia).
+O sistema **orienta e nunca decide** direito a benefício, não concede benefícios e não substitui o profissional (Termo de Escopo, seção 6).
 
-2. **Visão Comercial de Produto (SaaS Omnichannel CRM com IA para WhatsApp)**:
-   - **Conectividade Híbrida com WhatsApp**: Suporte nativo tanto a APIs autohospedadas/não-oficiais (**Evolution API v2** via Docker, Z-API) para custo zero de validação, quanto à **API Oficial da Meta (WhatsApp Cloud API Graph v20+)** para contratos B2G (prefeituras) e B2B enterprise.
-   - **Live Chat / Inbox Web em Tempo Real**: Atendimento humano centralizado via WebSockets com histórico unificado de conversas, atribuição de atendentes e gestão de filas (essencial ao usar a API oficial da Meta, que desativa o app do celular).
-   - **Mecanismo de Transbordo Humano (*Human Hand-off*)**: Pausa automática imediata dos nós de IA quando um atendente assume o ticket ou envia uma mensagem.
-   - **Visual Flow Builder No-Code/Low-Code**: Editor visual interativo baseado em nós (estilo n8n / LangGraph Studio) construído com `@xyflow/react`, permitindo desenhar árvores de decisão, nós de ML, agentes LangGraph, nós de **Google Gemini Flash Lite**, RAGs e transbordo humano.
-   - **Experiência Visual & UI/UX de Alta Fidelidade**: Design System moderno com Dark Mode nativo, Glassmorphism, Micro-animações com **Framer Motion**, componentes **shadcn/ui**, efeitos **Magic UI / Aceternity** e dashboards com **Tremor / Recharts**.
-   - **Arquitetura Multi-Tenant**: Isolamento completo de dados, instâncias de WhatsApp, credenciais criptografadas com AES-256-GCM, usuários e fluxos por organização/cliente.
+### 2. Caminho principal (Fase 1 — escopo do semestre)
 
----
+```
+Cidadão no WhatsApp
+   ↓
+Evolution API v2 (Docker)            ← simulador do painel faz o mesmo papel sem celular
+   ↓  webhook
+FastAPI  /api/v1/webhooks/evolution
+   ↓
+Fluxo da conversa (services/bot/fluxo_conversa.py)
+   ↓
+Classificador (scikit-learn)  +  Catálogo de serviços (services/catalogo.py)
+   ↓
+Banco (SQLAlchemy: Postgres no Docker ou SQLite local)
+   ↓
+Painel do CRAS (React + Vite)
+```
 
-### 2. Especificação do Módulo Google Gemini (Flash Lite)
+| Componente | Onde está | Situação |
+| :--- | :--- | :--- |
+| Adaptador de canal (Evolution e Meta) | `services/channels/` | Implementado; Evolution ainda não testada com número real |
+| Webhook + simulador | `endpoints/whatsapp_webhooks.py` | Implementado; ignora grupos e mensagens do próprio bot, pede texto quando chega áudio |
+| Fluxo da conversa | `services/bot/fluxo_conversa.py` | Implementado conforme a seção 4 do plano |
+| Classificador | `services/ml/classifier_service.py`, `train_evaluator.py`, `text_rules.py` | Implementado; avaliado sem vazamento (seção 4 deste documento) |
+| Catálogo de serviços e textos do bot | `services/catalogo.py` | Implementado e editável pelo painel; **fontes e datas ainda não registradas** |
+| Banco de triagens e conversas | `models.py`, `db.py`, `services/triagens.py` | Implementado |
+| Painel do CRAS | `frontend/src/paginas/` | Fila, Conversas, Indicadores, Serviços e mensagens, Configurações |
+| Autenticação do painel | `endpoints/auth.py`, `core/security.py`, `core/deps.py` | JWT; usuários de demonstração fixos no código |
 
-O serviço em [gemini_service.py](file:///c:/Users/felip/OneDrive/Documentos/projeto/backend/app/services/llm/gemini_service.py) é configurado com:
-- **Modelo**: `gemini-2.0-flash-lite` (ou `gemini-1.5-flash-8b` / `gemini-3.5-flash-lite`).
-- **Função 1 (Query Rewriting)**: Converte relatos com linguagem informal, gírias e regionalismos em consultas precisas para a busca semântica RAG.
-- **Função 2 (Humanização Empática)**: Gera mensagens de acolhimento social claras, sem termos burocráticos ou jargões jurídicos para o WhatsApp.
-- **Função 3 (AI Flow Copilot)**: Auxilia gestores e administradores na criação no-code de novos nós e regras de atendimento.
+#### Fluxo da conversa
+
+```
+NOVA → AGUARDANDO_CONSENTIMENTO → AGUARDANDO_RELATO → AGUARDANDO_CONFIRMACAO
+                                                        │ sim          │ não
+                                                        ▼              ▼
+                              FINALIZADA ← AGUARDANDO_CONTATO ← AGUARDANDO_CORRECAO
+```
+
+- **Violência em qualquer etapa** interrompe o fluxo e mostra 190 / Ligue 180 / Disque 100 / CREAS, sem perguntas antes; a triagem entra como urgente.
+- Relato muito curto: pede detalhes uma única vez. Nada identificado: Disque Social 121 + CRAS, sem inventar resposta.
+- A triagem só vai para a fila se a pessoa pedir contato do CRAS. A correção feita pela pessoa vira exemplo rotulado (`GET /api/v1/triagem/exemplos-rotulados`).
+- Opções numeradas (1/2) em vez de botões: botões interativos não são confiáveis na Evolution/Baileys.
+
+#### Banco de dados
+
+| Tabela | Conteúdo |
+| :--- | :--- |
+| `triagens` | Categoria, prioridade, status, relato **anonimizado**, telefone mascarado + criptografado |
+| `conversas` | Estado do fluxo, canal (evolution/meta/simulador), atendimento humano; identificada por hash do telefone |
+| `mensagens` | Histórico de cada conversa |
+| `servicos_categoria` | Serviços, documentos e local por categoria (editável no painel) |
+| `textos_bot` | Mensagens do bot (editáveis no painel) |
+
+### 3. Segurança e LGPD
+
+- Relato gravado sem CPF, telefone ou e-mail (`services/anonimizacao.py`); telefone mascarado na tela e criptografado (Fernet) no banco.
+- Prazo de retenção (`RETENCAO_DIAS`): triagens antigas são apagadas ao iniciar a API.
+- Senhas com Argon2id; JWT para o painel. Rotas do painel exigem login; webhooks não.
+- Nenhum segredo tem valor padrão no código: tudo vem do `.env` (fora do git). Fora de `development`, a API não inicia sem `SECRET_KEY` e `ENCRYPTION_SECRET_KEY`.
+- **Pendente:** termo de consentimento revisado, usuários reais em vez dos de demonstração, HTTPS e limite de requisições na publicação (Ciclo 3).
+
+### 4. Modelo e avaliação
+
+- **Dados de treino:** 84 relatos únicos (80 frases-modelo), simulados. O arquivo tem 240 linhas porque cada frase foi repetida com números diferentes.
+- **Validação:** StratifiedGroupKFold (k=5) agrupando as variações de cada frase-modelo + GridSearch de hiperparâmetros. A avaliação antiga (k=5 nas 240 linhas) dava F1 = 1,0 por vazamento; com a mesma técnica agrupada, o mesmo SVM fica em torno de 0,34 no CV.
+- **Teste:** 80 relatos informais (`data/relatos_teste_informais.json`), escritos à parte e nunca usados para treinar nem escolher modelo.
+- **Decisão no sistema:** regra de violência → modelo (se confiante) → palavras-chave → "não identificado".
+
+| Abordagem | F1 macro (teste) | IC 95% | Recall violência |
+| :--- | :--- | :--- | :--- |
+| Classe majoritária | 0,028 | — | 0% |
+| Palavras-chave | 0,613 | — | 0% |
+| Regressão Logística | 0,717 | 0,614–0,801 | 60% |
+| Naive Bayes | 0,697 | 0,585–0,783 | 30% |
+| Linear SVM (escolhido pela validação cruzada) | 0,692 | 0,582–0,774 | 60% |
+| **Sistema completo** | **0,678** | 0,552–0,763 | **70%** |
+
+Diferença entre os modelos não significativa (McNemar p = 0,63). **O recall de violência ainda não atinge um piso aceitável**; o piso será definido com um profissional e os números refeitos com relatos reais. Reprodução passo a passo: `notebooks/analise_e_avaliacao_modelos.ipynb`.
+
+### 5. Protótipos da Fase 2 (desligados por padrão)
+
+Ficaram do protótipo inicial e representam a visão de produto (Fase 2 do plano). Guardam dados só em memória e não fazem parte da avaliação do semestre. Só sobem com `HABILITAR_FASE2=true`, e exigem login.
+
+| Protótipo | Rota | Observação |
+| :--- | :--- | :--- |
+| Flow Builder | `/flows` | Executa grafos de nós; sem tela no painel atual |
+| AI Gateway | `/models` | Roteador entre o classificador e o Gemini (LLM) |
+| API Keys | `/api-keys` | Chaves para consumo externo; guarda só hash |
+| Base RAG | `/knowledge` | Busca TF-IDF sobre unidades CRAS/CREAS; **endereços a conferir** |
+| Workspaces | `/apps` | Vários nichos no mesmo servidor |
+
+Também existem, sem uso no caminho principal: `services/llm/gemini_service.py` (o plano permite LLM só para reescrever respostas, nunca para decidir), `services/audio/whisper_service.py` (o plano deixa transcrição de áudio como evolução) e `services/ml/clustering_service.py`.
+
+### 6. Pendências técnicas
+
+1. Relatos reais do CRAS parceiro + guia de rotulagem; refazer a avaliação.
+2. Definir com um profissional o piso de recall de violência.
+3. Registrar fonte e data de cada regra do catálogo de serviços; conferir endereços e telefones dos CRAS.
+4. Subir a Evolution numa VPS com número dedicado e testar com celular real.
+5. Testar com o Postgres do Docker (os testes usam SQLite).
