@@ -25,28 +25,25 @@ export function LoginPage({ onEntrar }: { onEntrar: (u: Usuario) => void }) {
   };
 
   return (
-    <main className="min-h-dvh grid lg:grid-cols-[1.1fr_1fr]">
-      <section className="hidden lg:flex flex-col justify-between border-r border-linha bg-[#0d1016] p-12">
-        <div>
-          <p className="font-display text-[34px] leading-[0.9] tracking-[0.06em]">CRAS Anápolis</p>
-          <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.22em] text-ambar">Encaminhamento social</p>
-        </div>
-        <div className="max-w-[640px]">
-          <p className="font-display text-[64px] leading-[0.92] tracking-[0.02em]">Cada relato chega organizado, o mais urgente primeiro.</p>
-          <p className="mt-5 text-texto-2 max-w-[46ch]">
-            A pessoa conta a situação pelo WhatsApp. O sistema sugere o caminho; quem decide é a equipe do CRAS.
-          </p>
-        </div>
-        <p className="text-xs text-texto-3">Projeto Integrador · Inteligência Artificial · UniEVANGÉLICA 2026/2</p>
+    <main className="mx-auto grid min-h-dvh max-w-[1180px] content-center gap-12 px-5 py-12 lg:grid-cols-[1fr_520px] lg:items-center lg:gap-16 lg:px-10">
+      <section>
+        <h1 className="titulo text-[44px] sm:text-[64px] lg:text-[76px]">Ponte Social</h1>
+        <p className="mt-5 max-w-[34ch] text-[19px] leading-snug text-texto-2">
+          A pessoa conta a situação no WhatsApp. A equipe recebe o caso já com o caminho sugerido, o mais urgente primeiro.
+        </p>
+        <p className="mt-3 max-w-[46ch] text-[15px] text-texto-3">O sistema orienta; quem decide é sempre o profissional do atendimento.</p>
       </section>
 
-      <section className="flex items-center justify-center px-6 py-12">
-        <form onSubmit={entrar} className="w-full max-w-sm flex flex-col gap-5">
-          <div className="lg:hidden mb-2">
-            <p className="font-display text-[34px] leading-[0.9] tracking-[0.06em]">CRAS Anápolis</p>
-            <p className="mt-1 text-[11px] font-medium uppercase tracking-[0.22em] text-ambar">Encaminhamento social</p>
+      <form onSubmit={entrar} className="folha guia overflow-visible" aria-labelledby="t-entrar">
+        <div className="guia-canhoto flex flex-col justify-between gap-6 bg-elevada px-5 py-6">
+          <div>
+            <p className="text-[12px] text-texto-3">Guia de acesso</p>
+            <p className="titulo mt-1 text-[22px]">Equipe</p>
           </div>
-          <h1 className="font-display text-[40px] leading-none tracking-[0.03em]">Entrar no painel</h1>
+          <p className="text-[12px] leading-snug text-texto-3">Projeto Integrador de Inteligência Artificial, UniEVANGÉLICA, 2026/2</p>
+        </div>
+        <div className="flex flex-col gap-5 px-6 py-7 sm:px-8">
+          <h2 id="t-entrar" className="titulo text-[24px]">Entrar no painel</h2>
           <Campo id="usuario" rotulo="Usuário ou e-mail">
             <input id="usuario" autoComplete="username" required value={usuario} onChange={(e) => setUsuario(e.target.value)} className={classeEntrada} />
           </Campo>
@@ -55,8 +52,8 @@ export function LoginPage({ onEntrar }: { onEntrar: (u: Usuario) => void }) {
           </Campo>
           {erro && <Aviso>{erro}</Aviso>}
           <Botao type="submit" variante="primario" icone={LogIn} carregando={carregando}>Entrar</Botao>
-        </form>
-      </section>
+        </div>
+      </form>
     </main>
   );
 }

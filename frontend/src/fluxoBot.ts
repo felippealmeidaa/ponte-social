@@ -65,7 +65,7 @@ export type OpcoesFluxo = {
 };
 
 export const FAIXAS: { id: Faixa; titulo: string; y: number; altura: number }[] = [
-  { id: 'seguranca', titulo: 'Em qualquer etapa · segurança', y: 0, altura: 200 },
+  { id: 'seguranca', titulo: 'Segurança, em qualquer etapa', y: 0, altura: 200 },
   { id: 'principal', titulo: 'Caminho da conversa', y: 220, altura: 570 },
   { id: 'comandos', titulo: 'Comandos e situações à parte', y: 810, altura: 200 },
 ];
@@ -97,7 +97,7 @@ export const ETAPAS: Etapa[] = [
   {
     id: 'boas_vindas', titulo: 'Boas-vindas e aceite', icone: Hand, faixa: 'principal', tipo: 'normal', x: 40, y: 272,
     quando: 'Primeira mensagem da pessoa. O bot se apresenta, avisa que não decide direito e pede o aceite.',
-    depois: 'Aceitou → Bairro (ou Relato). Não aceitou → Sem aceite.', textos: ['boas_vindas'], estados: ['NOVA', 'AGUARDANDO_CONSENTIMENTO'],
+    depois: 'Se aceitar, segue para o Bairro (ou direto ao Relato). Se não aceitar, a conversa termina sem gravar nada.', textos: ['boas_vindas'], estados: ['NOVA', 'AGUARDANDO_CONSENTIMENTO'],
     travada: 'LGPD: o aceite vem sempre antes de qualquer pergunta. O texto pode mudar; a etapa não.',
   },
   {
@@ -111,7 +111,7 @@ export const ETAPAS: Etapa[] = [
   {
     id: 'relato', titulo: 'Relato', icone: MessageSquareText, faixa: 'principal', tipo: 'normal', x: 560, y: 272,
     quando: 'A pessoa conta a situação com as palavras dela.',
-    depois: 'Entendeu → Confirmação. Não entendeu → Não entendi.',
+    depois: 'Se o sistema entender, segue para a Confirmação. Se não, vai para Não entendi.',
     textos: ['pedir_relato', 'relato_curto'], estados: ['AGUARDANDO_RELATO', 'RETORNO'],
     opcoes: [{ chave: 'pedir_detalhes_relato_curto', tipo: 'bool', rotulo: 'Pedir mais detalhes se o relato for muito curto',
       ajuda: 'Com menos de 4 palavras, o bot pede para contar mais (uma vez só).' }],
@@ -119,7 +119,7 @@ export const ETAPAS: Etapa[] = [
   {
     id: 'confirmacao', titulo: 'Confirmação', icone: MessageCircleQuestion, faixa: 'principal', tipo: 'automatico', x: 820, y: 272,
     quando: 'O bot diz o que entendeu e pergunta se está certo.',
-    depois: 'Sim → Caminho. Não → Menu de assuntos.', textos: [], estados: ['AGUARDANDO_CONFIRMACAO'],
+    depois: 'Se a pessoa disser que está certo, segue para o Caminho. Se não, ela escolhe no Menu de assuntos.', textos: [], estados: ['AGUARDANDO_CONFIRMACAO'],
     exemplo: 'Entendi que você precisa de ajuda com *documentos (RG, CPF, certidões)*. Está certo?\n*1* - Sim\n*2* - Não',
     opcoes: [{ chave: 'confirmar_necessidade', tipo: 'bool', rotulo: 'Perguntar se o bot entendeu certo',
       ajuda: 'Desligado: o bot vai direto ao caminho com a necessidade que identificou (a pessoa não corrige).' }],
@@ -127,7 +127,7 @@ export const ETAPAS: Etapa[] = [
   {
     id: 'caminho', titulo: 'Caminho e pedido de contato', icone: BookOpenCheck, faixa: 'principal', tipo: 'normal', x: 1080, y: 272,
     quando: 'O bot mostra o que procurar, que documentos levar e onde ir, e trata o pedido de contato do CRAS.',
-    depois: 'Quis contato → Fila do CRAS. Não quis → Encerrado.',
+    depois: 'Se quiser contato, o caso entra na Fila. Se não quiser, a conversa termina.',
     textos: ['contato_confirmado', 'contato_recusado', 'fim_sem_contato'], estados: ['AGUARDANDO_CONTATO'], editarEm: 'respostas',
     opcoes: [
       { chave: 'mostrar_outras_necessidades', tipo: 'bool', rotulo: 'Mostrar outras necessidades em resumo',
@@ -149,7 +149,7 @@ export const ETAPAS: Etapa[] = [
   {
     id: 'nao_entendi', titulo: 'Não entendi', icone: MessageCircleQuestion, faixa: 'principal', tipo: 'normal', x: 560, y: 470,
     quando: 'O sistema não identificou a necessidade com segurança. Pede para contar de outro jeito.',
-    depois: 'Contou de novo → Relato. Não entendeu pela 2ª vez → Menu de assuntos.',
+    depois: 'A pessoa conta de novo. Se o sistema não entender pela 2ª vez, oferece o Menu de assuntos.',
     textos: ['nao_entendi', 'nao_entendi_de_novo'], estados: ['RELATO_NOVAMENTE'],
     opcoes: [{ chave: 'menu_na_primeira_falha', tipo: 'bool', rotulo: 'Mostrar o menu de assuntos já na 1ª vez',
       ajuda: 'Ligado: em vez de pedir para contar de novo, o bot já oferece os assuntos por número.' }],
@@ -157,7 +157,7 @@ export const ETAPAS: Etapa[] = [
   {
     id: 'menu', titulo: 'Menu de assuntos', icone: ListChecks, faixa: 'principal', tipo: 'automatico', x: 820, y: 470,
     quando: 'A pessoa escolhe o assunto por número, quando o bot errou ou não entendeu.',
-    depois: 'Escolheu → Caminho. “Nenhum desses” → Disque Social 121.', textos: [], estados: ['AGUARDANDO_CORRECAO'],
+    depois: 'Com o assunto escolhido, segue para o Caminho. Com “Nenhum desses”, indica o Disque Social 121.', textos: [], estados: ['AGUARDANDO_CORRECAO'],
     exemplo: 'Qual destes assuntos combina mais com a sua situação? Responda com o número:\n*1* - renda e benefícios\n*2* - Cadastro Único\n…\n*9* - Nenhum desses',
   },
   {

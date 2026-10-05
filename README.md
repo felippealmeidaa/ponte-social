@@ -1,6 +1,8 @@
-# Plataforma Omnichannel de Encaminhamento Social & CRM WhatsApp com IA Híbrida
+# Ponte Social
 
-Sistema Inteligente de Triagem e Encaminhamento Social desenvolvido para o **Projeto Integrador do 3º Período de Inteligência Artificial da UniEVANGÉLICA (2026/2)**, estruturado como um produto SaaS de atendimento omnichannel para WhatsApp (Meta Cloud API & Evolution API v2).
+Sistema Inteligente de Encaminhamento Social, desenvolvido no **Projeto Integrador do 3º Período de Inteligência Artificial da UniEVANGÉLICA (2026/2)**. A pessoa conta a situação pelo WhatsApp; o sistema indica serviços, documentos e onde ir, e a equipe da assistência social recebe o caso organizado num painel web. O sistema orienta; quem decide é sempre o profissional.
+
+Visual do painel: direção "Guia de encaminhamento" (cada caso é uma guia com canhoto; carimbo vermelho só para violência). Tipografia Archivo (títulos) e Atkinson Hyperlegible Next (texto), escolhida pela legibilidade em uso prolongado.
 
 ---
 

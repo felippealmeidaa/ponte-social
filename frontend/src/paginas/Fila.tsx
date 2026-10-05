@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { ChevronLeft, ChevronRight, ClipboardPlus, Inbox, Search, ShieldAlert, X } from 'lucide-react';
+import { useCallback, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { ClipboardPlus, Inbox, Search, X } from 'lucide-react';
 import { FichaCaso } from '../components/FichaCaso';
 import { RegistrarAtendimento } from '../components/RegistrarAtendimento';
 import { Aviso, Botao, Esqueleto, Selo, TituloFileira, Vazio } from '../components/ui';
@@ -34,6 +34,8 @@ interface Fileira {
   titulo: string;
   casos: Triagem[];
   vazio: string;
+  /** Grupos que ocupam menos atenção ficam recolhidos */
+  recolhido?: boolean;
 }
 
 export function Fila({ fila, filtroEstado }: { fila: ReturnType<typeof useAtualizacao<Triagem[]>>; filtroEstado?: string }) {
@@ -77,16 +79,14 @@ export function Fila({ fila, filtroEstado }: { fila: ReturnType<typeof useAtuali
     const porEspera = (a: Triagem, b: Triagem) => a.criado_em.localeCompare(b.criado_em);
     const abertas = filtradas.filter((t) => ABERTOS.has(t.status));
     return [
-      { id: 'urgente', titulo: 'Urgente — violência', casos: abertas.filter((t) => t.prioridade === 'URGENTE_VIOLENCIA').sort(porEspera), vazio: 'Nenhum caso urgente aguardando.' },
+      { id: 'urgente', titulo: 'Atender primeiro', casos: abertas.filter((t) => t.prioridade === 'URGENTE_VIOLENCIA').sort(porEspera), vazio: 'Nenhum caso de violência aguardando.' },
       { id: 'alta', titulo: 'Prioridade alta', casos: abertas.filter((t) => t.prioridade === 'ALTA').sort(porEspera), vazio: 'Nada com prioridade alta aguardando.' },
       { id: 'media', titulo: 'Média e baixa', casos: abertas.filter((t) => t.prioridade === 'MEDIA' || t.prioridade === 'BAIXA').sort(porEspera), vazio: 'Nada aguardando nesta faixa.' },
       { id: 'curso', titulo: 'Em atendimento', casos: filtradas.filter((t) => EM_CURSO.has(t.status)), vazio: 'Ninguém em atendimento agora.' },
-      { id: 'fechados', titulo: 'Concluídos e arquivados', casos: filtradas.filter((t) => t.status === 'CONCLUIDO' || t.status === 'ARQUIVADO'), vazio: 'Nada concluído ainda.' },
+      { id: 'fechados', titulo: 'Concluídos e arquivados', casos: filtradas.filter((t) => t.status === 'CONCLUIDO' || t.status === 'ARQUIVADO'), vazio: 'Nada concluído ainda.', recolhido: !filtroEstado },
     ].filter((f) => !filtroEstado || f.casos.length > 0);
   }, [filtradas, filtroEstado]);
 
-  // Só o caso mais urgente da tela ganha o destaque invertido
-  const destaque = fileiras[0]?.id === 'urgente' ? fileiras[0].casos[0] : undefined;
   const casoAberto = triagens.find((t) => t.id === abertoId) ?? null;
   const novo = (t: Triagem) => vistos !== null && !vistos.has(t.id);
 
@@ -96,8 +96,8 @@ export function Fila({ fila, filtroEstado }: { fila: ReturnType<typeof useAtuali
     <>
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-[44px] leading-[0.95] tracking-[0.03em]">Fila de atendimento</h1>
-          <p className="mt-2 text-texto-2">Casos do WhatsApp e do balcão, o mais urgente primeiro. Atualiza sozinha.</p>
+          <h1 className="titulo text-[34px]">Fila de atendimento</h1>
+          <p className="mt-2 max-w-[60ch] text-texto-2">Cada caso é uma guia: o que a pessoa contou, o caminho sugerido e há quanto tempo ela espera. Violência sempre no topo.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <label className="relative">
@@ -107,8 +107,8 @@ export function Fila({ fila, filtroEstado }: { fila: ReturnType<typeof useAtuali
               type="search"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar relato, bairro, categoria"
-              className="h-10 w-72 max-w-full rounded-lg border border-linha-forte bg-fundo pl-9 pr-3 text-sm hover:border-texto-3 focus:border-ambar focus:outline-none"
+              placeholder="Buscar relato, bairro, assunto"
+              className="h-10 w-72 max-w-full rounded-[5px] border border-linha-forte bg-superficie pl-9 pr-3 text-[15px] hover:border-texto-3 focus:border-caneta focus:outline-none focus:ring-2 focus:ring-caneta/15"
             />
           </label>
           <Botao variante="primario" icone={ClipboardPlus} onClick={() => setRegistrando(true)}>Registrar atendimento</Botao>
@@ -126,21 +126,19 @@ export function Fila({ fila, filtroEstado }: { fila: ReturnType<typeof useAtuali
 
       {!fila.dados && !fila.erro && (
         <div className="flex flex-col gap-10" aria-busy="true" aria-label="Carregando a fila">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="flex flex-col gap-4">
+          {[0, 1].map((i) => (
+            <div key={i} className="flex flex-col gap-3">
               <Esqueleto className="h-7 w-56" />
-              <div className="flex gap-3">{[0, 1, 2, 3].map((j) => <Esqueleto key={j} className="h-[176px] w-[248px] shrink-0" />)}</div>
+              {[0, 1].map((j) => <Esqueleto key={j} className="h-[132px] w-full" />)}
             </div>
           ))}
         </div>
       )}
 
-      {destaque && <Destaque caso={destaque} novo={novo(destaque)} onAbrir={() => abrir(destaque.id)} />}
-
       {fila.dados && (
-        <div className="parede flex flex-col gap-10">
+        <div className="flex flex-col gap-11">
           {fileiras.map((f) => (
-            <FileiraCasos key={f.id} fileira={f} pularPrimeiro={f.id === 'urgente' && !!destaque} novo={novo} onAbrir={abrir} />
+            <GrupoGuias key={f.id} fileira={f} novo={novo} onAbrir={abrir} />
           ))}
           {fila.dados.length === 0 && (
             <Vazio icone={Inbox} titulo="A fila está vazia">
@@ -160,120 +158,100 @@ export function Fila({ fila, filtroEstado }: { fila: ReturnType<typeof useAtuali
   );
 }
 
-function Destaque({ caso, novo, onAbrir }: { caso: Triagem; novo: boolean; onAbrir: () => void }) {
-  return (
-    <section aria-label="Caso mais urgente" className={`mb-10 grid gap-5 rounded-2xl bg-urgente px-6 py-5 text-[#1a0807] md:grid-cols-[1fr_auto] md:items-center ${novo ? 'caso-novo' : ''}`}>
-      <div className="min-w-0">
-        <h2 className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-display text-[30px] leading-none tracking-[0.06em]">
-          <ShieldAlert className="size-6 self-center" aria-hidden />
-          Atender primeiro
-          {novo && <span className="rounded bg-[#1a0807] px-1.5 py-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-urgente">Novo</span>}
-        </h2>
-        <p className="mt-2 line-clamp-2 max-w-[80ch] text-[17px] font-medium leading-snug">“{caso.relato_original}”</p>
-        <p className="mt-2 text-[13px] font-medium opacity-80">
-          {tempoDesde(caso.criado_em) === 'agora' ? 'Acabou de chegar' : `Esperando ${tempoDesde(caso.criado_em).replace('há ', '')}`}
-          {' · '}{CANAIS[caso.canal] ?? caso.canal}{caso.bairro !== 'Não informado' && ` · ${caso.bairro}`}{caso.tem_contato && ` · ${caso.telefone_mascarado}`}
-        </p>
-      </div>
-      <button onClick={onAbrir} className="h-11 rounded-lg bg-[#1a0807] px-5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-black focus-visible:outline-[#1a0807]">
-        Abrir ficha
-      </button>
-    </section>
-  );
+/** Número curto e estável da guia, a partir do id (só para a equipe se referir ao caso). */
+function numeroGuia(id: string) {
+  const hex = id.replace(/^trg-/, '').slice(0, 6);
+  const n = parseInt(hex, 16);
+  return Number.isNaN(n) ? id.slice(-4) : String(n % 10000).padStart(4, '0');
 }
 
-function FileiraCasos({ fileira, pularPrimeiro, novo, onAbrir }: {
-  fileira: Fileira; pularPrimeiro: boolean; novo: (t: Triagem) => boolean; onAbrir: (id: string) => void;
-}) {
-  const trilho = useRef<HTMLDivElement>(null);
-  const casos = pularPrimeiro ? fileira.casos.slice(1) : fileira.casos;
-  const [transborda, setTransborda] = useState(false);
+function GrupoGuias({ fileira, novo, onAbrir }: { fileira: Fileira; novo: (t: Triagem) => boolean; onAbrir: (id: string) => void }) {
+  const lista = useRef<HTMLOListElement>(null);
+  const tituloId = `grupo-${fileira.id}`;
+  const urgente = fileira.id === 'urgente';
 
-  // Setas só quando os cartões realmente não cabem na largura
-  useEffect(() => {
-    const el = trilho.current;
-    if (!el) return;
-    const medir = () => setTransborda(el.scrollWidth > el.clientWidth + 4);
-    const observador = new ResizeObserver(medir);
-    observador.observe(el);
-    medir();
-    return () => observador.disconnect();
-  }, [casos.length]);
-  const rolar = (sentido: 1 | -1) => trilho.current?.scrollBy({ left: sentido * trilho.current.clientWidth * 0.8, behavior: 'smooth' });
-
-  // Setas do teclado andam entre os cartões da mesma fileira
-  const aoTeclar = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
-    const botoes = Array.from(trilho.current?.querySelectorAll<HTMLButtonElement>('button[data-caso]') ?? []);
+  // Setas para cima/baixo andam entre as guias do mesmo grupo
+  const aoTeclar = (e: KeyboardEvent<HTMLOListElement>) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    const botoes = Array.from(lista.current?.querySelectorAll<HTMLButtonElement>('button[data-caso]') ?? []);
     const i = botoes.indexOf(document.activeElement as HTMLButtonElement);
-    const proximo = botoes[i + (e.key === 'ArrowRight' ? 1 : -1)];
+    const proximo = botoes[i + (e.key === 'ArrowDown' ? 1 : -1)];
     if (proximo) {
       e.preventDefault();
       proximo.focus();
-      proximo.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
     }
   };
 
-  const tituloId = `fileira-${fileira.id}`;
+  const conteudo = fileira.casos.length === 0 ? (
+    <p className="text-[14.5px] text-texto-3">{fileira.vazio}</p>
+  ) : (
+    <ol ref={lista} onKeyDown={aoTeclar} className={`grid gap-4 ${urgente ? '' : 'xl:grid-cols-2'}`}>
+      {fileira.casos.map((t, i) => (
+        <li key={t.id}><Guia caso={t} novo={novo(t)} grande={urgente && i === 0} onAbrir={() => onAbrir(t.id)} /></li>
+      ))}
+    </ol>
+  );
+
+  if (fileira.recolhido) {
+    return (
+      <details className="group">
+        <summary className="cursor-pointer list-none text-texto-2 hover:text-texto">
+          <span className="titulo text-[19px]">{fileira.titulo}</span>
+          <span className="ml-3 text-[14.5px] tabular">{fileira.casos.length}</span>
+          <span className="ml-3 text-[13.5px] underline">mostrar</span>
+        </summary>
+        <div className="mt-4">{conteudo}</div>
+      </details>
+    );
+  }
+
   return (
-    <section aria-labelledby={tituloId} className="fileira transition-opacity duration-200">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <TituloFileira id={tituloId} contagem={casos.length}>{fileira.titulo}</TituloFileira>
-        {transborda && (
-          <div className="flex gap-2">
-            <button onClick={() => rolar(-1)} aria-label={`Rolar ${fileira.titulo} para a esquerda`} className="grid size-9 place-items-center rounded-full border border-linha-forte text-texto-2 hover:text-texto hover:border-texto-3">
-              <ChevronLeft className="size-4" aria-hidden />
-            </button>
-            <button onClick={() => rolar(1)} aria-label={`Rolar ${fileira.titulo} para a direita`} className="grid size-9 place-items-center rounded-full border border-linha-forte text-texto-2 hover:text-texto hover:border-texto-3">
-              <ChevronRight className="size-4" aria-hidden />
-            </button>
-          </div>
-        )}
+    <section aria-labelledby={tituloId}>
+      <div className={`mb-4 flex items-baseline gap-3 border-b-2 pb-2 ${urgente && fileira.casos.length ? 'border-urgente' : 'border-texto'}`}>
+        <TituloFileira id={tituloId} contagem={fileira.casos.length}>{fileira.titulo}</TituloFileira>
       </div>
-      {casos.length === 0 ? (
-        <p className="text-sm text-texto-3">{pularPrimeiro ? 'O único caso urgente está no destaque acima.' : fileira.vazio}</p>
-      ) : (
-        <div ref={trilho} onKeyDown={aoTeclar} className="trilho -mx-1 flex gap-3 overflow-x-auto px-1 py-2">
-          {casos.map((t) => <CartaoCaso key={t.id} caso={t} novo={novo(t)} onAbrir={() => onAbrir(t.id)} />)}
-        </div>
-      )}
+      {conteudo}
     </section>
   );
 }
 
-function CartaoCaso({ caso, novo, onAbrir }: { caso: Triagem; novo: boolean; onAbrir: () => void }) {
-  const prioridade = PRIORIDADES[caso.prioridade] ?? PRIORIDADES.BAIXA;
+function Guia({ caso, novo, grande, onAbrir }: { caso: Triagem; novo: boolean; grande: boolean; onAbrir: () => void }) {
   const estado = ESTADOS[caso.status] ?? ESTADOS.PENDENTE;
+  const prioridade = PRIORIDADES[caso.prioridade] ?? PRIORIDADES.BAIXA;
   const urgente = caso.prioridade === 'URGENTE_VIOLENCIA';
+  const espera = tempoDesde(caso.criado_em);
+  const aberto = caso.status === 'PENDENTE' || caso.status === 'URGENTE_CREAS';
   return (
     <button
       data-caso
       onClick={onAbrir}
-      aria-label={`${nomeCategoria(caso.categoria)}, ${estado.rotulo}, chegou ${tempoDesde(caso.criado_em)}${novo ? ', caso novo' : ''}`}
-      className={`cartao group relative flex h-[176px] w-[248px] shrink-0 flex-col overflow-hidden rounded-xl border bg-superficie p-4 text-left transition-[width,border-color,background-color] duration-250 ease-(--ease-saida)
-        hover:w-[380px] hover:border-ambar hover:bg-elevada focus-visible:w-[380px] focus-visible:border-ambar focus-visible:bg-elevada focus-visible:outline-none
-        ${urgente ? 'border-urgente/60' : 'border-linha'} ${novo ? 'caso-novo' : ''}`}
+      aria-label={`Guia ${numeroGuia(caso.id)}: ${nomeCategoria(caso.categoria)}, ${estado.rotulo}, chegou ${espera}${urgente ? ', urgente' : ''}${novo ? ', caso novo' : ''}`}
+      className={`folha guia w-full text-left transition-[border-color,box-shadow] duration-150 hover:border-texto-3 focus-visible:border-caneta ${urgente ? 'border-urgente/45' : ''} ${novo ? 'caso-novo' : ''}`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <p className="font-display text-[24px] leading-[0.95] tracking-[0.03em] text-texto">{nomeCategoria(caso.categoria)}</p>
-        {novo && <span className="rounded bg-ambar px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#1b1406]">Novo</span>}
-      </div>
-      <p className="mt-2 line-clamp-3 text-[13px] leading-snug text-texto-2 group-hover:line-clamp-2 group-focus-visible:line-clamp-2">
-        {caso.relato_original}
-      </p>
-      <div className="mt-auto flex flex-col gap-2">
-        <div className="hidden flex-wrap gap-1.5 group-hover:flex group-focus-visible:flex">
-          <Selo tom={prioridade.tom}>{prioridade.rotulo}</Selo>
-          <Selo tom={estado.tom}>{estado.rotulo}</Selo>
-          {caso.documentos_necessarios.length > 0 && <span className="text-xs text-texto-3 self-center">{caso.documentos_necessarios.length} documentos</span>}
-        </div>
-        <p className="flex items-center gap-2 text-xs text-texto-3">
-          <span className={urgente ? 'text-urgente font-medium' : 'text-texto-2'}>{tempoDesde(caso.criado_em)}</span>
-          <span aria-hidden>·</span>
-          <span>{CANAIS[caso.canal] ?? caso.canal}</span>
-          {caso.bairro !== 'Não informado' && <><span aria-hidden>·</span><span className="truncate">{caso.bairro}</span></>}
-        </p>
-      </div>
+      <span className="guia-canhoto flex flex-row items-baseline justify-between gap-1 bg-elevada px-4 py-3 sm:flex-col sm:justify-start sm:py-4">
+        <span className="text-[12px] text-texto-3">Guia</span>
+        <span className="titulo text-[24px] tabular">{numeroGuia(caso.id)}</span>
+        <span className={`text-[13.5px] font-semibold sm:mt-3 ${urgente && aberto ? 'text-urgente' : 'text-texto-2'}`}>
+          {aberto ? (espera === 'agora' ? 'chegou agora' : `espera ${espera.replace('há ', '')}`) : espera}
+        </span>
+      </span>
+      <span className={`relative flex min-w-0 flex-col gap-2.5 px-5 ${grande ? 'py-5' : 'py-4'}`}>
+        <span className="flex items-start justify-between gap-4">
+          <span className={`titulo ${grande ? 'text-[24px]' : 'text-[19px]'}`}>{nomeCategoria(caso.categoria)}</span>
+          {urgente && aberto ? (
+            <span className={`carimbo shrink-0 ${grande ? 'text-[22px]' : 'text-[15px]'}`} aria-hidden>Urgente</span>
+          ) : novo ? (
+            <span className="shrink-0 text-[13px] font-semibold text-caneta">Novo</span>
+          ) : null}
+        </span>
+        <span className={`${grande ? 'line-clamp-3 text-[16.5px]' : 'line-clamp-2 text-[15px]'} leading-snug text-texto`}>“{caso.relato_original}”</span>
+        <span className="grid grid-cols-2 gap-x-6 gap-y-1 border-t border-linha pt-2.5 text-[13px] sm:grid-cols-4">
+          <span><span className="block text-[11.5px] text-texto-3">Bairro</span><span className="font-semibold">{caso.bairro !== 'Não informado' ? caso.bairro : 'não informado'}</span></span>
+          <span><span className="block text-[11.5px] text-texto-3">Chegou por</span><span className="font-semibold">{CANAIS[caso.canal] ?? caso.canal}</span></span>
+          <span><span className="block text-[11.5px] text-texto-3">Prioridade</span><span className={`font-semibold ${urgente ? 'text-urgente' : ''}`}>{prioridade.rotulo}</span></span>
+          <span><span className="block text-[11.5px] text-texto-3">Situação</span><Selo tom={estado.tom} semIcone>{estado.rotulo}</Selo></span>
+        </span>
+      </span>
     </button>
   );
 }

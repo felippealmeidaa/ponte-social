@@ -12,11 +12,11 @@ export const CATEGORIAS: Record<string, string> = {
   nao_identificado: 'Não identificado',
 };
 
-export type Tom = 'urgente' | 'alta' | 'media' | 'neutro' | 'ok' | 'info' | 'ambar';
+export type Tom = 'urgente' | 'alta' | 'media' | 'neutro' | 'ok' | 'info' | 'caneta';
 
 export const ESTADOS: Record<string, { rotulo: string; tom: Tom }> = {
   URGENTE_CREAS: { rotulo: 'Urgente', tom: 'urgente' },
-  PENDENTE: { rotulo: 'Aguardando', tom: 'ambar' },
+  PENDENTE: { rotulo: 'Aguardando', tom: 'caneta' },
   EM_ATENDIMENTO: { rotulo: 'Em atendimento', tom: 'info' },
   ENCAMINHADO_CREAS: { rotulo: 'Encaminhado ao CREAS', tom: 'info' },
   CONCLUIDO: { rotulo: 'Concluído', tom: 'ok' },

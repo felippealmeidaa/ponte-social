@@ -24,7 +24,7 @@ export function Conversas({ conversas, selecionada }: { conversas: ReturnType<ty
   return (
     <>
       <header className="mb-6">
-        <h1 className="font-display text-[44px] leading-[0.95] tracking-[0.03em]">Conversas</h1>
+        <h1 className="titulo text-[35px] leading-[1.05]">Conversas</h1>
         <p className="mt-2 text-texto-2 max-w-[75ch]">
           Conversas do WhatsApp com o bot. Ao responder, você assume a conversa e o bot fica em silêncio até você devolver.
         </p>
@@ -32,7 +32,7 @@ export function Conversas({ conversas, selecionada }: { conversas: ReturnType<ty
 
       {conversas.erro && <div className="mb-4"><Aviso>{conversas.erro}</Aviso></div>}
 
-      <div className="grid min-h-[70dvh] overflow-hidden rounded-2xl border border-linha bg-superficie lg:grid-cols-[340px_1fr]">
+      <div className="grid min-h-[70dvh] overflow-hidden rounded-[6px] border border-linha bg-superficie lg:grid-cols-[340px_1fr]">
         <nav aria-label="Lista de conversas" className={`border-linha lg:border-r ${selecionada ? 'hidden lg:block' : ''}`}>
           {!conversas.dados && !conversas.erro && (
             <div className="flex flex-col gap-3 p-4" aria-busy="true">{[0, 1, 2, 3].map((i) => <Esqueleto key={i} className="h-16" />)}</div>
@@ -40,7 +40,7 @@ export function Conversas({ conversas, selecionada }: { conversas: ReturnType<ty
           {conversas.dados && lista.length === 0 && (
             <div className="p-5">
               <Vazio icone={MessagesSquare} titulo="Nenhuma conversa ainda">
-                As conversas aparecem aqui quando alguém escreve no WhatsApp do CRAS. Para testar sem celular, use <a className="text-ambar underline underline-offset-2" href="#/configuracoes/testar">Configurações › Testar o bot</a>.
+                As conversas aparecem aqui quando alguém escreve no WhatsApp do CRAS. Para testar sem celular, use <a className="text-caneta underline underline-offset-2" href="#/configuracoes/testar">Configurações › Testar o bot</a>.
               </Vazio>
             </div>
           )}
@@ -78,7 +78,7 @@ function ItemConversa({ conversa: c, ativa }: { conversa: ResumoConversa; ativa:
         <div className="flex items-center justify-between gap-2">
           <span className="flex items-center gap-2 text-sm font-medium tabular">
             {c.telefone_mascarado || 'Contato'}
-            {c.nao_lidas > 0 && c.atendimento_humano && <span className="size-2 rounded-full bg-ambar" aria-label="mensagens novas" />}
+            {c.nao_lidas > 0 && c.atendimento_humano && <span className="size-2 rounded-full bg-caneta" aria-label="mensagens novas" />}
           </span>
           <span className="text-xs text-texto-3">{tempoDesde(c.atualizado_em)}</span>
         </div>
@@ -86,7 +86,7 @@ function ItemConversa({ conversa: c, ativa }: { conversa: ResumoConversa; ativa:
           {c.ultima_mensagem ? `${c.ultima_mensagem.autor === 'cidadao' ? '' : c.ultima_mensagem.autor === 'bot' ? 'Bot: ' : 'Equipe: '}${c.ultima_mensagem.texto.replace(/\*/g, '')}` : 'Sem mensagens'}
         </p>
         <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-          {c.atendimento_humano ? <Selo tom="ambar" semIcone>Com a equipe</Selo> : <Selo tom="neutro" semIcone>Bot</Selo>}
+          {c.atendimento_humano ? <Selo tom="caneta" semIcone>Com a equipe</Selo> : <Selo tom="neutro" semIcone>Bot</Selo>}
           {c.triagem && <Selo tom={urgente ? 'urgente' : 'neutro'} semIcone={!urgente}>{nomeCategoria(c.triagem.categoria)}</Selo>}
           {c.canal === 'simulador' && <span className="text-[11px] text-texto-3">simulador</span>}
         </div>
@@ -185,7 +185,7 @@ function Conversa({ id, resumo, onMudou }: { id: string; resumo?: ResumoConversa
             <p className="font-medium tabular">{resumo?.telefone_mascarado ?? 'Conversa'}</p>
             <p className="text-xs text-texto-3">
               {resumo ? CANAIS[resumo.canal] ?? resumo.canal : ''}
-              {humano === null ? '' : humano ? ' · você está atendendo, o bot está em silêncio' : ' · o bot está respondendo'}
+              {humano === null ? '' : humano ? '. Você está atendendo; o bot está em silêncio.' : '. O bot está respondendo.'}
             </p>
           </div>
         </div>
@@ -220,7 +220,7 @@ function Conversa({ id, resumo, onMudou }: { id: string; resumo?: ResumoConversa
             onChange={(e) => setTexto(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }}
             placeholder={humano ? 'Escreva para a pessoa (Enter envia, Shift+Enter quebra linha)' : 'Responder assume a conversa e pausa o bot'}
-            className="min-h-11 flex-1 resize-none rounded-lg border border-linha-forte bg-fundo px-3 py-2.5 text-sm hover:border-texto-3 focus:border-ambar focus:outline-none"
+            className="min-h-11 flex-1 resize-none rounded-[5px] border border-linha-forte bg-fundo px-3 py-2.5 text-sm hover:border-texto-3 focus:border-caneta focus:outline-none"
           />
           <Botao type="submit" variante="primario" icone={Send} carregando={ocupado} disabled={!texto.trim()}>Enviar</Botao>
         </div>
@@ -232,18 +232,18 @@ function Conversa({ id, resumo, onMudou }: { id: string; resumo?: ResumoConversa
 function Balao({ mensagem: m }: { mensagem: Mensagem }) {
   const doCidadao = m.autor === 'cidadao';
   const estilo = doCidadao
-    ? 'bg-elevada text-texto rounded-bl-sm'
+    ? 'bg-elevada text-texto rounded-bl-[2px]'
     : m.autor === 'atendente'
-      ? 'bg-ambar-escuro text-[#ffe3a8] border border-ambar/25 rounded-br-sm'
-      : 'bg-fundo text-texto-2 border border-linha rounded-br-sm';
+      ? 'bg-caneta-fundo text-texto border border-caneta/25 rounded-br-[2px]'
+      : 'bg-superficie text-texto-2 border border-linha rounded-br-[2px]';
   const Icone = doCidadao ? UserRound : m.autor === 'bot' ? Bot : Hand;
   const autor = doCidadao ? 'Pessoa' : m.autor === 'bot' ? 'Bot' : 'Equipe';
   return (
     <li className={`flex max-w-[78%] flex-col gap-1 ${doCidadao ? 'self-start' : 'self-end items-end'}`}>
       <span className="flex items-center gap-1 text-[11px] text-texto-3">
-        <Icone className="size-3" aria-hidden />{autor} · {new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+        <Icone className="size-3" aria-hidden />{autor}, {new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
       </span>
-      <p className={`whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${estilo}`}><TextoWhatsApp texto={m.texto} /></p>
+      <p className={`whitespace-pre-wrap rounded-[6px] px-3.5 py-2.5 text-sm leading-relaxed ${estilo}`}><TextoWhatsApp texto={m.texto} /></p>
     </li>
   );
 }

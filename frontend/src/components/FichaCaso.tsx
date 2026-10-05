@@ -54,9 +54,9 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
         <div className="flex flex-wrap items-center gap-2">
           <Selo tom={prioridade.tom}>Prioridade {prioridade.rotulo.toLowerCase()}</Selo>
           <Selo tom={estado.tom}>{estado.rotulo}</Selo>
-          <span className="text-xs text-texto-3">
-            {CANAIS[caso.canal] ?? caso.canal} · chegou {tempoDesde(caso.criado_em)} ({dataHora(caso.criado_em)})
-            {caso.bairro !== 'Não informado' && ` · ${caso.bairro}`}
+          <span className="text-[13px] text-texto-2">
+            Chegou por {CANAIS[caso.canal] ?? caso.canal} {tempoDesde(caso.criado_em)} ({dataHora(caso.criado_em)}).
+            {caso.bairro !== 'Não informado' && ` Bairro: ${caso.bairro}.`}
           </span>
         </div>
 
@@ -66,7 +66,7 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
 
         <section>
           <h3 className="text-[13px] font-medium text-texto-2 mb-2">O que a pessoa contou</h3>
-          <blockquote className="rounded-lg border border-linha bg-fundo px-4 py-3 text-[15px] leading-relaxed text-texto">
+          <blockquote className="rounded-[5px] border border-linha bg-fundo px-4 py-3 text-[15px] leading-relaxed text-texto">
             {caso.relato_original}
           </blockquote>
           <p className="mt-1.5 text-xs text-texto-3">CPF, telefone e e-mail digitados são removidos antes de gravar.</p>
@@ -76,7 +76,7 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
           <div>
             <h3 className="text-[13px] font-medium text-texto-2 mb-2">Caminho sugerido</h3>
             <ul className="flex flex-col gap-1.5 text-sm">
-              {caso.servicos_recomendados.map((s) => <li key={s} className="flex gap-2"><span className="text-ambar" aria-hidden>•</span>{s}</li>)}
+              {caso.servicos_recomendados.map((s) => <li key={s} className="flex gap-2"><span className="text-caneta" aria-hidden>•</span>{s}</li>)}
             </ul>
           </div>
           <div>
@@ -87,10 +87,10 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
           </div>
         </section>
 
-        <section className="rounded-lg border border-linha px-4 py-3 text-[13px] text-texto-2">
+        <section className="rounded-[5px] border border-linha px-4 py-3 text-[13px] text-texto-2">
           <p>
             <span className="text-texto">Como o sistema chegou aqui:</span> {caso.metodo_decisao}
-            {caso.confianca > 0 && ` · confiança ${(caso.confianca * 100).toFixed(0)}%`}
+            {caso.confianca > 0 && `, com ${(caso.confianca * 100).toFixed(0)}% de confiança`}.
           </p>
           {caso.categoria_confirmada_pelo_cidadao && (
             <p className="mt-1">{corrigido ? `A pessoa corrigiu a sugestão (o sistema tinha indicado ${nomeCategoria(caso.categoria_modelo).toLowerCase()}).` : 'A pessoa confirmou a sugestão no WhatsApp.'}</p>
@@ -108,7 +108,7 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
             {caso.tem_contato && !telefone && (
               <Botao tamanho="sm" icone={Eye} carregando={salvando === 'telefone'} onClick={verTelefone}>Ver telefone</Botao>
             )}
-            {telefone && <a href={`tel:+${telefone}`} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-linha-forte px-3 text-[13px] hover:bg-elevada"><Phone className="size-4" aria-hidden />Ligar</a>}
+            {telefone && <a href={`tel:+${telefone}`} className="inline-flex h-8 items-center gap-1.5 rounded-[5px] border border-linha-forte px-3 text-[13px] hover:bg-elevada"><Phone className="size-4" aria-hidden />Ligar</a>}
             {caso.conversa_id && (
               <Botao tamanho="sm" icone={MessagesSquare} onClick={() => irPara('conversas', caso.conversa_id!)}>Abrir conversa</Botao>
             )}
@@ -127,8 +127,8 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
                   aria-pressed={ativo}
                   disabled={salvando !== null}
                   onClick={() => salvar(s, s)}
-                  className={`h-9 rounded-lg border px-3 text-[13px] transition-colors duration-150 disabled:opacity-60 ${
-                    ativo ? 'border-ambar bg-ambar-escuro text-ambar font-semibold' : 'border-linha-forte text-texto-2 hover:text-texto hover:bg-elevada'
+                  className={`h-9 rounded-[5px] border px-3 text-[13px] transition-colors duration-150 disabled:opacity-60 ${
+                    ativo ? 'border-caneta bg-caneta-fundo text-caneta font-semibold' : 'border-linha-forte text-texto-2 hover:text-texto hover:bg-elevada'
                   }`}
                 >
                   {s === 'PENDENTE' && caso.status === 'URGENTE_CREAS' ? 'Urgente' : ESTADOS[s].rotulo}

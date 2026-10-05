@@ -46,18 +46,18 @@ export function Unidades() {
 
       {dados.length === 0 ? (
         <Vazio icone={Building2} titulo="Nenhuma unidade cadastrada">
-          Cadastre os CRAS de Anápolis com os bairros que cada um atende.
+          Cadastre os CRAS do município com os bairros que cada um atende.
         </Vazio>
       ) : (
         <ul className="grid gap-3 md:grid-cols-2">
           {dados.map((u) => (
             <li key={u.id}>
               <button onClick={() => setEditando(u)}
-                className="flex h-full w-full flex-col gap-2 rounded-xl border border-linha bg-superficie p-4 text-left hover:border-linha-forte">
+                className="flex h-full w-full flex-col gap-2 rounded-[6px] border border-linha bg-superficie p-4 text-left hover:border-linha-forte">
                 <span className="flex flex-wrap items-center gap-2">
                   <span className={`font-medium ${u.ativo ? '' : 'text-texto-3 line-through'}`}>{u.nome}</span>
                   <Selo tom={u.tipo === 'CREAS' ? 'urgente' : 'neutro'} semIcone>{TIPOS[u.tipo]}</Selo>
-                  {(!u.fonte || !u.verificado_em) && <span className="text-[11px] text-ambar">a conferir</span>}
+                  {(!u.fonte || !u.verificado_em) && <span className="text-[11px] text-caneta">a conferir</span>}
                 </span>
                 {u.endereco && <span className="flex items-start gap-1.5 text-[13px] text-texto-2"><MapPin className="mt-0.5 size-3.5 shrink-0" aria-hidden />{u.endereco}</span>}
                 {u.bairros.length > 0 && (
@@ -92,7 +92,7 @@ function TestarBairro() {
   };
 
   return (
-    <section aria-labelledby="t-testar-bairro" className="rounded-xl border border-linha bg-superficie p-4">
+    <section aria-labelledby="t-testar-bairro" className="rounded-[6px] border border-linha bg-superficie p-4">
       <h3 id="t-testar-bairro" className="font-medium">Testar um bairro</h3>
       <p className="mt-1 text-[13px] text-texto-2">Veja qual CRAS o bot indicaria. Aceita erro de digitação e falta de acento.</p>
       <form onSubmit={buscar} className="mt-3 flex flex-wrap gap-2">
@@ -103,7 +103,7 @@ function TestarBairro() {
       {resultado && (
         <p role="status" className="mt-3 text-sm">
           {resultado.unidade
-            ? <>“{resultado.bairro}” → <strong className="font-medium">{resultado.unidade.nome}</strong></>
+            ? <>“{resultado.bairro}” é atendido pelo <strong className="font-semibold">{resultado.unidade.nome}</strong>.</>
             : <span className="text-texto-2">Nenhum CRAS cadastrado atende “{resultado.bairro}”. O bot vai sugerir o Disque Social 121.</span>}
         </p>
       )}
@@ -189,12 +189,12 @@ function FormUnidade({ unidade, onPronto }: { unidade: Unidade | null; onPronto:
       </div>
       {(!fonte.trim() || !verificadoEm) && (
         <p className="flex items-center gap-2 text-[13px] text-texto-2">
-          <CircleAlert className="size-4 shrink-0 text-ambar" aria-hidden />
+          <CircleAlert className="size-4 shrink-0 text-caneta" aria-hidden />
           Sem fonte e data, ninguém sabe se esse endereço está certo.
         </p>
       )}
       <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} className="size-4 accent-[var(--color-ambar)]" />
+        <input type="checkbox" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} className="size-4 accent-[var(--color-caneta)]" />
         Unidade ativa (o bot só indica unidades ativas)
       </label>
       {erro && <Aviso>{erro}</Aviso>}

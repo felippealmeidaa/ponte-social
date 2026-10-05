@@ -28,7 +28,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     lifespan=lifespan,
     title=settings.PROJECT_NAME,
-    description="Plataforma Omnichannel de Atendimento Inteligente & CRM Social com IA Híbrida",
+    description="API do Ponte Social: triagem pelo WhatsApp e painel de encaminhamento da assistência social.",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc"

@@ -18,14 +18,14 @@ export function Configuracoes({ aba }: { aba?: string }) {
   return (
     <>
       <header className="mb-6">
-        <h1 className="font-display text-[44px] leading-[0.95] tracking-[0.03em]">Configurações</h1>
+        <h1 className="titulo text-[35px] leading-[1.05]">Configurações</h1>
         <p className="mt-2 text-texto-2">Conexão do WhatsApp, teste do bot, qualidade do modelo e contas da equipe.</p>
       </header>
       <div role="tablist" aria-label="Configurações" className="mb-8 flex gap-1 overflow-x-auto border-b border-linha">
         {ABAS.map((a) => (
           <button key={a.id} role="tab" aria-selected={atual === a.id} onClick={() => irPara('configuracoes', a.id)}
             ref={(el) => { if (atual === a.id) el?.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }}
-            className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm ${atual === a.id ? 'border-ambar text-texto font-semibold' : 'border-transparent text-texto-2 hover:text-texto'}`}>
+            className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm ${atual === a.id ? 'border-caneta text-texto font-semibold' : 'border-transparent text-texto-2 hover:text-texto'}`}>
             {a.rotulo}
           </button>
         ))}
@@ -77,9 +77,9 @@ function ConexaoWhatsApp() {
         </ol>
         <div><Botao variante="primario" icone={QrCode} carregando={gerando} onClick={gerarQr} disabled={conectado}>Gerar QR Code</Botao></div>
       </section>
-      <section aria-live="polite" className="grid min-h-64 place-items-center rounded-2xl border border-dashed border-linha-forte p-6">
+      <section aria-live="polite" className="grid min-h-64 place-items-center rounded-[6px] border border-dashed border-linha-forte p-6">
         {qr?.erro && <Aviso tom="info">{qr.erro}</Aviso>}
-        {imagem && <img src={imagem} alt="QR Code para conectar o WhatsApp do CRAS" className="size-64 rounded-lg bg-white p-2" />}
+        {imagem && <img src={imagem} alt="QR Code para conectar o WhatsApp do CRAS" className="size-64 rounded-[5px] bg-white p-2" />}
         {qr?.pairing_code && <p className="mt-3 text-sm text-texto-2">Código de pareamento: <strong className="tabular text-texto">{qr.pairing_code}</strong></p>}
         {!qr && <p className="text-sm text-texto-3">O QR Code aparece aqui.</p>}
       </section>
@@ -121,7 +121,7 @@ function TestarBot() {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
-      <section className="flex flex-col overflow-hidden rounded-2xl border border-linha bg-superficie">
+      <section className="flex flex-col overflow-hidden rounded-[6px] border border-linha bg-superficie">
         <div ref={rolagem} className="h-[52dvh] overflow-y-auto px-5 py-5" aria-live="polite">
           {conversa.length === 0 && <p className="text-sm text-texto-3">Mande “oi” para começar, como se fosse uma pessoa no WhatsApp.</p>}
           <ol className="flex flex-col gap-3">
@@ -131,7 +131,7 @@ function TestarBot() {
                   {m.de === 'pessoa' ? <UserRound className="size-3" aria-hidden /> : <Bot className="size-3" aria-hidden />}
                   {m.de === 'pessoa' ? 'Pessoa' : 'Bot'}
                 </span>
-                <p className={`whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${m.de === 'pessoa' ? 'bg-[#1f3b2e] text-[#e3f3ea] rounded-br-sm' : 'bg-elevada text-texto rounded-bl-sm'}`}>
+                <p className={`whitespace-pre-wrap rounded-[6px] px-3.5 py-2.5 text-sm leading-relaxed ${m.de === 'pessoa' ? 'bg-[#d9fdd3] text-[#111b21] rounded-br-[2px]' : 'bg-elevada text-texto rounded-bl-[2px]'}`}>
                   {m.texto.replace(/\*/g, '')}
                 </p>
               </li>
@@ -141,16 +141,16 @@ function TestarBot() {
         <form onSubmit={mandar} className="flex gap-2 border-t border-linha px-5 py-4">
           <label htmlFor="msg-teste" className="sr-only">Mensagem da pessoa</label>
           <input id="msg-teste" value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Mensagem da pessoa"
-            className="h-10 flex-1 rounded-lg border border-linha-forte bg-fundo px-3 text-sm hover:border-texto-3 focus:border-ambar focus:outline-none" />
+            className="h-10 flex-1 rounded-[5px] border border-linha-forte bg-fundo px-3 text-sm hover:border-texto-3 focus:border-caneta focus:outline-none" />
           <Botao type="submit" variante="primario" icone={Send} carregando={enviando} disabled={!texto.trim()}>Enviar</Botao>
         </form>
       </section>
       <aside className="flex flex-col gap-4 text-sm text-texto-2">
-        <p>Usa o mesmo fluxo e o mesmo banco do WhatsApp de verdade. Se a pessoa pedir contato, o caso entra na fila; a conversa aparece em <a href="#/conversas" className="text-ambar underline underline-offset-2">Conversas</a>.</p>
+        <p>Usa o mesmo fluxo e o mesmo banco do WhatsApp de verdade. Se a pessoa pedir contato, o caso entra na fila; a conversa aparece em <a href="#/conversas" className="text-caneta underline underline-offset-2">Conversas</a>.</p>
         <div className="flex flex-col gap-1.5">
           <label htmlFor="tel-teste" className="text-[13px] font-medium">Telefone fictício</label>
           <input id="tel-teste" value={telefone} onChange={(e) => { setTelefone(e.target.value); setConversa([]); setConversaId(null); }}
-            className="h-9 rounded-lg border border-linha-forte bg-fundo px-3 text-sm tabular focus:border-ambar focus:outline-none" />
+            className="h-9 rounded-[5px] border border-linha-forte bg-fundo px-3 text-sm tabular focus:border-caneta focus:outline-none" />
           <p className="text-xs text-texto-3">Trocar o número começa outra conversa.</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -216,7 +216,7 @@ function ModeloIA() {
         <strong className={s.recall_violencia < 0.9 ? 'text-urgente' : 'text-texto'}>{pct(s.recall_violencia)}</strong> das situações de violência.
         Em {pct(s.taxa_nao_identificado ?? 0)} ele preferiu não arriscar e indicou o Disque Social 121.
       </p>
-      <div className="overflow-x-auto rounded-xl border border-linha">
+      <div className="overflow-x-auto rounded-[6px] border border-linha">
         <table className="w-full min-w-[560px] text-sm">
           <thead className="bg-superficie text-left text-texto-2">
             <tr>
@@ -228,7 +228,7 @@ function ModeloIA() {
           </thead>
           <tbody>
             {linhas.map(([nome, m, destaque]) => (
-              <tr key={nome} className={`border-t border-linha ${destaque ? 'bg-ambar-escuro/50 font-medium' : ''}`}>
+              <tr key={nome} className={`border-t border-linha ${destaque ? 'bg-caneta-fundo/50 font-medium' : ''}`}>
                 <td className="px-4 py-2.5">{nome}</td>
                 <td className="px-4 py-2.5 text-right tabular">{n2(m.f1_macro)}{m.f1_macro_ic95 && <span className="ml-1 text-xs text-texto-3">({n2(m.f1_macro_ic95[0])}–{n2(m.f1_macro_ic95[1])})</span>}</td>
                 <td className="px-4 py-2.5 text-right tabular">{pct(m.acuracia)}</td>
@@ -240,7 +240,7 @@ function ModeloIA() {
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <Botao icone={RefreshCw} carregando={treinando} onClick={retreinar}>{treinando ? 'Retreinando (cerca de 1 minuto)' : 'Retreinar e reavaliar'}</Botao>
-        <span className="text-xs text-texto-3">Relatório de {new Date(dados.timestamp).toLocaleString('pt-BR')} · modelo {dados.modelo_final.nome} · {dados.dataset_size} relatos de treino</span>
+        <span className="text-[13px] text-texto-3">Relatório de {new Date(dados.timestamp).toLocaleString('pt-BR')}, modelo {dados.modelo_final.nome}, {dados.dataset_size} relatos de treino.</span>
       </div>
     </div>
   );

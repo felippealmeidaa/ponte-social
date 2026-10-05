@@ -90,7 +90,7 @@ class GeminiService:
     async def humanize_triage_message(self, dados_triagem: Dict[str, Any]) -> str:
         """Gera uma mensagem em linguagem simples, empática e acessível para o WhatsApp"""
         system_prompt = (
-            "Você é a assistente virtual de assistência social de Anápolis. "
+            "Você é o Ponte Social, assistente virtual de orientação da assistência social. "
             "Escreva uma mensagem acolhedora, em linguagem muito simples e direta para o WhatsApp. "
             "Explique onde a pessoa deve ir e quais documentos deve levar sem termos jurídicos complexos."
         )

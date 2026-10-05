@@ -21,7 +21,7 @@ TEXTOS_PADRAO: Dict[str, Dict[str, str]] = {
     "boas_vindas": {
         "descricao": "Primeira mensagem: apresentação e pedido de consentimento",
         "texto": (
-            "Olá! Sou o assistente de orientação da Assistência Social de Anápolis. 👋\n\n"
+            "Olá! Sou o Ponte Social, um assistente de orientação da assistência social. 👋\n\n"
             "Eu ajudo a descobrir *qual serviço procurar, quais documentos levar e onde ir*. "
             "Sou só uma orientação: *não decido quem tem direito a benefício* — isso é feito pelos profissionais do CRAS.\n\n"
             "Vou usar o que você me contar para te orientar e, *sem identificar você*, para melhorar este serviço. "
@@ -51,7 +51,7 @@ TEXTOS_PADRAO: Dict[str, Dict[str, str]] = {
             "Se estiver em perigo agora, ligue *190* (Polícia).\n"
             "Violência contra a mulher: *Ligue 180*.\n"
             "Crianças, idosos ou pessoas com deficiência: *Disque 100*.\n"
-            "Você também pode procurar o *CREAS* de Anápolis, que atende casos de violência.\n\n"
+            "Você também pode procurar o *CREAS* da sua cidade, que atende casos de violência.\n\n"
             "Sua mensagem foi enviada com prioridade para a equipe da assistência social."
         ),
     },

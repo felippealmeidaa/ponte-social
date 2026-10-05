@@ -20,9 +20,9 @@ type DadosFaixa = { titulo: string; largura: number; altura: number };
 const ROTULO_TIPO: Partial<Record<Etapa['tipo'], string>> = { automatico: 'texto automático', fim: 'fim' };
 
 function classeEtapa(etapa: Etapa, selecionada: boolean, pulada: boolean) {
-  const base = 'group flex w-full flex-col gap-1.5 rounded-xl border px-3.5 py-3 text-left transition-[border-color,background-color,opacity] duration-150';
+  const base = 'group flex w-full flex-col gap-1.5 rounded-[6px] border px-3.5 py-3 text-left transition-[border-color,background-color,opacity] duration-150';
   const borda = selecionada
-    ? 'border-ambar bg-elevada'
+    ? 'border-caneta bg-elevada'
     : etapa.tipo === 'urgente'
       ? 'border-urgente/60 bg-urgente-fundo hover:border-urgente'
       : etapa.tipo === 'fim'
@@ -49,7 +49,7 @@ const EtapaNo = memo(function EtapaNo({ data }: NodeProps<Node<DadosEtapa>>) {
         aria-label={`${etapa.titulo}${urgente ? ', urgente' : ''}${contagem ? `, ${contagem} conversa(s) aqui agora` : ''}. Abrir detalhes.`}
         className={classeEtapa(etapa, selecionada, Boolean(pulada))}>
         <span className="flex items-start gap-2">
-          <Icone className={`mt-0.5 size-[18px] shrink-0 ${urgente ? 'text-urgente' : selecionada ? 'text-ambar' : 'text-texto-2'}`} aria-hidden />
+          <Icone className={`mt-0.5 size-[18px] shrink-0 ${urgente ? 'text-urgente' : selecionada ? 'text-caneta' : 'text-texto-2'}`} aria-hidden />
           <span className="line-clamp-2 min-w-0 flex-1 text-[16px] font-semibold leading-tight text-texto">{etapa.titulo}</span>
         </span>
         <span className="line-clamp-3 text-[13.5px] leading-snug text-texto-2">{pulada ?? etapa.quando}</span>
@@ -72,8 +72,8 @@ const EtapaNo = memo(function EtapaNo({ data }: NodeProps<Node<DadosEtapa>>) {
 
 const FaixaNo = memo(function FaixaNo({ data }: NodeProps<Node<DadosFaixa>>) {
   return (
-    <div style={{ width: data.largura, height: data.altura }} className="pointer-events-none rounded-2xl border border-linha/70 bg-superficie/30">
-      <p className="px-5 pt-3.5 font-display text-[22px] leading-none tracking-[0.06em] text-texto-3">{data.titulo}</p>
+    <div style={{ width: data.largura, height: data.altura }} className="pointer-events-none rounded-[6px] border border-linha/70 bg-superficie/30">
+      <p className="px-5 pt-3.5 titulo text-[18px] leading-[1.05] text-texto-3">{data.titulo}</p>
     </div>
   );
 });
@@ -94,15 +94,15 @@ export function MapaFluxo({ selecionada, contagem, puladas, semConfirmacao, onAb
   ], [selecionada, contagem, puladas, onAbrir]);
 
   const ligacoes = useMemo<Edge[]>(() => LIGACOES.filter((l) => !l.quando || (l.quando === 'sem_confirmacao' && semConfirmacao)).map((l) => {
-    const cor = l.urgente ? 'var(--color-urgente)' : 'var(--color-linha-forte)';
+    const cor = l.urgente ? 'var(--color-urgente)' : '#8b97a8';
     const ativa = selecionada !== null && (l.de === selecionada || l.para === selecionada);
     const apagada = Boolean(puladas[l.de] || puladas[l.para]);
     return {
       id: `${l.de}-${l.para}`, source: l.de, target: l.para, sourceHandle: l.saida ?? 'd', targetHandle: l.entrada ?? 'e',
       type: 'smoothstep', label: l.rotulo, focusable: false,
-      style: { stroke: ativa ? 'var(--color-ambar)' : cor, strokeWidth: ativa ? 2 : 1.5, opacity: apagada && !ativa ? 0.35 : 1,
+      style: { stroke: ativa ? 'var(--color-caneta)' : cor, strokeWidth: ativa ? 2 : 1.5, opacity: apagada && !ativa ? 0.35 : 1,
         strokeDasharray: l.quando ? '6 4' : undefined },
-      markerEnd: { type: MarkerType.ArrowClosed, color: ativa ? '#ffc857' : l.urgente ? '#f2564d' : '#3a4252', width: 16, height: 16 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: ativa ? '#2457c5' : l.urgente ? '#c0322b' : '#8b97a8', width: 16, height: 16 },
       labelStyle: { fill: ativa ? 'var(--color-texto)' : 'var(--color-texto-2)', fontSize: 13, fontWeight: 500 },
       labelBgStyle: { fill: 'var(--color-fundo)' },
       labelBgPadding: [6, 3] as [number, number],
@@ -111,7 +111,7 @@ export function MapaFluxo({ selecionada, contagem, puladas, semConfirmacao, onAb
   }), [selecionada, puladas, semConfirmacao]);
 
   return (
-    <div className="mapa-fluxo h-[min(72vh,700px)] min-h-[520px] overflow-hidden rounded-2xl border border-linha bg-fundo">
+    <div className="mapa-fluxo h-[min(72vh,700px)] min-h-[520px] overflow-hidden rounded-[6px] border border-linha bg-fundo">
       <ReactFlow
         nodes={nos}
         edges={ligacoes}
@@ -130,7 +130,7 @@ export function MapaFluxo({ selecionada, contagem, puladas, semConfirmacao, onAb
         panOnScroll={false}
         aria-label="Mapa do fluxo do bot: arraste para mover, use os botões para aproximar"
       >
-        <Background gap={22} size={1.2} color="#1f2430" />
+        <Background gap={22} size={1.2} color="#cdd5df" />
         <Controls showInteractive={false} position="bottom-right" />
       </ReactFlow>
     </div>
@@ -143,7 +143,7 @@ export function ListaFluxo({ selecionada, contagem, puladas, onAbrir }: EstadoMa
     <div className="flex flex-col gap-8">
       {FAIXAS.map((f) => (
         <section key={f.id} aria-labelledby={`lista-${f.id}`}>
-          <h3 id={`lista-${f.id}`} className="mb-3 font-display text-[22px] leading-none tracking-[0.05em] text-texto-2">{f.titulo}</h3>
+          <h3 id={`lista-${f.id}`} className="mb-3 titulo text-[18px] leading-[1.05] text-texto-2">{f.titulo}</h3>
           <ol className="flex flex-col gap-2">
             {ETAPAS.filter((e) => e.faixa === f.id).map((etapa) => {
               const Icone = etapa.icone;

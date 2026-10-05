@@ -74,7 +74,7 @@ export function ServicosMensagens() {
     <>
       <header className="mb-6 flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div>
-          <h1 className="font-display text-[44px] leading-[0.95] tracking-[0.03em]">Serviços e mensagens</h1>
+          <h1 className="titulo text-[35px] leading-[1.05]">Serviços e mensagens</h1>
           <p className="mt-2 max-w-[75ch] text-texto-2">
             O que o bot responde no WhatsApp. As mudanças valem na hora para as próximas conversas, sem precisar de programador.
           </p>
@@ -102,7 +102,7 @@ export function ServicosMensagens() {
       <div role="tablist" aria-label="O que ver ou editar" className="mb-6 flex gap-1 overflow-x-auto border-b border-linha">
         {abas.map(([id, rotulo]) => (
           <button key={id} role="tab" aria-selected={aba === id} onClick={() => setAba(id)}
-            className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm ${aba === id ? 'border-ambar text-texto font-semibold' : 'border-transparent text-texto-2 hover:text-texto'}`}>
+            className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm ${aba === id ? 'border-caneta text-texto font-semibold' : 'border-transparent text-texto-2 hover:text-texto'}`}>
             {rotulo}
           </button>
         ))}
@@ -120,7 +120,7 @@ function SeletorUnidade({ unidades, unidade, fixa, onMudar }: {
 }) {
   if (fixa) {
     return (
-      <p className="rounded-lg border border-linha bg-superficie px-3 py-2 text-sm">
+      <p className="rounded-[5px] border border-linha bg-superficie px-3 py-2 text-sm">
         <span className="text-texto-3">Configuração do </span><span className="font-medium">{nomeUnidade(unidades, unidade)}</span>
       </p>
     );
@@ -200,7 +200,7 @@ function Fluxo({ ctx, unidades, irPara }: { ctx: Contexto; unidades: UnidadeResu
 
       {avulsos.length > 0 && (
         <section aria-labelledby="t-avulsos" className="mt-4">
-          <h2 id="t-avulsos" className="mb-3 font-display text-[24px] leading-none tracking-[0.04em]">Outros textos</h2>
+          <h2 id="t-avulsos" className="mb-3 titulo text-[19px] leading-[1.05]">Outros textos</h2>
           <ul className="flex flex-col gap-4">
             {avulsos.map((t) => <li key={t.chave + (t.atualizado_em ?? '')}><EditorTexto texto={t} ctx={ctx} onSalvo={textos.recarregar} /></li>)}
           </ul>
@@ -236,7 +236,7 @@ function Fluxo({ ctx, unidades, irPara }: { ctx: Contexto; unidades: UnidadeResu
             </dl>
 
             {etapa.travada && (
-              <p className="flex items-start gap-2 rounded-lg border border-linha bg-fundo px-3 py-2.5 text-[13px] text-texto-2">
+              <p className="flex items-start gap-2 rounded-[5px] border border-linha bg-fundo px-3 py-2.5 text-[13px] text-texto-2">
                 <Lock className="mt-0.5 size-4 shrink-0 text-texto-3" aria-hidden />
                 {etapa.travada}
               </p>
@@ -250,7 +250,7 @@ function Fluxo({ ctx, unidades, irPara }: { ctx: Contexto; unidades: UnidadeResu
             {etapa.exemplo && (
               <div>
                 <p className="mb-2 text-[13px] font-medium text-texto-3">Texto automático (montado pelo sistema)</p>
-                <p className="whitespace-pre-line rounded-2xl rounded-tl-sm bg-[#1f2c26] px-4 py-3 text-[13px] leading-relaxed text-[#e9efe9]">{etapa.exemplo}</p>
+                <p className="whitespace-pre-line rounded-[6px] rounded-tr-[2px] bg-[#d9fdd3] px-4 py-3 text-[13.5px] leading-relaxed text-[#111b21]">{etapa.exemplo}</p>
               </div>
             )}
 
@@ -306,7 +306,7 @@ function OpcoesDaEtapa({ opcoes, estado, ctx, onSalvo }: {
   };
 
   return (
-    <fieldset className="flex flex-col gap-4 rounded-xl border border-linha bg-superficie p-4">
+    <fieldset className="flex flex-col gap-4 rounded-[6px] border border-linha bg-superficie p-4">
       <legend className="px-1 text-[13px] font-medium text-texto-3">{ctx.unidade ? 'Opções deste CRAS' : 'Opções do padrão da secretaria'}</legend>
       {opcoes.map((op) => {
         const valor = estado.opcoes[op.chave as keyof OpcoesFluxo];
@@ -318,7 +318,7 @@ function OpcoesDaEtapa({ opcoes, estado, ctx, onSalvo }: {
             {op.tipo === 'bool' ? (
               <label htmlFor={id} className="flex items-start gap-3 text-sm">
                 <input id={id} type="checkbox" checked={Boolean(valor)} disabled={bloqueada || salvando !== null}
-                  onChange={(e) => mudar(op.chave, e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-[var(--color-ambar)] disabled:opacity-50" />
+                  onChange={(e) => mudar(op.chave, e.target.checked)} className="mt-0.5 size-4 shrink-0 accent-[var(--color-caneta)] disabled:opacity-50" />
                 <span className="font-medium">{op.rotulo}</span>
               </label>
             ) : (
@@ -333,7 +333,7 @@ function OpcoesDaEtapa({ opcoes, estado, ctx, onSalvo }: {
             <p className={`text-xs text-texto-3 ${op.tipo === 'bool' ? 'pl-7' : ''}`}>
               {op.ajuda}
               {op.soSecretaria && ctx.unidade && ' Definida pela secretaria.'}
-              {personalizada && <span className="ml-1 text-ambar">Diferente do padrão da secretaria.</span>}
+              {personalizada && <span className="ml-1 text-caneta">Diferente do padrão da secretaria.</span>}
             </p>
           </div>
         );
@@ -359,7 +359,7 @@ function Respostas({ ctx }: { ctx: Contexto }) {
     <>
     {pendentes > 0 && (
       <p className="mb-4 flex items-center gap-2 text-[13px] text-texto-2">
-        <CircleAlert className="size-4 shrink-0 text-ambar" aria-hidden />
+        <CircleAlert className="size-4 shrink-0 text-caneta" aria-hidden />
         {pendentes === 1 ? '1 necessidade está' : `${pendentes} necessidades estão`} sem fonte oficial conferida.
         Antes de usar com o público, confira cada resposta numa fonte oficial e registre o link e a data.
       </p>
@@ -370,12 +370,12 @@ function Respostas({ ctx }: { ctx: Contexto }) {
           {dados.map((s) => (
             <li key={s.categoria} className="shrink-0">
               <button onClick={() => setSelecionada(s.categoria)} aria-current={selecionada === s.categoria ? 'true' : undefined}
-                className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm ${selecionada === s.categoria ? 'bg-elevada text-texto font-medium' : 'text-texto-2 hover:bg-elevada/60 hover:text-texto'}`}>
+                className={`flex w-full items-center gap-2 rounded-[5px] px-3 py-2 text-left text-sm ${selecionada === s.categoria ? 'bg-elevada text-texto font-medium' : 'text-texto-2 hover:bg-elevada/60 hover:text-texto'}`}>
                 {s.urgencia && <ShieldAlert className="size-4 shrink-0 text-urgente" aria-hidden />}
                 {nomeCategoria(s.categoria)}
                 {s.personalizado && <span className="ml-auto shrink-0 whitespace-nowrap pl-2 text-[11px] text-texto-3">personalizada</span>}
                 {situacaoFonte(s) !== 'ok' && (
-                  <span className={`${s.personalizado ? '' : 'ml-auto'} shrink-0 whitespace-nowrap pl-2 text-[11px] text-ambar`}>{ROTULO_SITUACAO[situacaoFonte(s) as 'conferir' | 'revisar']}</span>
+                  <span className={`${s.personalizado ? '' : 'ml-auto'} shrink-0 whitespace-nowrap pl-2 text-[11px] text-caneta`}>{ROTULO_SITUACAO[situacaoFonte(s) as 'conferir' | 'revisar']}</span>
                 )}
               </button>
             </li>
@@ -469,13 +469,13 @@ function EditorServico({ servico, ctx, onSalvo }: { servico: Servico; ctx: Conte
         </fieldset>
         {situacaoFonte({ fonte, verificado_em: verificadoEm || null }) === 'conferir' && (
           <p className="flex items-center gap-2 text-[13px] text-texto-2">
-            <CircleAlert className="size-4 shrink-0 text-ambar" aria-hidden />
+            <CircleAlert className="size-4 shrink-0 text-caneta" aria-hidden />
             Sem fonte e data, esta resposta ainda não foi conferida numa fonte oficial.
           </p>
         )}
         {situacaoFonte({ fonte, verificado_em: verificadoEm || null }) === 'revisar' && (
           <p className="flex items-center gap-2 text-[13px] text-texto-2">
-            <CircleAlert className="size-4 shrink-0 text-ambar" aria-hidden />
+            <CircleAlert className="size-4 shrink-0 text-caneta" aria-hidden />
             Conferida há mais de {VALIDADE_CONFERENCIA_DIAS / 30} meses: vale revisar se as regras mudaram.
           </p>
         )}
@@ -500,8 +500,8 @@ function EditorServico({ servico, ctx, onSalvo }: { servico: Servico; ctx: Conte
 
       <aside aria-label="Prévia no WhatsApp" className="xl:sticky xl:top-6 self-start">
         <p className="mb-2 text-[13px] font-medium text-texto-2">Como aparece no WhatsApp</p>
-        <div className="rounded-2xl border border-linha bg-[#0e1a14] p-4">
-          <div className="rounded-2xl rounded-tl-sm bg-[#1f2c26] px-4 py-3 text-[13px] leading-relaxed text-[#e9efe9]">
+        <div className="rounded-[6px] border border-linha bg-[#efeae2] p-4">
+          <div className="ml-6 rounded-[6px] rounded-tr-[2px] bg-[#d9fdd3] px-4 py-3 text-[13.5px] leading-relaxed text-[#111b21] shadow-[0_1px_0_rgb(0_0_0/0.08)]">
             <p className="font-semibold">📋 {titulo}</p>
             <p className="mt-3 font-semibold">O que você pode procurar:</p>
             {linhas(servicos).map((s) => <p key={s}>• {s}</p>)}
@@ -509,7 +509,7 @@ function EditorServico({ servico, ctx, onSalvo }: { servico: Servico; ctx: Conte
             {linhas(documentos).map((d) => <p key={d}>• {d}</p>)}
             <p className="mt-3"><span className="font-semibold">Onde ir:</span> {local}</p>
             <p><span className="font-semibold">Contato:</span> {contato}</p>
-            <p className="mt-3 text-[#b9c6bd]">Lembre: é uma orientação. Quem confirma o seu direito é o profissional do atendimento.</p>
+            <p className="mt-3 text-[#54656f]">Lembre: é uma orientação. Quem confirma o seu direito é o profissional do atendimento.</p>
           </div>
         </div>
       </aside>
@@ -542,10 +542,10 @@ function EditorTexto({ texto, ctx, onSalvo }: { texto: TextoBot; ctx: Contexto; 
   const podeVoltar = ctx.unidade ? texto.personalizado : texto.texto !== texto.padrao;
   const id = `texto-${texto.chave}`;
   return (
-    <div className="rounded-xl border border-linha bg-superficie p-4">
+    <div className="rounded-[6px] border border-linha bg-superficie p-4">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <label htmlFor={id} className="font-medium">{texto.descricao}</label>
-        {ctx.unidade && <span className={`text-[11px] ${texto.personalizado ? 'text-ambar' : 'text-texto-3'}`}>{texto.personalizado ? 'personalizado neste CRAS' : 'padrão da secretaria'}</span>}
+        {ctx.unidade && <span className={`text-[11px] ${texto.personalizado ? 'text-caneta' : 'text-texto-3'}`}>{texto.personalizado ? 'personalizado neste CRAS' : 'padrão da secretaria'}</span>}
       </div>
       <textarea id={id} rows={Math.min(10, Math.max(3, valor.split('\n').length + 1))} value={valor} readOnly={somenteLeitura}
         onChange={(e) => { setValor(e.target.value); setSalvo(false); }}

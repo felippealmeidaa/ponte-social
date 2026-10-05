@@ -58,7 +58,7 @@ function MinhaSenha() {
 
   return (
     <section aria-labelledby="t-minha-senha">
-      <h2 id="t-minha-senha" className="font-display text-[28px] leading-none tracking-[0.04em] mb-4">Minha senha</h2>
+      <h2 id="t-minha-senha" className="titulo text-[22px] leading-[1.05] mb-4">Minha senha</h2>
       <form onSubmit={trocar} className="flex flex-col gap-4">
         <Campo id="senha-atual" rotulo="Senha atual">
           <input id="senha-atual" type="password" autoComplete="current-password" required value={atual} onChange={(e) => setAtual(e.target.value)} className={classeEntrada} />
@@ -89,13 +89,13 @@ function GestaoEquipe({ meuId }: { meuId: string }) {
   return (
     <section aria-labelledby="t-equipe">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 id="t-equipe" className="font-display text-[28px] leading-none tracking-[0.04em]">Equipe</h2>
+        <h2 id="t-equipe" className="titulo text-[22px] leading-[1.05]">Equipe</h2>
         <Botao variante="primario" icone={UserPlus} onClick={() => setEditando('nova')}>Nova conta</Botao>
       </div>
       {erro && <Aviso>{erro}</Aviso>}
       {!dados && !erro && <Esqueleto className="h-48" />}
       {dados && (
-        <ul className="divide-y divide-linha overflow-hidden rounded-xl border border-linha bg-superficie">
+        <ul className="divide-y divide-linha overflow-hidden rounded-[6px] border border-linha bg-superficie">
           {dados.map((c) => (
             <li key={c.id}>
               <button onClick={() => setEditando(c)} className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-left hover:bg-elevada/60">
@@ -103,10 +103,10 @@ function GestaoEquipe({ meuId }: { meuId: string }) {
                   <span className={`block font-medium ${c.ativo ? '' : 'text-texto-3 line-through'}`}>
                     {c.name}{c.id === meuId && <span className="ml-2 text-xs font-normal text-texto-3">(você)</span>}
                   </span>
-                  <span className="block text-[13px] text-texto-2">{c.login}{c.email ? ` · ${c.email}` : ''}</span>
+                  <span className="block text-[13px] text-texto-2">{c.login}{c.email ? `, ${c.email}` : ''}</span>
                 </span>
                 {geral && <span className="text-[13px] text-texto-2">{nomeUnidade(unidades.dados, c.unidade_id)}</span>}
-                <Selo tom={c.role === 'ADMIN' ? 'ambar' : 'neutro'} semIcone>{PAPEL[c.role]}</Selo>
+                <Selo tom={c.role === 'ADMIN' ? 'caneta' : 'neutro'} semIcone>{PAPEL[c.role]}</Selo>
                 {!c.ativo && <Selo tom="neutro" semIcone>Desativada</Selo>}
                 <span className="w-full text-xs text-texto-3 sm:w-auto">
                   {c.ultimo_acesso ? `Último acesso ${dataHora(c.ultimo_acesso)}` : 'Nunca entrou'}
@@ -218,7 +218,7 @@ function FormEditarConta({ conta, ehVoce, unidades, onPronto }: {
         <SeletorPapel valor={papel} onMudar={setPapel} />
         {unidades && <SeletorUnidadeConta id="ec-unidade" unidades={unidades} valor={unidade} onMudar={setUnidade} />}
         <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} className="size-4 accent-[var(--color-ambar)]" />
+          <input type="checkbox" checked={ativo} onChange={(e) => setAtivo(e.target.checked)} className="size-4 accent-[var(--color-caneta)]" />
           Conta ativa
         </label>
         {!ativo && conta.ativo && (
@@ -247,7 +247,7 @@ function SeletorPapel({ valor, onMudar }: { valor: 'ADMIN' | 'ATENDENTE'; onMuda
       <legend className="mb-1.5 text-[13px] font-medium text-texto-2">Papel</legend>
       {(['ATENDENTE', 'ADMIN'] as const).map((p) => (
         <label key={p} className="flex items-start gap-2 text-sm">
-          <input type="radio" name="papel" checked={valor === p} onChange={() => onMudar(p)} className="mt-0.5 size-4 accent-[var(--color-ambar)]" />
+          <input type="radio" name="papel" checked={valor === p} onChange={() => onMudar(p)} className="mt-0.5 size-4 accent-[var(--color-caneta)]" />
           <span>
             {PAPEL[p]}
             <span className="block text-xs text-texto-3">

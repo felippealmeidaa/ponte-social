@@ -5,9 +5,9 @@ import { Aviso, Esqueleto, Vazio } from '../components/ui';
 import { useAtualizacao } from '../useAtualizacao';
 import { CANAIS, ESTADOS, nomeCategoria, ORDEM_ESTADOS } from '../vocabulario';
 
-// Série única em neutro (o âmbar é reservado a foco e ação); a barra em foco ganha o âmbar
-const COR_SERIE = 'var(--color-texto-3)';
-const COR_FOCO = 'var(--color-ambar)';
+// Série única em tinta; a barra em foco ganha a cor da caneta (foco)
+const COR_SERIE = 'var(--color-texto)';
+const COR_FOCO = 'var(--color-caneta)';
 
 interface Resumo {
   periodo_dias: number;
@@ -34,13 +34,13 @@ export function Indicadores() {
     <>
       <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-[44px] leading-[0.95] tracking-[0.03em]">Indicadores</h1>
+          <h1 className="titulo text-[35px] leading-[1.05]">Indicadores</h1>
           <p className="mt-2 max-w-[75ch] text-texto-2">O que chegou à fila no período. Os exemplos de demonstração não entram na conta.</p>
         </div>
-        <div role="group" aria-label="Período" className="flex rounded-lg border border-linha-forte p-1">
+        <div role="group" aria-label="Período" className="flex rounded-[5px] border border-linha-forte p-1">
           {PERIODOS.map((p) => (
             <button key={p} aria-pressed={dias === p} onClick={() => setDias(p)}
-              className={`h-8 rounded-md px-3 text-[13px] ${dias === p ? 'bg-ambar-escuro text-ambar font-semibold' : 'text-texto-2 hover:text-texto'}`}>
+              className={`h-8 rounded-md px-3 text-[13px] ${dias === p ? 'bg-caneta-fundo text-caneta font-semibold' : 'text-texto-2 hover:text-texto'}`}>
               {p} dias
             </button>
           ))}
@@ -58,20 +58,19 @@ export function Indicadores() {
 
       {dados && dados.total > 0 && (
         <div className="flex flex-col gap-10">
-          <p className="max-w-[80ch] text-[17px] leading-relaxed text-texto-2">
-            <strong className="text-texto tabular">{dados.total}</strong> triagens em {dados.periodo_dias} dias
-            {' · '}<strong className="text-texto tabular">{dados.abertas}</strong> aguardando atendimento
-            {' · '}
+          <p className="max-w-[64ch] text-[19px] leading-relaxed text-texto-2">
+            Em {dados.periodo_dias} dias chegaram <strong className="text-texto tabular">{dados.total}</strong> triagens.{' '}
+            <strong className="text-texto tabular">{dados.abertas}</strong> ainda aguardam atendimento.{' '}
             <span className={dados.urgentes > 0 ? 'text-urgente' : ''}>
-              {dados.urgentes > 0 && <ShieldAlert className="mr-1 inline size-4 align-[-2px]" aria-hidden />}
-              <strong className="tabular">{dados.urgentes}</strong> com sinal de violência
+              {dados.urgentes > 0 && <ShieldAlert className="mr-1 inline size-[18px] align-[-3px]" aria-hidden />}
+              <strong className="tabular">{dados.urgentes}</strong> tiveram sinal de violência.
             </span>
             {dados.horas_ate_primeiro_atendimento !== null && (
               <>
-                {' · '}1º atendimento em{' '}
+                {' '}O primeiro atendimento levou, em média,{' '}
                 <strong className="text-texto">
-                  {dados.horas_ate_primeiro_atendimento < 1 ? 'menos de 1 h' : `${dados.horas_ate_primeiro_atendimento.toLocaleString('pt-BR')} h`}
-                </strong>{' '}em média
+                  {dados.horas_ate_primeiro_atendimento < 1 ? 'menos de 1 hora' : `${dados.horas_ate_primeiro_atendimento.toLocaleString('pt-BR')} h`}
+                </strong>.
               </>
             )}
           </p>
@@ -80,7 +79,7 @@ export function Indicadores() {
 
           <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr]">
             <section aria-labelledby="t-categoria">
-              <h2 id="t-categoria" className="font-display text-[28px] leading-none tracking-[0.04em] mb-4">Por necessidade</h2>
+              <h2 id="t-categoria" className="titulo text-[22px] leading-[1.05] mb-4">Por necessidade</h2>
               <Barras itens={Object.entries(dados.por_categoria).map(([k, v]) => ({ chave: k, rotulo: nomeCategoria(k), valor: v }))} total={dados.total} />
             </section>
 
@@ -91,7 +90,7 @@ export function Indicadores() {
             </div>
           </div>
 
-          <section aria-labelledby="t-acerto" className="rounded-xl border border-linha px-5 py-4">
+          <section aria-labelledby="t-acerto" className="rounded-[6px] border border-linha px-5 py-4">
             <h2 id="t-acerto" className="text-sm font-medium">Sugestão do sistema confirmada pelas pessoas</h2>
             {dados.acerto_do_sistema.confirmadas_pelo_cidadao === 0 ? (
               <p className="mt-1 text-sm text-texto-2">Ainda não há confirmações pelo WhatsApp no período.</p>
@@ -140,7 +139,7 @@ function PorDia({ pontos }: { pontos: { dia: string; total: number }[] }) {
   return (
     <section aria-labelledby="t-dia">
       <div className="mb-4 flex items-center justify-between gap-4">
-        <h2 id="t-dia" className="font-display text-[28px] leading-none tracking-[0.04em] flex items-baseline gap-3">
+        <h2 id="t-dia" className="titulo text-[22px] leading-[1.05] flex items-baseline gap-3">
           Triagens por dia
           {!tabela && <span className="font-sans text-xs tracking-normal text-texto-3 tabular">máximo {maximo} por dia</span>}
         </h2>
@@ -151,7 +150,7 @@ function PorDia({ pontos }: { pontos: { dia: string; total: number }[] }) {
       </div>
 
       {tabela ? (
-        <div className="max-h-72 overflow-y-auto rounded-xl border border-linha">
+        <div className="max-h-72 overflow-y-auto rounded-[6px] border border-linha">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-superficie text-left text-texto-2"><tr><th className="px-4 py-2 font-medium">Dia</th><th className="px-4 py-2 font-medium text-right">Triagens</th></tr></thead>
             <tbody>
@@ -184,10 +183,10 @@ function PorDia({ pontos }: { pontos: { dia: string; total: number }[] }) {
           {foco !== null && (
             <div
               role="tooltip"
-              className="pointer-events-none absolute -top-2 z-10 -translate-x-1/2 -translate-y-full rounded-lg border border-linha-forte bg-elevada px-3 py-1.5 text-xs shadow-[0_8px_24px_-12px_rgb(0_0_0/0.8)]"
+              className="pointer-events-none absolute -top-2 z-10 -translate-x-1/2 -translate-y-full rounded-[5px] border border-linha-forte bg-elevada px-3 py-1.5 text-xs shadow-[0_8px_20px_-12px_rgb(23_40_74/0.45)]"
               style={{ left: `${((foco + 0.5) / pontos.length) * 100}%` }}
             >
-              <span className="text-texto-2">{diaCurto(pontos[foco].dia)}</span> · <strong className="tabular">{pontos[foco].total}</strong> triagens
+              <span className="text-texto-2">{diaCurto(pontos[foco].dia)}:</span> <strong className="tabular">{pontos[foco].total}</strong> triagens
             </div>
           )}
           <div className="mt-2 flex justify-between text-xs text-texto-3 tabular" aria-hidden>
@@ -203,7 +202,7 @@ function Lista({ titulo, itens }: { titulo: string; itens: [string, number][] })
   return (
     <section>
       <h2 className="text-sm font-medium mb-2">{titulo}</h2>
-      <ul className="divide-y divide-linha rounded-xl border border-linha">
+      <ul className="divide-y divide-linha rounded-[6px] border border-linha">
         {itens.map(([rotulo, valor]) => (
           <li key={rotulo} className="flex items-center justify-between px-4 py-2 text-sm">
             <span className="text-texto-2">{rotulo}</span>

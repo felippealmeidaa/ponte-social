@@ -9,7 +9,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 ROOT_DIR = Path(__file__).resolve().parents[3]
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "CRM Inteligente de Encaminhamento Social"
+    PROJECT_NAME: str = "Ponte Social"
     API_V1_STR: str = "/api/v1"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
