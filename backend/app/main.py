@@ -6,7 +6,7 @@ from app.core.config import settings
 from app.api.v1.api import api_router
 from app.db import abrir_sessao, init_db
 from app.services.live_chat.manager import live_chat_manager
-from app.services import catalogo
+from app.services import catalogo, usuarios
 from app.services.triagens import aplicar_retencao, popular_demo_se_vazio
 
 
@@ -15,6 +15,9 @@ async def lifespan(app: FastAPI):
     await init_db()
     async with abrir_sessao() as session:
         await catalogo.carregar(session)
+        aviso = await usuarios.garantir_usuario_inicial(session)
+        if aviso:
+            print(f"[CONTAS] {aviso}")
         apagadas = await aplicar_retencao(session)
         if apagadas:
             print(f"[LGPD] {apagadas} triagens apagadas por passarem do prazo de retenção.")

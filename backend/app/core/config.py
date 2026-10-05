@@ -67,6 +67,12 @@ class Settings(BaseSettings):
     # Protótipos da fase 2 (Flow Builder, AI Gateway, API Keys, RAG, Workspaces): desligados por padrão
     HABILITAR_FASE2: bool = False
 
+    # Primeira conta de coordenação, criada só se o banco não tiver nenhum usuário.
+    # Em development, sem isso, é criada a conta de demonstração teste/123.
+    ADMIN_LOGIN: str = ""
+    ADMIN_NOME: str = "Coordenação"
+    ADMIN_SENHA_INICIAL: str = ""
+
     # Google Gemini LLM API
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-3.5-flash-lite"

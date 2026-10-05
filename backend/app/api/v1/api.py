@@ -14,6 +14,7 @@ from app.api.v1.endpoints import (
     apps_workspace,
     atendimento,
     configuracao,
+    equipe,
 )
 
 # ------------------------------------------------------------------------------
@@ -23,6 +24,7 @@ api_router = APIRouter()
 
 # Autenticação & Segurança
 api_router.include_router(auth.router, prefix="/auth", tags=["Autenticação & Segurança"])
+api_router.include_router(equipe.router, prefix="/equipe", tags=["Equipe (contas do painel)"])
 
 # Triagem Social & CRAS (Operação)
 api_router.include_router(triagem.router, prefix="/triagem", tags=["Triagem Social & CRAS"])

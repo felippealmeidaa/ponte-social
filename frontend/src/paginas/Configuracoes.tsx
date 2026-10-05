@@ -4,11 +4,13 @@ import { api, enviar, ErroApi } from '../api';
 import { Aviso, Botao, Esqueleto, Selo } from '../components/ui';
 import { irPara } from '../navegacao';
 import { useAtualizacao } from '../useAtualizacao';
+import { EquipeEAcesso } from './Equipe';
 
 const ABAS = [
   { id: 'whatsapp', rotulo: 'WhatsApp' },
   { id: 'testar', rotulo: 'Testar o bot' },
   { id: 'modelo', rotulo: 'Modelo de IA' },
+  { id: 'equipe', rotulo: 'Equipe e acesso' },
 ] as const;
 
 export function Configuracoes({ aba }: { aba?: string }) {
@@ -17,12 +19,13 @@ export function Configuracoes({ aba }: { aba?: string }) {
     <>
       <header className="mb-6">
         <h1 className="font-display text-[44px] leading-[0.95] tracking-[0.03em]">Configurações</h1>
-        <p className="mt-2 text-texto-2">Conexão do WhatsApp, teste do bot e qualidade do modelo.</p>
+        <p className="mt-2 text-texto-2">Conexão do WhatsApp, teste do bot, qualidade do modelo e contas da equipe.</p>
       </header>
-      <div role="tablist" aria-label="Configurações" className="mb-8 flex gap-1 border-b border-linha">
+      <div role="tablist" aria-label="Configurações" className="mb-8 flex gap-1 overflow-x-auto border-b border-linha">
         {ABAS.map((a) => (
           <button key={a.id} role="tab" aria-selected={atual === a.id} onClick={() => irPara('configuracoes', a.id)}
-            className={`-mb-px border-b-2 px-4 py-2.5 text-sm ${atual === a.id ? 'border-ambar text-texto font-semibold' : 'border-transparent text-texto-2 hover:text-texto'}`}>
+            ref={(el) => { if (atual === a.id) el?.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }}
+            className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm ${atual === a.id ? 'border-ambar text-texto font-semibold' : 'border-transparent text-texto-2 hover:text-texto'}`}>
             {a.rotulo}
           </button>
         ))}
@@ -30,6 +33,7 @@ export function Configuracoes({ aba }: { aba?: string }) {
       {atual === 'whatsapp' && <ConexaoWhatsApp />}
       {atual === 'testar' && <TestarBot />}
       {atual === 'modelo' && <ModeloIA />}
+      {atual === 'equipe' && <EquipeEAcesso />}
     </>
   );
 }

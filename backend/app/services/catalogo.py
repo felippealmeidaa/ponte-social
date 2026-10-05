@@ -75,6 +75,14 @@ TEXTOS_PADRAO: Dict[str, Dict[str, str]] = {
         "descricao": "A pessoa não quis contato do CRAS",
         "texto": "Tudo bem! Se precisar de novo, é só mandar uma mensagem. Cuide-se. 💚",
     },
+    "pedir_bairro": {
+        "descricao": "Pergunta o bairro para indicar o CRAS de referência (só quando há CRAS cadastrado)",
+        "texto": "Para eu indicar o CRAS mais perto de você, em qual *bairro* você mora? Se não souber, responda *não sei*.",
+    },
+    "bairro_nao_encontrado": {
+        "descricao": "Bairro não encontrado entre os atendidos pelos CRAS cadastrados",
+        "texto": "Não encontrei o CRAS do seu bairro na minha lista. Você pode confirmar o seu CRAS pelo Disque Social 121.",
+    },
     "nao_entendi_de_novo": {
         "descricao": "Segunda vez sem identificar a necessidade: oferece o menu de assuntos",
         "texto": "Ainda não consegui entender com segurança. Se preferir, escolha o assunto pelo número:",

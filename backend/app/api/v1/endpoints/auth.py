@@ -1,127 +1,88 @@
-from fastapi import APIRouter, HTTPException, status, Response, Request
-from pydantic import BaseModel
-from typing import Dict, Any, Optional
-from app.core.security import hash_password, verify_password, create_access_token, create_refresh_token, decode_token
+from typing import Any, Dict
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.deps import usuario_logado
+from app.core.security import create_access_token, create_refresh_token, decode_token
+from app.db import get_session
+from app.models import Usuario
+from app.services import usuarios
 
 router = APIRouter()
 
-# Banco de dados de usuários pré-configurados
-USERS_DB = {
-    "teste": {
-        "id": "usr-teste",
-        "name": "Administrador de Teste",
-        "email": "teste@cras.gov.br",
-        "username": "teste",
-        "password_hash": hash_password("123"),
-        "role": "ADMIN",
-        "tenant_id": "cras-anapolis-01"
-    },
-    "teste@cras.gov.br": {
-        "id": "usr-teste",
-        "name": "Administrador de Teste",
-        "email": "teste@cras.gov.br",
-        "username": "teste",
-        "password_hash": hash_password("123"),
-        "role": "ADMIN",
-        "tenant_id": "cras-anapolis-01"
-    },
-    "admin@cras.gov.br": {
-        "id": "usr-01",
-        "name": "Coordenador CRAS",
-        "email": "admin@cras.gov.br",
-        "username": "admin",
-        "password_hash": hash_password("admin123"),
-        "role": "ADMIN",
-        "tenant_id": "cras-anapolis-01"
-    },
-    "atendente@cras.gov.br": {
-        "id": "usr-02",
-        "name": "Assistente Social - Triagem",
-        "email": "atendente@cras.gov.br",
-        "username": "atendente",
-        "password_hash": hash_password("senha123"),
-        "role": "ATENDENTE",
-        "tenant_id": "cras-anapolis-01"
-    }
-}
+TENANT_PADRAO = "cras-anapolis-01"
+
 
 class LoginRequest(BaseModel):
     username_or_email: str
     password: str
+
 
 class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: Dict[str, Any]
 
-@router.post("/login", response_model=LoginResponse)
-async def login(credentials: LoginRequest, response: Response):
-    user = USERS_DB.get(credentials.username_or_email.strip())
-    
-    # Se não achar por chave direta, tenta encontrar por username ou email
-    if not user:
-        user = next((
-            u for u in USERS_DB.values()
-            if u["email"].lower() == credentials.username_or_email.lower() or
-               u["username"].lower() == credentials.username_or_email.lower()
-        ), None)
 
-    if not user or not verify_password(credentials.password, user["password_hash"]):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Usuário ou senha incorretos."
-        )
-    
-    access_token = create_access_token(
-        subject=user["id"],
-        tenant_id=user["tenant_id"],
-        role=user["role"]
-    )
-    refresh_token = create_refresh_token(subject=user["id"])
-    
+class TrocarSenhaRequest(BaseModel):
+    senha_atual: str
+    nova_senha: str = Field(min_length=1, max_length=200)
+
+
+def _token(usuario: Usuario) -> str:
+    return create_access_token(subject=usuario.id, tenant_id=TENANT_PADRAO, role=usuario.papel)
+
+
+@router.post("/login", response_model=LoginResponse)
+async def login(credentials: LoginRequest, response: Response, session: AsyncSession = Depends(get_session)):
+    usuario = await usuarios.autenticar(session, credentials.username_or_email, credentials.password)
+    if not usuario:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuário ou senha incorretos.")
+
     response.set_cookie(
         key="refresh_token",
-        value=refresh_token,
+        value=create_refresh_token(subject=usuario.id),
         httponly=True,
         secure=False,
         samesite="lax",
         path="/api/v1/auth/refresh",
         max_age=7 * 24 * 60 * 60
     )
-    
-    user_info = {
-        "id": user["id"],
-        "name": user["name"],
-        "email": user["email"],
-        "role": user["role"],
-        "tenant_id": user["tenant_id"]
-    }
-    
-    return {"access_token": access_token, "token_type": "bearer", "user": user_info}
+    return {"access_token": _token(usuario), "token_type": "bearer", "user": usuarios.para_dict(usuario)}
+
 
 @router.post("/refresh")
-async def refresh_token(request: Request, response: Response):
+async def refresh_token(request: Request, session: AsyncSession = Depends(get_session)):
     token = request.cookies.get("refresh_token")
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token ausente")
-    
     payload = decode_token(token)
     if not payload or payload.get("type") != "refresh":
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token inválido ou expirado")
-    
-    user_id = payload.get("sub")
-    user = next((u for u in USERS_DB.values() if u["id"] == user_id), None)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado")
-    
-    new_access_token = create_access_token(
-        subject=user["id"],
-        tenant_id=user["tenant_id"],
-        role=user["role"]
-    )
-    return {"access_token": new_access_token, "token_type": "bearer"}
+    usuario = await session.get(Usuario, payload.get("sub"))
+    if not usuario or not usuario.ativo:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Conta desativada ou inexistente.")
+    return {"access_token": _token(usuario), "token_type": "bearer"}
+
 
 @router.post("/logout")
 async def logout(response: Response):
     response.delete_cookie(key="refresh_token", path="/api/v1/auth/refresh")
     return {"message": "Logout realizado com sucesso"}
+
+
+@router.get("/eu")
+async def quem_sou_eu(usuario: Dict[str, Any] = Depends(usuario_logado), session: AsyncSession = Depends(get_session)):
+    return usuarios.para_dict(await session.get(Usuario, usuario["sub"]))
+
+
+@router.post("/trocar-senha")
+async def trocar_senha(req: TrocarSenhaRequest, usuario: Dict[str, Any] = Depends(usuario_logado),
+                       session: AsyncSession = Depends(get_session)):
+    try:
+        await usuarios.definir_senha(session, usuario["sub"], req.nova_senha, atual=req.senha_atual)
+    except usuarios.ErroUsuario as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return {"message": "Senha alterada."}

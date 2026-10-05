@@ -61,6 +61,7 @@ class Conversa(Base):
     # Quando a pessoa aceitou o uso das informações; quem já aceitou não é perguntado de novo
     consentiu_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     relato: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # já anonimizado
+    bairro: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)  # para indicar o CRAS de referência
     categoria_sugerida: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     categoria_escolhida: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     classificacao: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
@@ -104,5 +105,39 @@ class TextoBot(Base):
 
     chave: Mapped[str] = mapped_column(String(40), primary_key=True)
     texto: Mapped[str] = mapped_column(Text)
+    atualizado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    atualizado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+
+
+class Usuario(Base):
+    """Conta de acesso ao painel. Coordenação (ADMIN) gerencia a equipe; atendimento (ATENDENTE) opera a fila."""
+    __tablename__ = "usuarios"
+
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    login: Mapped[str] = mapped_column(String(60), unique=True, index=True)  # sempre minúsculo
+    nome: Mapped[str] = mapped_column(String(120))
+    email: Mapped[str] = mapped_column(String(160), default="")
+    senha_hash: Mapped[str] = mapped_column(Text)
+    papel: Mapped[str] = mapped_column(String(20), default="ATENDENTE")
+    ativo: Mapped[bool] = mapped_column(default=True)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=agora)
+    ultimo_acesso: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class UnidadeAtendimento(Base):
+    """CRAS, CREAS e Centro POP do município, com os bairros que cada um atende.
+    Começa vazia: deve ser preenchida com a lista oficial da prefeitura."""
+    __tablename__ = "unidades_atendimento"
+
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    nome: Mapped[str] = mapped_column(String(160))
+    tipo: Mapped[str] = mapped_column(String(20), default="CRAS")  # CRAS | CREAS | CENTRO_POP
+    endereco: Mapped[str] = mapped_column(Text, default="")
+    telefone: Mapped[str] = mapped_column(String(80), default="")
+    horario: Mapped[str] = mapped_column(String(160), default="")
+    bairros: Mapped[list] = mapped_column(JSON, default=list)
+    fonte: Mapped[str] = mapped_column(Text, default="")
+    verificado_em: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    ativo: Mapped[bool] = mapped_column(default=True)
     atualizado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     atualizado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)

@@ -3,6 +3,7 @@ import { CircleAlert, RotateCcw, Save, ShieldAlert } from 'lucide-react';
 import { api, atualizar, ErroApi } from '../api';
 import { Aviso, Botao, Campo, classeEntrada, Esqueleto } from '../components/ui';
 import { useAtualizacao } from '../useAtualizacao';
+import { Unidades } from './Unidades';
 import { dataHora, nomeCategoria } from '../vocabulario';
 
 interface Servico {
@@ -48,7 +49,7 @@ const ETAPAS = [
 ];
 
 export function ServicosMensagens() {
-  const [aba, setAba] = useState<'respostas' | 'textos'>('respostas');
+  const [aba, setAba] = useState<'respostas' | 'textos' | 'unidades'>('respostas');
   return (
     <>
       <header className="mb-8">
@@ -79,16 +80,18 @@ export function ServicosMensagens() {
         </p>
       </section>
 
-      <div role="tablist" aria-label="O que editar" className="mb-6 flex gap-1 border-b border-linha">
-        {([['respostas', 'Respostas por necessidade'], ['textos', 'Textos da conversa']] as const).map(([id, rotulo]) => (
+      <div role="tablist" aria-label="O que editar" className="mb-6 flex gap-1 overflow-x-auto border-b border-linha">
+        {([['respostas', 'Respostas por necessidade'], ['textos', 'Textos da conversa'], ['unidades', 'Unidades de atendimento']] as const).map(([id, rotulo]) => (
           <button key={id} role="tab" aria-selected={aba === id} onClick={() => setAba(id)}
-            className={`-mb-px border-b-2 px-4 py-2.5 text-sm ${aba === id ? 'border-ambar text-texto font-semibold' : 'border-transparent text-texto-2 hover:text-texto'}`}>
+            className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm ${aba === id ? 'border-ambar text-texto font-semibold' : 'border-transparent text-texto-2 hover:text-texto'}`}>
             {rotulo}
           </button>
         ))}
       </div>
 
-      {aba === 'respostas' ? <Respostas /> : <Textos />}
+      {aba === 'respostas' && <Respostas />}
+      {aba === 'textos' && <Textos />}
+      {aba === 'unidades' && <Unidades />}
     </>
   );
 }

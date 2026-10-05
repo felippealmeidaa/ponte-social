@@ -51,9 +51,9 @@ backend/.venv/Scripts/python -m pytest backend/tests -q
 ```bash
 backend/.venv/Scripts/python run_dev.py
 ```
-- **Painel (React + Vite)**: http://localhost:5173 — usuário de teste definido em `backend/app/api/v1/endpoints/auth.py`
+- **Painel (React + Vite)**: http://localhost:5173 — em `development`, com o banco vazio, é criada a conta de demonstração `teste` / `123` (coordenação). Em produção ela nunca é criada: defina `ADMIN_LOGIN` e `ADMIN_SENHA_INICIAL` para a primeira conta e cadastre a equipe em *Configurações → Equipe e acesso*.
 - **API (Swagger)**: http://localhost:8000/docs
-- **Sem WhatsApp conectado**: a aba *Canais WhatsApp* tem um simulador que conversa com o bot pelo mesmo fluxo e banco (`POST /api/v1/webhooks/simular`).
+- **Sem WhatsApp conectado**: a aba *Configurações → Testar o bot* tem um simulador que conversa com o bot pelo mesmo fluxo e banco (`POST /api/v1/webhooks/simular`).
 
 ---
 
