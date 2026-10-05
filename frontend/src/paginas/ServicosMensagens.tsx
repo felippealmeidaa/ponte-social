@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { RotateCcw, Save, ShieldAlert } from 'lucide-react';
+import { CircleAlert, RotateCcw, Save, ShieldAlert } from 'lucide-react';
 import { api, atualizar, ErroApi } from '../api';
 import { Aviso, Botao, Campo, classeEntrada, Esqueleto } from '../components/ui';
 import { useAtualizacao } from '../useAtualizacao';
@@ -13,9 +13,22 @@ interface Servico {
   local_atendimento: string;
   contato_util: string;
   urgencia: boolean;
+  fonte: string;
+  verificado_em: string | null;
   atualizado_em: string | null;
   atualizado_por: string | null;
 }
+
+// Plano, seção 9: cada regra precisa de fonte e data, revisadas a cada ciclo (~6 meses)
+const VALIDADE_CONFERENCIA_DIAS = 180;
+
+function situacaoFonte(s: Pick<Servico, 'fonte' | 'verificado_em'>): 'ok' | 'conferir' | 'revisar' {
+  if (!s.fonte.trim() || !s.verificado_em) return 'conferir';
+  const dias = (Date.now() - new Date(`${s.verificado_em}T00:00:00`).getTime()) / 86_400_000;
+  return dias > VALIDADE_CONFERENCIA_DIAS ? 'revisar' : 'ok';
+}
+
+const ROTULO_SITUACAO = { conferir: 'a conferir', revisar: 'revisar' } as const;
 
 interface TextoBot {
   chave: string;
@@ -86,8 +99,18 @@ function Respostas() {
   if (erro) return <Aviso>{erro}</Aviso>;
   if (!dados) return <Esqueleto className="h-96" />;
 
+  const pendentes = dados.filter((s) => situacaoFonte(s) !== 'ok').length;
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
+    <>
+    {pendentes > 0 && (
+      <p className="mb-4 flex items-center gap-2 text-[13px] text-texto-2">
+        <CircleAlert className="size-4 shrink-0 text-ambar" aria-hidden />
+        {pendentes === 1 ? '1 necessidade está' : `${pendentes} necessidades estão`} sem fonte oficial conferida.
+        Antes de usar com o público, confira cada resposta numa fonte oficial e registre o link e a data.
+      </p>
+    )}
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
       <nav aria-label="Necessidades">
         <ul className="flex gap-1 overflow-x-auto lg:flex-col">
           {dados.map((s) => (
@@ -96,6 +119,9 @@ function Respostas() {
                 className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm ${selecionada === s.categoria ? 'bg-elevada text-texto font-medium' : 'text-texto-2 hover:bg-elevada/60 hover:text-texto'}`}>
                 {s.urgencia && <ShieldAlert className="size-4 shrink-0 text-urgente" aria-hidden />}
                 {nomeCategoria(s.categoria)}
+                {situacaoFonte(s) !== 'ok' && (
+                  <span className="ml-auto shrink-0 whitespace-nowrap pl-2 text-[11px] text-ambar">{ROTULO_SITUACAO[situacaoFonte(s) as 'conferir' | 'revisar']}</span>
+                )}
               </button>
             </li>
           ))}
@@ -103,6 +129,7 @@ function Respostas() {
       </nav>
       {servico && <EditorServico key={servico.categoria + (servico.atualizado_em ?? '')} servico={servico} onSalvo={recarregar} />}
     </div>
+    </>
   );
 }
 
@@ -112,11 +139,15 @@ function EditorServico({ servico, onSalvo }: { servico: Servico; onSalvo: () => 
   const [documentos, setDocumentos] = useState(servico.documentos.join('\n'));
   const [local, setLocal] = useState(servico.local_atendimento);
   const [contato, setContato] = useState(servico.contato_util);
+  const [fonte, setFonte] = useState(servico.fonte);
+  const [verificadoEm, setVerificadoEm] = useState(servico.verificado_em ?? '');
   const [estado, setEstado] = useState<'livre' | 'salvando' | 'salvo' | 'restaurando'>('livre');
   const [erro, setErro] = useState<string | null>(null);
 
   const alterado = titulo !== servico.titulo || servicos !== servico.servicos.join('\n') || documentos !== servico.documentos.join('\n')
-    || local !== servico.local_atendimento || contato !== servico.contato_util;
+    || local !== servico.local_atendimento || contato !== servico.contato_util
+    || fonte !== servico.fonte || verificadoEm !== (servico.verificado_em ?? '');
+  const [hoje] = useState(() => new Date().toLocaleDateString('sv-SE'));
 
   const salvar = async () => {
     setEstado('salvando');
@@ -124,6 +155,7 @@ function EditorServico({ servico, onSalvo }: { servico: Servico; onSalvo: () => 
     try {
       await api(`/configuracao/servicos/${servico.categoria}`, atualizar({
         titulo, servicos: linhas(servicos), documentos: linhas(documentos), local_atendimento: local, contato_util: contato,
+        fonte, verificado_em: verificadoEm || null,
       }, 'PUT'));
       setEstado('salvo');
       onSalvo();
@@ -164,6 +196,26 @@ function EditorServico({ servico, onSalvo }: { servico: Servico; onSalvo: () => 
         <Campo id="contato" rotulo="Contato">
           <input id="contato" value={contato} onChange={(e) => setContato(e.target.value)} className={classeEntrada} />
         </Campo>
+        <div className="grid gap-4 md:grid-cols-[1fr_180px]">
+          <Campo id="fonte" rotulo="Fonte oficial" dica="Link ou documento de onde vieram serviços, documentos e local (gov.br, prefeitura, CRAS).">
+            <input id="fonte" value={fonte} onChange={(e) => setFonte(e.target.value)} placeholder="https://…" className={classeEntrada} />
+          </Campo>
+          <Campo id="verificado" rotulo="Conferido em" dica="Data em que alguém conferiu.">
+            <input id="verificado" type="date" max={hoje} value={verificadoEm} onChange={(e) => setVerificadoEm(e.target.value)} className={classeEntrada} />
+          </Campo>
+        </div>
+        {situacaoFonte({ fonte, verificado_em: verificadoEm || null }) === 'conferir' && (
+          <p className="flex items-center gap-2 text-[13px] text-texto-2">
+            <CircleAlert className="size-4 shrink-0 text-ambar" aria-hidden />
+            Sem fonte e data, esta resposta ainda não foi conferida numa fonte oficial.
+          </p>
+        )}
+        {situacaoFonte({ fonte, verificado_em: verificadoEm || null }) === 'revisar' && (
+          <p className="flex items-center gap-2 text-[13px] text-texto-2">
+            <CircleAlert className="size-4 shrink-0 text-ambar" aria-hidden />
+            Conferida há mais de {VALIDADE_CONFERENCIA_DIAS / 30} meses: vale revisar se as regras mudaram.
+          </p>
+        )}
         {erro && <Aviso>{erro}</Aviso>}
         <div className="flex flex-wrap items-center gap-3">
           <Botao variante="primario" icone={Save} carregando={estado === 'salvando'} disabled={!alterado} onClick={salvar}>Salvar resposta</Botao>

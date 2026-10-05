@@ -1,5 +1,6 @@
 """Tela "Serviços e mensagens": o CRAS edita o que o bot responde, sem mexer em código."""
-from typing import Any, Dict, List
+from datetime import date
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -20,6 +21,8 @@ class ServicoRequest(BaseModel):
     documentos: List[str] = Field(min_length=1)
     local_atendimento: str = Field(min_length=3)
     contato_util: str = Field(min_length=3)
+    fonte: str = Field(default="", max_length=500, description="Link ou documento oficial de onde veio a regra")
+    verificado_em: Optional[date] = Field(default=None, description="Data em que alguém do CRAS conferiu a informação")
 
 
 class TextoRequest(BaseModel):
@@ -43,6 +46,8 @@ async def salvar_servico(categoria: str, req: ServicoRequest, usuario: Dict[str,
     dados = req.model_dump()
     if not [s for s in dados["servicos"] if s.strip()] or not [d for d in dados["documentos"] if d.strip()]:
         raise HTTPException(status_code=422, detail="Informe pelo menos um serviço e um documento.")
+    if dados["verificado_em"] and dados["verificado_em"] > date.today():
+        raise HTTPException(status_code=422, detail="A data de conferência não pode estar no futuro.")
     return await catalogo.salvar_servico(session, categoria, dados, usuario.get("sub", ""))
 
 

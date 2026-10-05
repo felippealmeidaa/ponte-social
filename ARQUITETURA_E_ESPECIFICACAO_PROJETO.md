@@ -39,7 +39,7 @@ Painel do CRAS (React + Vite)
 | Webhook + simulador | `endpoints/whatsapp_webhooks.py` | Implementado; ignora grupos e mensagens do próprio bot, pede texto quando chega áudio |
 | Fluxo da conversa | `services/bot/fluxo_conversa.py` | Implementado conforme a seção 4 do plano |
 | Classificador | `services/ml/classifier_service.py`, `train_evaluator.py`, `text_rules.py` | Implementado; avaliado sem vazamento (seção 4 deste documento) |
-| Catálogo de serviços e textos do bot | `services/catalogo.py` | Implementado e editável pelo painel; **fontes e datas ainda não registradas** |
+| Catálogo de serviços e textos do bot | `services/catalogo.py` | Implementado e editável pelo painel, com fonte oficial e data de conferência por necessidade; **nenhuma fonte preenchida ainda** |
 | Banco de triagens e conversas | `models.py`, `db.py`, `services/triagens.py` | Implementado |
 | Painel do CRAS | `frontend/src/paginas/` | Fila, Conversas, Indicadores, Serviços e mensagens, Configurações |
 | Autenticação do painel | `endpoints/auth.py`, `core/security.py`, `core/deps.py` | JWT; usuários de demonstração fixos no código |
@@ -65,7 +65,7 @@ NOVA → AGUARDANDO_CONSENTIMENTO → AGUARDANDO_RELATO → AGUARDANDO_CONFIRMAC
 | `triagens` | Categoria, prioridade, status, relato **anonimizado**, telefone mascarado + criptografado |
 | `conversas` | Estado do fluxo, canal (evolution/meta/simulador), atendimento humano; identificada por hash do telefone |
 | `mensagens` | Histórico de cada conversa |
-| `servicos_categoria` | Serviços, documentos e local por categoria (editável no painel) |
+| `servicos_categoria` | Serviços, documentos, local, **fonte oficial e data de conferência** por categoria (editável no painel) |
 | `textos_bot` | Mensagens do bot (editáveis no painel) |
 
 ### 3. Segurança e LGPD
@@ -112,6 +112,6 @@ Também existem, sem uso no caminho principal: `services/llm/gemini_service.py` 
 
 1. Relatos reais do CRAS parceiro + guia de rotulagem; refazer a avaliação.
 2. Definir com um profissional o piso de recall de violência.
-3. Registrar fonte e data de cada regra do catálogo de serviços; conferir endereços e telefones dos CRAS.
+3. Preencher, no painel, a fonte oficial e a data de conferência de cada necessidade (o painel marca as que estão "a conferir" ou com mais de 6 meses); obter a lista oficial de CRAS/CREAS de Anápolis.
 4. Subir a Evolution numa VPS com número dedicado e testar com celular real.
 5. Testar com o Postgres do Docker (os testes usam SQLite).

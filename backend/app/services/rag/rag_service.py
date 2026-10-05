@@ -4,6 +4,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 # Base de Conhecimento Estruturada de Equipamentos e Serviços Públicos (Anápolis - GO)
+# ATENÇÃO: nomes, endereços, telefones e bairros abaixo são EXEMPLOS do protótipo e NÃO foram
+# conferidos com a Prefeitura de Anápolis. Usado só pelos protótipos da fase 2 (HABILITAR_FASE2).
+# Antes de qualquer uso com o público, substituir pela lista oficial de CRAS/CREAS do município.
 UNIDADES_CRAS_CREAS = [
     {
         "id": "cras-norte",

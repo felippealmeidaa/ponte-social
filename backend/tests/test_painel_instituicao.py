@@ -85,6 +85,45 @@ def test_cras_edita_servico_e_bot_usa_o_texto_novo():
         assert restaurado["local_atendimento"] == moradia["local_atendimento"]
 
 
+def test_servico_registra_fonte_e_data_de_conferencia():
+    with TestClient(app) as client:
+        autenticar(client)
+        servicos = client.get("/api/v1/configuracao/servicos").json()
+        doc = next(s for s in servicos if s["categoria"] == "documentacao")
+        assert doc["fonte"] == "" and doc["verificado_em"] is None  # padrão: a conferir
+
+        fonte = "https://www.gov.br/mds/pt-br/acoes-e-programas/cadastro-unico"
+        r = client.put("/api/v1/configuracao/servicos/documentacao", json={**doc, "fonte": fonte, "verificado_em": "2026-10-01"})
+        assert r.status_code == 200
+        doc = next(s for s in client.get("/api/v1/configuracao/servicos").json() if s["categoria"] == "documentacao")
+        assert doc["fonte"] == fonte and doc["verificado_em"] == "2026-10-01"
+
+        futuro = client.put("/api/v1/configuracao/servicos/documentacao", json={**doc, "verificado_em": "2999-01-01"})
+        assert futuro.status_code == 422
+
+        client.post("/api/v1/configuracao/servicos/documentacao/restaurar")
+        doc = next(s for s in client.get("/api/v1/configuracao/servicos").json() if s["categoria"] == "documentacao")
+        assert doc["fonte"] == "" and doc["verificado_em"] is None
+
+
+def test_banco_antigo_ganha_colunas_novas(tmp_path):
+    import sqlite3
+    from sqlalchemy import create_engine, inspect
+    from app.db import _adicionar_colunas_novas
+
+    caminho = tmp_path / "antigo.db"
+    with sqlite3.connect(caminho) as con:  # tabela como era antes de existir fonte/verificado_em
+        con.execute("CREATE TABLE servicos_categoria (categoria VARCHAR(40) PRIMARY KEY, titulo VARCHAR(160), servicos JSON,"
+                    " documentos JSON, local_atendimento TEXT, contato_util TEXT, atualizado_em DATETIME, atualizado_por VARCHAR(120))")
+    engine = create_engine(f"sqlite:///{caminho}")
+    from app.db import Base
+    with engine.begin() as conn:
+        Base.metadata.create_all(conn)
+        _adicionar_colunas_novas(conn)
+    colunas = {c["name"] for c in inspect(engine).get_columns("servicos_categoria")}
+    assert {"fonte", "verificado_em"} <= colunas
+
+
 def test_mensagem_de_emergencia_nao_pode_perder_os_numeros():
     with TestClient(app) as client:
         autenticar(client)

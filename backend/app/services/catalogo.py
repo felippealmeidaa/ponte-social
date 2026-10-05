@@ -148,6 +148,8 @@ async def listar_servicos(session: AsyncSession) -> List[dict]:
         saida.append({
             "categoria": categoria,
             **servico(categoria),
+            "fonte": (linha.fonte or "") if linha else "",
+            "verificado_em": linha.verificado_em.isoformat() if linha and linha.verificado_em else None,
             "atualizado_em": linha.atualizado_em.isoformat() if linha and linha.atualizado_em else None,
             "atualizado_por": linha.atualizado_por if linha else None,
         })
@@ -161,6 +163,8 @@ async def salvar_servico(session: AsyncSession, categoria: str, dados: dict, usu
     linha.documentos = _limpar_lista(dados["documentos"])
     linha.local_atendimento = dados["local_atendimento"].strip()
     linha.contato_util = dados["contato_util"].strip()
+    linha.fonte = (dados.get("fonte") or "").strip()
+    linha.verificado_em = dados.get("verificado_em")
     linha.atualizado_em, linha.atualizado_por = agora(), usuario
     await session.commit()
     await carregar(session)
@@ -192,4 +196,5 @@ async def salvar_texto(session: AsyncSession, chave: str, valor: str, usuario: s
 
 
 async def restaurar_servico(session: AsyncSession, categoria: str, usuario: str) -> dict:
+    # O texto original não tem fonte conferida: fonte e data voltam a ficar em branco
     return await salvar_servico(session, categoria, copy.deepcopy(KNOWLEDGE_SERVICES[categoria]), usuario)

@@ -1,7 +1,7 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 
-from sqlalchemy import JSON, DateTime, Float, Integer, String, Text
+from sqlalchemy import JSON, Date, DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -89,6 +89,9 @@ class ServicoCategoria(Base):
     documentos: Mapped[list] = mapped_column(JSON, default=list)
     local_atendimento: Mapped[str] = mapped_column(Text)
     contato_util: Mapped[str] = mapped_column(Text)
+    # Rastreabilidade (plano, seção 9): de onde veio a regra e quando alguém conferiu
+    fonte: Mapped[str] = mapped_column(Text, default="")
+    verificado_em: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     atualizado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     atualizado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
 
