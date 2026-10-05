@@ -36,7 +36,7 @@ export function Botao({
 const TONS: Record<Tom, { classe: string; icone: LucideIcon }> = {
   urgente: { classe: 'bg-urgente-fundo text-urgente border-urgente/40', icone: ShieldAlert },
   alta: { classe: 'bg-[#2b1d10] text-alta border-alta/35', icone: AlertTriangle },
-  media: { classe: 'bg-[#29240f] text-media border-media/30', icone: CircleDot },
+  media: { classe: 'bg-elevada text-texto border-linha-forte', icone: CircleDot },
   ambar: { classe: 'bg-ambar-escuro text-ambar border-ambar/30', icone: Clock },
   info: { classe: 'bg-info-fundo text-info border-info/30', icone: Circle },
   ok: { classe: 'bg-ok-fundo text-ok border-ok/30', icone: CheckCircle2 },
@@ -55,7 +55,7 @@ export function Selo({ tom, children, semIcone }: { tom: Tom; children: ReactNod
 
 export function TituloFileira({ children, contagem, id }: { children: ReactNode; contagem?: number; id?: string }) {
   return (
-    <h2 id={id} className="font-display text-[28px] leading-none tracking-[0.04em] text-texto flex items-baseline gap-3">
+    <h2 id={id} className="font-display text-[28px] leading-none tracking-[0.08em] text-texto flex items-baseline gap-3">
       {children}
       {contagem !== undefined && <span className="font-sans text-sm tracking-normal text-texto-3 tabular">{contagem}</span>}
     </h2>

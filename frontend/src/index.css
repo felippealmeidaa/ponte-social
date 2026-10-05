@@ -99,19 +99,10 @@
   }
 }
 
-/* Um caso novo fica aceso até ser aberto */
-@keyframes aceso {
-  0%,
-  100% {
-    box-shadow: 0 0 0 1px var(--color-ambar), 0 8px 24px -12px rgb(255 200 87 / 0.5);
-  }
-  50% {
-    box-shadow: 0 0 0 1px var(--color-ambar), 0 8px 28px -10px rgb(255 200 87 / 0.8);
-  }
-}
-
+/* Um caso novo fica marcado até ser aberto: anel de 1px e etiqueta "Novo", sem brilho */
 .caso-novo {
-  animation: aceso 2.4s var(--ease-saida) infinite;
+  outline: 1px solid var(--color-ambar);
+  outline-offset: 2px;
 }
 
 /* A fileira em foco fica; as outras recuam */

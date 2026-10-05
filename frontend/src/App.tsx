@@ -16,9 +16,9 @@ import type { Rota } from './navegacao';
 const NAVEGACAO: { id: Rota; rotulo: string; curto: string; icone: LucideIcon }[] = [
   { id: 'fila', rotulo: 'Fila', curto: 'Fila', icone: ListOrdered },
   { id: 'conversas', rotulo: 'Conversas', curto: 'Conversas', icone: MessagesSquare },
-  { id: 'indicadores', rotulo: 'Indicadores', curto: 'Números', icone: BarChart3 },
+  { id: 'indicadores', rotulo: 'Indicadores', curto: 'Indicadores', icone: BarChart3 },
   { id: 'servicos', rotulo: 'Serviços e mensagens', curto: 'Serviços', icone: NotebookPen },
-  { id: 'configuracoes', rotulo: 'Configurações', curto: 'Ajustes', icone: Settings },
+  { id: 'configuracoes', rotulo: 'Configurações', curto: 'Configurações', icone: Settings },
 ];
 
 function rotaAtual(): { rota: Rota; parametro?: string } {
@@ -56,7 +56,7 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
   const naoLidas = (conversas.dados ?? []).filter((c) => c.atendimento_humano && c.nao_lidas > 0).length;
 
   return (
-    <div className="min-h-dvh md:grid md:grid-cols-[232px_1fr]">
+    <div className="min-h-dvh md:grid md:grid-cols-[256px_1fr]">
       <aside className="hidden md:flex sticky top-0 h-dvh flex-col border-r border-linha bg-[#0d1016] px-4 py-6">
         <div className="px-2 mb-8">
           <p className="font-display text-[30px] leading-[0.9] tracking-[0.06em]">CRAS Anápolis</p>
@@ -123,9 +123,9 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
       <nav aria-label="Principal" className="md:hidden fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-linha bg-[#0d1016]">
         {NAVEGACAO.map(({ id, rotulo, curto, icone: Icone }) => (
           <a key={id} href={`#/${id}`} aria-label={rotulo} aria-current={rota === id ? 'page' : undefined}
-            className={`flex flex-col items-center gap-1 py-2.5 text-[10px] ${rota === id ? 'text-ambar' : 'text-texto-3'}`}>
+            className={`flex flex-col items-center gap-1 py-2.5 text-[10px] tracking-tight ${rota === id ? 'text-ambar' : 'text-texto-3'}`}>
             <Icone className="size-5" aria-hidden />
-            <span className="truncate max-w-full px-1">{curto}</span>
+            <span className="max-w-full px-0.5 text-center leading-tight">{curto}</span>
           </a>
         ))}
       </nav>

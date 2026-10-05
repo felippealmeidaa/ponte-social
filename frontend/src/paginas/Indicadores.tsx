@@ -5,8 +5,9 @@ import { Aviso, Esqueleto, Vazio } from '../components/ui';
 import { useAtualizacao } from '../useAtualizacao';
 import { CANAIS, ESTADOS, nomeCategoria, ORDEM_ESTADOS } from '../vocabulario';
 
-// Série única: uma cor só, validada contra a superfície escura (faixa de luminosidade e contraste ≥ 3:1)
-const COR_SERIE = '#5f8ff0';
+// Série única em neutro (o âmbar é reservado a foco e ação); a barra em foco ganha o âmbar
+const COR_SERIE = 'var(--color-texto-3)';
+const COR_FOCO = 'var(--color-ambar)';
 
 interface Resumo {
   periodo_dias: number;
@@ -57,12 +58,23 @@ export function Indicadores() {
 
       {dados && dados.total > 0 && (
         <div className="flex flex-col gap-10">
-          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-linha bg-linha sm:grid-cols-4">
-            <Numero rotulo="Triagens no período" valor={dados.total} />
-            <Numero rotulo="Aguardando atendimento" valor={dados.abertas} />
-            <Numero rotulo="Com sinal de violência" valor={dados.urgentes} urgente={dados.urgentes > 0} />
-            <Numero rotulo="Até o primeiro atendimento" valor={dados.horas_ate_primeiro_atendimento === null ? '—' : dados.horas_ate_primeiro_atendimento < 1 ? 'menos de 1 h' : `${dados.horas_ate_primeiro_atendimento.toLocaleString('pt-BR')} h`} />
-          </dl>
+          <p className="max-w-[80ch] text-[17px] leading-relaxed text-texto-2">
+            <strong className="text-texto tabular">{dados.total}</strong> triagens em {dados.periodo_dias} dias
+            {' · '}<strong className="text-texto tabular">{dados.abertas}</strong> aguardando atendimento
+            {' · '}
+            <span className={dados.urgentes > 0 ? 'text-urgente' : ''}>
+              {dados.urgentes > 0 && <ShieldAlert className="mr-1 inline size-4 align-[-2px]" aria-hidden />}
+              <strong className="tabular">{dados.urgentes}</strong> com sinal de violência
+            </span>
+            {dados.horas_ate_primeiro_atendimento !== null && (
+              <>
+                {' · '}1º atendimento em{' '}
+                <strong className="text-texto">
+                  {dados.horas_ate_primeiro_atendimento < 1 ? 'menos de 1 h' : `${dados.horas_ate_primeiro_atendimento.toLocaleString('pt-BR')} h`}
+                </strong>{' '}em média
+              </>
+            )}
+          </p>
 
           <PorDia pontos={dados.por_dia} />
 
@@ -94,18 +106,6 @@ export function Indicadores() {
         </div>
       )}
     </>
-  );
-}
-
-function Numero({ rotulo, valor, urgente }: { rotulo: string; valor: number | string; urgente?: boolean }) {
-  return (
-    <div className="bg-superficie px-5 py-4">
-      <dt className="flex items-center gap-1.5 text-[13px] text-texto-2">
-        {urgente && <ShieldAlert className="size-4 text-urgente" aria-hidden />}
-        {rotulo}
-      </dt>
-      <dd className={`mt-1 text-[28px] font-semibold tabular leading-none ${urgente ? 'text-urgente' : 'text-texto'}`}>{valor}</dd>
-    </div>
   );
 }
 
@@ -175,8 +175,8 @@ function PorDia({ pontos }: { pontos: { dia: string; total: number }[] }) {
                 className="group relative flex h-full flex-1 items-end focus-visible:outline-offset-0"
               >
                 <span
-                  className={`block w-full rounded-t-[4px] transition-opacity duration-150 ${foco !== null && foco !== i ? 'opacity-50' : ''}`}
-                  style={{ height: p.total ? `${(100 * p.total) / maximo}%` : 2, background: p.total ? COR_SERIE : 'var(--color-linha-forte)' }}
+                  className="block w-full rounded-t-[4px] transition-colors duration-150"
+                  style={{ height: p.total ? `${(100 * p.total) / maximo}%` : 2, background: !p.total ? 'var(--color-linha-forte)' : foco === i ? COR_FOCO : COR_SERIE }}
                 />
               </button>
             ))}

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { ChevronLeft, ChevronRight, ClipboardPlus, Inbox, Search, ShieldAlert, X } from 'lucide-react';
 import { FichaCaso } from '../components/FichaCaso';
 import { RegistrarAtendimento } from '../components/RegistrarAtendimento';
@@ -164,14 +164,15 @@ function Destaque({ caso, novo, onAbrir }: { caso: Triagem; novo: boolean; onAbr
   return (
     <section aria-label="Caso mais urgente" className={`mb-10 grid gap-5 rounded-2xl bg-urgente px-6 py-5 text-[#1a0807] md:grid-cols-[1fr_auto] md:items-center ${novo ? 'caso-novo' : ''}`}>
       <div className="min-w-0">
-        <p className="flex items-center gap-2 text-[13px] font-semibold uppercase tracking-[0.14em]">
-          <ShieldAlert className="size-4" aria-hidden />
-          Atender primeiro · {tempoDesde(caso.criado_em) === 'agora' ? 'acabou de chegar' : `esperando ${tempoDesde(caso.criado_em).replace('há ', '')}`}
-          {novo && <span className="rounded bg-[#1a0807] px-1.5 py-0.5 text-[11px] text-urgente">Novo</span>}
-        </p>
+        <h2 className="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-display text-[30px] leading-none tracking-[0.06em]">
+          <ShieldAlert className="size-6 self-center" aria-hidden />
+          Atender primeiro
+          {novo && <span className="rounded bg-[#1a0807] px-1.5 py-0.5 font-sans text-[11px] font-bold uppercase tracking-wider text-urgente">Novo</span>}
+        </h2>
         <p className="mt-2 line-clamp-2 max-w-[80ch] text-[17px] font-medium leading-snug">“{caso.relato_original}”</p>
         <p className="mt-2 text-[13px] font-medium opacity-80">
-          {CANAIS[caso.canal] ?? caso.canal}{caso.bairro !== 'Não informado' && ` · ${caso.bairro}`}{caso.tem_contato && ` · ${caso.telefone_mascarado}`}
+          {tempoDesde(caso.criado_em) === 'agora' ? 'Acabou de chegar' : `Esperando ${tempoDesde(caso.criado_em).replace('há ', '')}`}
+          {' · '}{CANAIS[caso.canal] ?? caso.canal}{caso.bairro !== 'Não informado' && ` · ${caso.bairro}`}{caso.tem_contato && ` · ${caso.telefone_mascarado}`}
         </p>
       </div>
       <button onClick={onAbrir} className="h-11 rounded-lg bg-[#1a0807] px-5 text-sm font-semibold text-white transition-colors duration-150 hover:bg-black focus-visible:outline-[#1a0807]">
@@ -186,6 +187,18 @@ function FileiraCasos({ fileira, pularPrimeiro, novo, onAbrir }: {
 }) {
   const trilho = useRef<HTMLDivElement>(null);
   const casos = pularPrimeiro ? fileira.casos.slice(1) : fileira.casos;
+  const [transborda, setTransborda] = useState(false);
+
+  // Setas só quando os cartões realmente não cabem na largura
+  useEffect(() => {
+    const el = trilho.current;
+    if (!el) return;
+    const medir = () => setTransborda(el.scrollWidth > el.clientWidth + 4);
+    const observador = new ResizeObserver(medir);
+    observador.observe(el);
+    medir();
+    return () => observador.disconnect();
+  }, [casos.length]);
   const rolar = (sentido: 1 | -1) => trilho.current?.scrollBy({ left: sentido * trilho.current.clientWidth * 0.8, behavior: 'smooth' });
 
   // Setas do teclado andam entre os cartões da mesma fileira
@@ -205,8 +218,8 @@ function FileiraCasos({ fileira, pularPrimeiro, novo, onAbrir }: {
   return (
     <section aria-labelledby={tituloId} className="fileira transition-opacity duration-200">
       <div className="mb-4 flex items-center justify-between gap-4">
-        <TituloFileira id={tituloId} contagem={fileira.casos.length}>{fileira.titulo}</TituloFileira>
-        {casos.length > 3 && (
+        <TituloFileira id={tituloId} contagem={casos.length}>{fileira.titulo}</TituloFileira>
+        {transborda && (
           <div className="flex gap-2">
             <button onClick={() => rolar(-1)} aria-label={`Rolar ${fileira.titulo} para a esquerda`} className="grid size-9 place-items-center rounded-full border border-linha-forte text-texto-2 hover:text-texto hover:border-texto-3">
               <ChevronLeft className="size-4" aria-hidden />

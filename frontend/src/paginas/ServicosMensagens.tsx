@@ -49,10 +49,10 @@ export function ServicosMensagens() {
         <h2 id="t-percurso" className="font-display text-[28px] leading-none tracking-[0.04em] mb-4">Como o bot conversa</h2>
         <ol className="grid gap-px overflow-hidden rounded-xl border border-linha bg-linha sm:grid-cols-5">
           {ETAPAS.map((e, i) => (
-            <li key={e.titulo} className="bg-superficie px-4 py-3">
-              <p className="text-xs text-texto-3 tabular">Etapa {i + 1}</p>
-              <p className="mt-0.5 font-medium">{e.titulo}</p>
-              <p className="mt-1 text-[13px] leading-snug text-texto-2">{e.detalhe}</p>
+            <li key={e.titulo} className="grid grid-cols-[1.25rem_1fr] gap-x-2 bg-superficie px-4 py-3">
+              <span className="text-sm text-texto-3 tabular leading-6" aria-hidden>{i + 1}</span>
+              <p className="font-medium leading-6"><span className="sr-only">Etapa {i + 1}: </span>{e.titulo}</p>
+              <p className="col-start-2 mt-1 text-[13px] leading-snug text-texto-2">{e.detalhe}</p>
             </li>
           ))}
         </ol>
