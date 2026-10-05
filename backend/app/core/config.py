@@ -45,12 +45,16 @@ class Settings(BaseSettings):
     # Evolution API v2 (WhatsApp não-oficial)
     EVOLUTION_API_URL: str = "http://localhost:8080"
     EVOLUTION_API_KEY: str = ""
+    # Token secreto que a Evolution envia na URL do webhook (?token=...); obrigatório fora de development
+    EVOLUTION_WEBHOOK_TOKEN: str = ""
 
     # Meta Cloud API (WhatsApp Oficial)
     META_API_VERSION: str = "v20.0"
     META_WHATSAPP_TOKEN: str = ""
     META_PHONE_NUMBER_ID: str = ""
     META_WEBHOOK_VERIFY_TOKEN: str = ""
+    # App Secret do app da Meta, para conferir a assinatura X-Hub-Signature-256 dos webhooks
+    META_APP_SECRET: str = ""
 
     # Banco de dados: Postgres do Docker (postgresql+asyncpg://...) ou, sem configuração, SQLite local
     DATABASE_URL: str = ""

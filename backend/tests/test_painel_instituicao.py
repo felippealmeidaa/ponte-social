@@ -31,6 +31,38 @@ def test_webhook_do_whatsapp_continua_aberto():
         assert r.status_code == 200
 
 
+def test_webhook_evolution_exige_token_quando_configurado(monkeypatch):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "EVOLUTION_WEBHOOK_TOKEN", "segredo-de-teste")
+    with TestClient(app) as client:
+        evento = {"event": "connection.update"}
+        assert client.post("/api/v1/webhooks/evolution", json=evento).status_code == 401
+        assert client.post("/api/v1/webhooks/evolution?token=errado", json=evento).status_code == 401
+        assert client.post("/api/v1/webhooks/evolution?token=segredo-de-teste", json=evento).status_code == 200
+        assert client.post("/api/v1/webhooks/evolution", json=evento, headers={"X-Webhook-Token": "segredo-de-teste"}).status_code == 200
+
+
+def test_webhook_fechado_fora_de_development_sem_token(monkeypatch):
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    with TestClient(app) as client:
+        assert client.post("/api/v1/webhooks/evolution", json={"event": "connection.update"}).status_code == 401
+        assert client.post("/api/v1/webhooks/meta", json={"entry": []}).status_code == 401
+
+
+def test_webhook_meta_confere_assinatura(monkeypatch):
+    import hashlib, hmac, json
+    from app.core.config import settings
+    monkeypatch.setattr(settings, "META_APP_SECRET", "app-secret-de-teste")
+    corpo = json.dumps({"entry": []}).encode()
+    assinatura = "sha256=" + hmac.new(b"app-secret-de-teste", corpo, hashlib.sha256).hexdigest()
+    with TestClient(app) as client:
+        cabecalho = {"Content-Type": "application/json"}
+        assert client.post("/api/v1/webhooks/meta", content=corpo, headers=cabecalho).status_code == 401
+        assert client.post("/api/v1/webhooks/meta", content=corpo, headers={**cabecalho, "X-Hub-Signature-256": "sha256=00"}).status_code == 401
+        assert client.post("/api/v1/webhooks/meta", content=corpo, headers={**cabecalho, "X-Hub-Signature-256": assinatura}).status_code == 200
+
+
 def test_atendente_assume_responde_e_bot_fica_em_silencio():
     with TestClient(app) as client:
         autenticar(client)

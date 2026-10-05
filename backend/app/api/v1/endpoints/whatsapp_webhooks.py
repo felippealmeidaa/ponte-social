@@ -1,4 +1,6 @@
+import hashlib
 import hmac
+import json
 from typing import List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, Response
@@ -38,9 +40,31 @@ async def process_whatsapp_message_background(phone: str, text: Optional[str], c
     await live_chat_manager.broadcast_to_tenant(TENANT_PADRAO, {"event": "NOVA_MENSAGEM", "conversa_id": hash_telefone(phone)})
 
 
+def _token_evolution_valido(request: Request) -> bool:
+    """A Evolution não assina os webhooks: usamos um token secreto na URL (?token=...) ou no
+    cabeçalho X-Webhook-Token. Sem token configurado, só aceita em development."""
+    esperado = settings.EVOLUTION_WEBHOOK_TOKEN
+    if not esperado:
+        return settings.ENVIRONMENT == "development"
+    recebido = request.query_params.get("token") or request.headers.get("x-webhook-token") or ""
+    return hmac.compare_digest(recebido, esperado)
+
+
+def _assinatura_meta_valida(corpo: bytes, assinatura: str) -> bool:
+    """A Meta assina cada webhook com HMAC-SHA256 do corpo usando o App Secret (X-Hub-Signature-256).
+    Sem App Secret configurado, só aceita em development."""
+    segredo = settings.META_APP_SECRET
+    if not segredo:
+        return settings.ENVIRONMENT == "development"
+    esperado = "sha256=" + hmac.new(segredo.encode(), corpo, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(assinatura or "", esperado)
+
+
 @router.post("/evolution")
 async def webhook_evolution_api(request: Request, background_tasks: BackgroundTasks):
     """Receptor de webhooks da Evolution API v2 (evento messages.upsert)."""
+    if not _token_evolution_valido(request):
+        return Response(content="Token do webhook inválido", status_code=401)
     payload = await request.json()
     if payload.get("event") != "messages.upsert":
         return {"status": "ignored_event"}
@@ -86,7 +110,10 @@ async def verify_meta_webhook(
 @router.post("/meta")
 async def webhook_meta_cloud(request: Request, background_tasks: BackgroundTasks):
     """Receptor da API oficial (WhatsApp Cloud). Mesmo fluxo; só muda o adaptador de envio."""
-    body = await request.json()
+    corpo = await request.body()
+    if not _assinatura_meta_valida(corpo, request.headers.get("x-hub-signature-256", "")):
+        return Response(content="Assinatura inválida", status_code=401)
+    body = json.loads(corpo or b"{}")
     for entry in body.get("entry", []):
         for change in entry.get("changes", []):
             for msg in change.get("value", {}).get("messages", []):

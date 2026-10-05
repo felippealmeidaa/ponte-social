@@ -74,7 +74,7 @@ NOVA → AGUARDANDO_CONSENTIMENTO → AGUARDANDO_RELATO → AGUARDANDO_CONFIRMAC
 
 - Relato gravado sem CPF, telefone ou e-mail (`services/anonimizacao.py`); telefone mascarado na tela e criptografado (Fernet) no banco.
 - Prazo de retenção (`RETENCAO_DIAS`): triagens antigas são apagadas ao iniciar a API.
-- Senhas com Argon2id; JWT para o painel. Rotas do painel exigem login; webhooks não.
+- Senhas com Argon2id; JWT para o painel. Rotas do painel exigem login. Webhooks não usam login, mas são autenticados: a Evolution manda um token secreto na URL (`EVOLUTION_WEBHOOK_TOKEN`) e a Meta assina cada chamada (`X-Hub-Signature-256`, conferida com `META_APP_SECRET`). Fora de `development`, webhook sem token ou assinatura válida é recusado.
 - Nenhum segredo tem valor padrão no código: tudo vem do `.env` (fora do git). Fora de `development`, a API não inicia sem `SECRET_KEY` e `ENCRYPTION_SECRET_KEY`.
 - **Pendente:** validar o consentimento e a base legal com o orientador (`docs/termo_coleta_e_consentimento.md`), regra de preservação dos casos urgentes ao apagar, usuários reais em vez dos de demonstração, HTTPS e limite de requisições na publicação (Ciclo 3).
 
