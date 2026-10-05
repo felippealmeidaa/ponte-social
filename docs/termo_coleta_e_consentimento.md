@@ -68,7 +68,7 @@ O que falta definir **[validar]**:
 
 1. **Base legal.** Relatos podem conter dados sensíveis (saúde, violência), tratados conforme o art. 11 da LGPD. O fluxo usa o consentimento; nos casos de violência, a mensagem de emergência é enviada antes de qualquer pergunta, com base na proteção da vida (art. 11, II, "e"). Confirmar essa leitura com o orientador.
 2. **Prazo de retenção.** O sistema apaga triagens após `RETENCAO_DIAS` (hoje 180). Definir o prazo com o CRAS e informá-lo ao cidadão.
-3. **Direitos do titular.** Incluir no texto como pedir para apagar os dados (por exemplo, responder "apagar") e implementar esse comando, que hoje **não existe** no bot.
+3. **Direitos do titular.** O bot aceita o comando *apagar* em qualquer etapa (com confirmação) e as boas-vindas avisam disso. Casos urgentes de violência ainda abertos **não** são apagados, para a equipe poder agir; validar essa exceção.
 4. **Responsável.** Informar quem responde pelos dados (o grupo, durante o projeto; o município, numa fase 2).
 5. **Uso para treinar o modelo.** O texto fala em "melhorar este serviço". Se as mensagens forem usadas para treino, deixar isso explícito ("usar sua mensagem, sem identificar você, para ensinar o sistema").
 

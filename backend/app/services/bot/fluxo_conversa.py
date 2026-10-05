@@ -6,12 +6,18 @@ Fluxo da conversa no WhatsApp (plano do projeto, seção 4).
                                                                    ▼               ▼
                                          FINALIZADA ◄─ AGUARDANDO_CONTATO ◄─ AGUARDANDO_CORRECAO
 
+  Estados auxiliares: RELATO_NOVAMENTE (não entendeu uma vez), RETORNO (quem já consentiu volta
+  a escrever) e CONFIRMAR_APAGAR (pediu para apagar os dados).
+
 Regras:
 - Sinal de violência em QUALQUER etapa interrompe o fluxo e mostra os canais de emergência,
   sem perguntas antes. A triagem entra urgente na fila (proteção da vida, LGPD art. 11, II, "e").
 - Relato muito curto: pede mais detalhes uma única vez.
-- Nada identificado: oferece o Disque Social 121 e o CRAS, sem inventar resposta.
-- Conversa parada além de CONVERSA_EXPIRA_MIN recomeça do início.
+- Nada identificado: pede para contar de outro jeito; na segunda vez, oferece o menu de assuntos
+  com "Nenhum desses" (Disque Social 121 e CRAS), sem inventar resposta.
+- Mais de uma necessidade: mostra o caminho da principal e um resumo das outras, por prioridade.
+- Comandos em qualquer etapa: "apagar" (exclui os dados da pessoa, com confirmação) e "recomeçar".
+- Conversa parada além de CONVERSA_EXPIRA_MIN recomeça; quem já consentiu não é perguntado de novo.
 - A triagem só entra na fila se a pessoa pedir contato do CRAS.
 - Com um atendente na conversa (atendimento_humano), o bot só registra as mensagens.
 
@@ -20,16 +26,17 @@ Respostas são texto com opções numeradas (1/2): botões interativos não func
 confiável na Evolution/Baileys.
 """
 from datetime import timedelta
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.security import encrypt_secret, mask_phone
-from app.models import Conversa, Mensagem, agora
+from app.models import Conversa, Mensagem, Triagem, agora
 from app.services import catalogo
 from app.services.anonimizacao import anonimizar_texto, hash_telefone
-from app.services.ml.classifier_service import SocialClassifierService
+from app.services.ml.classifier_service import PRIORIDADE_POR_CATEGORIA, SocialClassifierService
 from app.services.ml.text_rules import normalizar
 from app.services.ml.train_evaluator import CATEGORIAS, NAO_IDENTIFICADO, VIOLENCIA
 from app.services.triagens import criar_triagem
@@ -48,6 +55,15 @@ NOMES_CATEGORIA = {
 SIM = {"1", "sim", "s", "ss", "isso", "certo", "concordo", "aceito", "pode", "quero", "claro", "ok", "beleza", "isso mesmo"}
 NAO = {"2", "nao", "n", "nao quero", "errado", "nao e isso", "negativo"}
 
+COMANDO_APAGAR = {"apagar", "apagar meus dados", "apagar dados", "excluir meus dados", "excluir dados", "apague meus dados"}
+COMANDO_RECOMECAR = {"recomecar", "reiniciar", "comecar de novo", "menu", "inicio", "voltar ao inicio"}
+AGRADECIMENTO = {"obrigado", "obrigada", "obg", "brigado", "brigada", "valeu", "vlw", "agradeco", "muito obrigado",
+                 "muito obrigada", "ok obrigado", "ok obrigada", "ok", "beleza", "blz", "ta bom", "certo", "👍", "🙏"}
+# Casos de violência ainda abertos ficam com a equipe mesmo se a pessoa pedir para apagar (proteção da vida)
+STATUS_PRESERVADOS_AO_APAGAR = {"URGENTE_CREAS"}
+
+ORDEM_PRIORIDADE = {"URGENTE_VIOLENCIA": 0, "ALTA": 1, "MEDIA": 2, "BAIXA": 3}
+
 
 def _resposta(texto: str):
     t = normalizar(texto).strip(" .!?✅❌")
@@ -58,21 +74,41 @@ def _resposta(texto: str):
     return None
 
 
-def _menu_categorias() -> str:
+OPCAO_NENHUM = len(CATEGORIAS) + 1
+
+
+def _menu_categorias(introducao: str = "Sem problema! Qual destes assuntos combina mais com a sua situação? Responda com o número:") -> str:
     linhas = [f"*{i}* - {NOMES_CATEGORIA[c]}" for i, c in enumerate(CATEGORIAS, start=1)]
-    return "Sem problema! Qual destes assuntos combina mais com a sua situação? Responda com o número:\n\n" + "\n".join(linhas)
+    linhas.append(f"*{OPCAO_NENHUM}* - Nenhum desses")
+    return introducao + "\n\n" + "\n".join(linhas)
 
 
-def caminho_completo(categoria: str) -> str:
+def _secundarias_por_prioridade(principal: str, secundarias: Sequence[str]) -> List[str]:
+    validas = [c for c in dict.fromkeys(secundarias) if c != principal and c in NOMES_CATEGORIA and c != VIOLENCIA]
+    return sorted(validas, key=lambda c: ORDEM_PRIORIDADE.get(PRIORIDADE_POR_CATEGORIA.get(c, "BAIXA"), 3))
+
+
+def caminho_completo(categoria: str, secundarias: Sequence[str] = ()) -> str:
     info = catalogo.servico(categoria)
     servicos = "\n".join(f"• {s}" for s in info["servicos"])
     documentos = "\n".join(f"• {d}" for d in info["documentos"])
-    return (
+    texto = (
         f"📋 *{info['titulo']}*\n\n"
         f"*O que você pode procurar:*\n{servicos}\n\n"
         f"*Documentos para levar:*\n{documentos}\n\n"
         f"*Onde ir:* {info['local_atendimento']}\n"
         f"*Contato:* {info['contato_util']}\n\n"
+    )
+    # Plano, seção 4: mais de uma necessidade → mostrar todas, em ordem de prioridade
+    for outra in _secundarias_por_prioridade(categoria, secundarias):
+        extra = catalogo.servico(outra)
+        texto += (
+            f"➕ *Você também falou de {NOMES_CATEGORIA[outra]}:* {extra['titulo']}\n"
+            f"Procure: {'; '.join(extra['servicos'])}.\n"
+            f"Leve: {'; '.join(extra['documentos'])}.\n"
+            f"Onde: {extra['local_atendimento']}\n\n"
+        )
+    return texto + (
         "Lembre: é uma orientação. Quem confirma o seu direito é o profissional do atendimento.\n\n"
         "Quer que o CRAS entre em contato com você?\n*1* - Sim\n*2* - Não, obrigado"
     )
@@ -112,16 +148,35 @@ async def processar_mensagem(session: AsyncSession, telefone: str, texto: Option
             expirada = conversa.atualizado_em is not None and \
                 conversa.atualizado_em.replace(tzinfo=agora().tzinfo) < agora() - timedelta(minutes=settings.CONVERSA_EXPIRA_MIN)
             if expirada or conversa.estado == "FINALIZADA":
-                conversa.estado, conversa.tentativas, conversa.relato = "NOVA", 0, None
+                # Quem já consentiu não precisa aceitar de novo a cada conversa
+                conversa.estado = "RETORNO" if conversa.consentiu_em else "NOVA"
+                conversa.tentativas, conversa.relato = 0, None
                 conversa.categoria_sugerida = conversa.categoria_escolhida = None
                 conversa.classificacao = None
             respostas = await _passo(session, conversa, telefone, texto)
-        for r in respostas:
-            registrar(session, conversa, "bot", r)
+        apagada = getattr(conversa, "_apagada", False)
+        if not apagada:
+            for r in respostas:
+                registrar(session, conversa, "bot", r)
         return respostas
     finally:
-        conversa.atualizado_em = agora()
+        if not getattr(conversa, "_apagada", False):
+            conversa.atualizado_em = agora()
         await session.commit()
+
+
+async def _apagar_dados(session: AsyncSession, conversa: Conversa) -> bool:
+    """Direito do titular (LGPD art. 18): apaga histórico, conversa e triagens deste número.
+    Casos de violência ainda abertos ficam com a equipe. Devolve True se algum caso foi mantido."""
+    chave = conversa.telefone_hash
+    await session.execute(
+        delete(Triagem).where(Triagem.conversa_id == chave, Triagem.status.not_in(STATUS_PRESERVADOS_AO_APAGAR))
+    )
+    mantidos = (await session.execute(select(func.count()).select_from(Triagem).where(Triagem.conversa_id == chave))).scalar_one()
+    await session.execute(delete(Mensagem).where(Mensagem.conversa_id == chave))
+    await session.delete(conversa)
+    conversa._apagada = True  # marcador em memória: nada mais é gravado para esta conversa
+    return mantidos > 0
 
 
 async def _emergencia(session: AsyncSession, conversa: Conversa, telefone: str, texto: str) -> List[str]:
@@ -134,6 +189,22 @@ async def _emergencia(session: AsyncSession, conversa: Conversa, telefone: str, 
 
 async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto: str) -> List[str]:
     estado = conversa.estado
+    texto_norm = normalizar(texto).strip(" .!?")
+
+    # Comandos que valem em qualquer etapa. Vêm antes da regra de violência porque só casam com a
+    # mensagem inteira (nunca com um relato) e o modelo pode confundir "apagar meus dados" com ameaça.
+    if texto_norm in COMANDO_APAGAR and estado != "CONFIRMAR_APAGAR":
+        conversa.estado = "CONFIRMAR_APAGAR"
+        return [catalogo.texto("apagar_confirmar")]
+    if texto_norm in COMANDO_RECOMECAR:
+        if not conversa.consentiu_em:
+            conversa.estado = "AGUARDANDO_CONSENTIMENTO"
+            return [catalogo.texto("boas_vindas")]
+        conversa.estado, conversa.tentativas = "AGUARDANDO_RELATO", 0
+        conversa.relato = conversa.categoria_sugerida = conversa.categoria_escolhida = None
+        conversa.classificacao = None
+        return [catalogo.texto("pedir_relato")]
+
     # Classifica o mesmo texto que será gravado (sem CPF/telefone/e-mail)
     classificacao = SocialClassifierService.classify_relato(anonimizar_texto(texto)) if texto else None
 
@@ -141,33 +212,59 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
     if classificacao and classificacao["categoria"] == VIOLENCIA and _resposta(texto) is None and not texto.isdigit():
         return await _emergencia(session, conversa, telefone, texto)
 
+    if estado == "CONFIRMAR_APAGAR":
+        resposta = _resposta(texto)
+        if resposta is True:
+            mantido = await _apagar_dados(session, conversa)
+            aviso = ("\n\nO pedido de ajuda urgente que você enviou continua com a equipe até o atendimento, "
+                     "para a sua proteção.") if mantido else ""
+            return [catalogo.texto("apagar_feito") + aviso]
+        if resposta is False:
+            conversa.estado = "FINALIZADA"
+            return [catalogo.texto("apagar_cancelado")]
+        return ["Responda *1* para apagar seus dados ou *2* para manter."]
+
     if estado == "NOVA":
         conversa.estado = "AGUARDANDO_CONSENTIMENTO"
         return [catalogo.texto("boas_vindas")]
 
+    if estado == "RETORNO":
+        if texto_norm in AGRADECIMENTO:
+            conversa.estado = "FINALIZADA"
+            return [catalogo.texto("agradecimento")]
+        conversa.estado = "AGUARDANDO_RELATO"
+        if len(texto.split()) < 4:  # "oi", "bom dia": cumprimenta e pede o relato
+            return [catalogo.texto("retorno")]
+        estado = "AGUARDANDO_RELATO"  # mensagem longa já é o relato
+
     if estado == "AGUARDANDO_CONSENTIMENTO":
         resposta = _resposta(texto)
         if resposta is True:
+            conversa.consentiu_em = agora()
             conversa.estado = "AGUARDANDO_RELATO"
             return [catalogo.texto("pedir_relato")]
         if resposta is False:
+            conversa.consentiu_em = None
             conversa.estado = "FINALIZADA"
             return [catalogo.texto("sem_consentimento")]
         return ["Para continuar, responda *1* (Sim, concordo) ou *2* (Não)."]
 
-    if estado == "AGUARDANDO_RELATO":
+    if estado in ("AGUARDANDO_RELATO", "RELATO_NOVAMENTE"):
         if len(texto.split()) < 4 and conversa.tentativas == 0:
             conversa.tentativas = 1
             return [catalogo.texto("relato_curto")]
-        if classificacao["categoria"] == NAO_IDENTIFICADO:
-            conversa.estado = "FINALIZADA"
-            return [catalogo.texto("nao_entendi")]
         conversa.relato = anonimizar_texto(texto)
         conversa.classificacao = classificacao
+        if classificacao["categoria"] == NAO_IDENTIFICADO:
+            if estado == "AGUARDANDO_RELATO":
+                conversa.estado = "RELATO_NOVAMENTE"
+                return [catalogo.texto("nao_entendi")]
+            conversa.estado = "AGUARDANDO_CORRECAO"
+            return [_menu_categorias(catalogo.texto("nao_entendi_de_novo"))]
         conversa.categoria_sugerida = classificacao["categoria"]
         conversa.estado = "AGUARDANDO_CONFIRMACAO"
         assuntos = [NOMES_CATEGORIA[classificacao["categoria"]]] + [
-            NOMES_CATEGORIA[c] for c in classificacao.get("necessidades_secundarias", []) if c in NOMES_CATEGORIA
+            NOMES_CATEGORIA[c] for c in _secundarias_por_prioridade(classificacao["categoria"], classificacao.get("necessidades_secundarias", []))
         ]
         return [f"Entendi que você precisa de ajuda com *{' e '.join(assuntos)}*. Está certo?\n*1* - Sim\n*2* - Não"]
 
@@ -176,13 +273,17 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
         if resposta is True:
             conversa.categoria_escolhida = conversa.categoria_sugerida
             conversa.estado = "AGUARDANDO_CONTATO"
-            return [caminho_completo(conversa.categoria_escolhida)]
+            secundarias = (conversa.classificacao or {}).get("necessidades_secundarias", [])
+            return [caminho_completo(conversa.categoria_escolhida, secundarias)]
         if resposta is False:
             conversa.estado = "AGUARDANDO_CORRECAO"
             return [_menu_categorias()]
         return ["Responda *1* se eu entendi certo ou *2* se não."]
 
     if estado == "AGUARDANDO_CORRECAO":
+        if texto.isdigit() and int(texto) == OPCAO_NENHUM:
+            conversa.estado = "FINALIZADA"
+            return [catalogo.texto("nao_entendi")]
         if texto.isdigit() and 1 <= int(texto) <= len(CATEGORIAS):
             escolhida = CATEGORIAS[int(texto) - 1]
             if escolhida == VIOLENCIA:
@@ -190,7 +291,7 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
             conversa.categoria_escolhida = escolhida
             conversa.estado = "AGUARDANDO_CONTATO"
             return [caminho_completo(escolhida)]
-        return [f"Responda só com o número, de 1 a {len(CATEGORIAS)}."]
+        return [f"Responda só com o número, de 1 a {OPCAO_NENHUM}."]
 
     if estado == "AGUARDANDO_CONTATO":
         resposta = _resposta(texto)

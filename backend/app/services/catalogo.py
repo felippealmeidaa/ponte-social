@@ -22,7 +22,7 @@ TEXTOS_PADRAO: Dict[str, Dict[str, str]] = {
             "Eu ajudo a descobrir *qual serviço procurar, quais documentos levar e onde ir*. "
             "Sou só uma orientação: *não decido quem tem direito a benefício* — isso é feito pelos profissionais do CRAS.\n\n"
             "Vou usar o que você me contar para te orientar e, *sem identificar você*, para melhorar este serviço. "
-            "Não escreva nome, CPF ou endereço.\n\n"
+            "Não escreva nome, CPF ou endereço. A qualquer momento, envie *apagar* para excluir seus dados.\n\n"
             "Você concorda?\n*1* - Sim, concordo\n*2* - Não"
         ),
     },
@@ -74,6 +74,33 @@ TEXTOS_PADRAO: Dict[str, Dict[str, str]] = {
     "contato_recusado": {
         "descricao": "A pessoa não quis contato do CRAS",
         "texto": "Tudo bem! Se precisar de novo, é só mandar uma mensagem. Cuide-se. 💚",
+    },
+    "nao_entendi_de_novo": {
+        "descricao": "Segunda vez sem identificar a necessidade: oferece o menu de assuntos",
+        "texto": "Ainda não consegui entender com segurança. Se preferir, escolha o assunto pelo número:",
+    },
+    "retorno": {
+        "descricao": "Pessoa que já aceitou antes e volta a escrever",
+        "texto": "Olá de novo! 👋 Me conte, com suas palavras, o que está acontecendo e com o que você precisa de ajuda.",
+    },
+    "agradecimento": {
+        "descricao": "Resposta a \"obrigado\", \"valeu\" etc. depois do fim da conversa",
+        "texto": "De nada! Se precisar de novo, é só mandar uma mensagem. 💚",
+    },
+    "apagar_confirmar": {
+        "descricao": "A pessoa pediu para apagar os dados (pede confirmação)",
+        "texto": (
+            "Você quer apagar *tudo o que conversou aqui* e os pedidos enviados ao CRAS por este número?\n"
+            "Isso não pode ser desfeito.\n*1* - Sim, apagar\n*2* - Não"
+        ),
+    },
+    "apagar_feito": {
+        "descricao": "Dados apagados a pedido da pessoa",
+        "texto": "Pronto, seus dados desta conversa foram apagados. 🗑️ Se precisar, é só mandar uma nova mensagem.",
+    },
+    "apagar_cancelado": {
+        "descricao": "A pessoa desistiu de apagar os dados",
+        "texto": "Tudo bem, nada foi apagado. Se quiser continuar, me mande uma mensagem.",
     },
     "atendente_assumiu": {
         "descricao": "Enviada quando um atendente assume a conversa pelo painel",

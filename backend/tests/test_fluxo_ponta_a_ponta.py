@@ -117,3 +117,76 @@ def test_webhook_ignora_grupos_e_proprio_bot():
 def test_anonimizacao():
     texto = anonimizar_texto("me liga no (62) 99999-1234 ou manda email pra maria@gmail.com, cpf 12345678901")
     assert "99999" not in texto and "maria@" not in texto and "12345678901" not in texto
+
+
+def test_nao_entendeu_pede_de_novo_e_depois_oferece_menu():
+    with TestClient(app) as client:
+        autenticar(client)
+        r = _conversa(client, "5562911110010", "oi", "1", "zzz qwerty asdf hjkl", "zzz qwerty asdf hjkl")
+        assert "121" in r[2][0]                      # 1ª vez: orienta e pede para contar de outro jeito
+        assert "Nenhum desses" in r[3][0]             # 2ª vez: menu de assuntos
+        fim = _conversa(client, "5562911110010", "9")[0][0]
+        assert "121" in fim
+
+
+def test_depois_de_nao_entender_a_conversa_continua():
+    with TestClient(app) as client:
+        autenticar(client)
+        r = _conversa(client, "5562911110011", "oi", "1", "zzz qwerty asdf hjkl",
+                      "nao temos nada para comer e o aluguel ta atrasado vamos ser despejados")
+        assert "concorda" not in r[3][0]
+        assert "Está certo?" in r[3][0]
+
+
+def test_caminho_mostra_outras_necessidades_por_prioridade():
+    from app.services.bot.fluxo_conversa import caminho_completo
+    texto = caminho_completo("documentacao", ["trabalho_renda", "alimentacao", "documentacao", "violencia_protecao"])
+    assert texto.index("alimentação") < texto.index("trabalho e cursos")  # ALTA antes de BAIXA
+    assert texto.count("Você também falou de") == 2                        # sem repetir a principal nem violência
+    assert texto.rstrip().endswith("Não, obrigado")
+
+
+def test_apagar_dados_remove_conversa_e_triagem():
+    with TestClient(app) as client:
+        autenticar(client)
+        tel = "5562911110012"
+        antes = {t["id"] for t in _fila(client)}
+        _conversa(client, tel, "oi", "1", "nao temos nada para comer em casa e meus filhos estao com fome", "1", "1")
+        nova = [t for t in _fila(client) if t["id"] not in antes]
+        assert len(nova) == 1
+        conversa_id = nova[0]["conversa_id"]
+
+        pede, cancela = _conversa(client, tel, "apagar", "2")
+        assert "não pode ser desfeito" in pede[0] and "nada foi apagado" in cancela[0]
+        assert any(t["id"] == nova[0]["id"] for t in _fila(client))
+
+        r = _conversa(client, tel, "apagar meus dados", "1")
+        assert "apagados" in r[1][0]
+        assert not any(t["id"] == nova[0]["id"] for t in _fila(client))
+        assert not any(c["id"] == conversa_id for c in client.get("/api/v1/atendimento/conversas").json())
+        # recomeça do zero, pedindo consentimento de novo
+        assert "concorda" in _conversa(client, tel, "oi")[0][0]
+
+
+def test_apagar_mantem_caso_urgente_de_violencia_aberto():
+    with TestClient(app) as client:
+        autenticar(client)
+        tel = "5562911110013"
+        antes = {t["id"] for t in _fila(client)}
+        _conversa(client, tel, "meu marido me agrediu e estou com medo")
+        urgente = next(t for t in _fila(client) if t["id"] not in antes)
+        r = _conversa(client, tel, "apagar", "1")
+        assert "continua com a equipe" in r[1][0]
+        assert any(t["id"] == urgente["id"] for t in _fila(client))
+
+
+def test_recomecar_e_retorno_sem_pedir_consentimento_de_novo():
+    with TestClient(app) as client:
+        autenticar(client)
+        tel = "5562911110014"
+        r = _conversa(client, tel, "oi", "1", "preciso tirar a segunda via da minha certidao de nascimento", "recomeçar")
+        assert "conte" in r[3][0].lower()
+        r = _conversa(client, tel, "preciso tirar a segunda via da minha certidao de nascimento", "1", "2", "obrigado")
+        assert "De nada" in r[3][0]
+        volta = _conversa(client, tel, "bom dia")[0][0]
+        assert "de novo" in volta and "concorda" not in volta

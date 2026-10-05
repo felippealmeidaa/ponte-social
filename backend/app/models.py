@@ -58,6 +58,8 @@ class Conversa(Base):
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=agora)
     atualizado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=agora, index=True)
     tentativas: Mapped[int] = mapped_column(Integer, default=0)
+    # Quando a pessoa aceitou o uso das informações; quem já aceitou não é perguntado de novo
+    consentiu_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     relato: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # já anonimizado
     categoria_sugerida: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     categoria_escolhida: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)

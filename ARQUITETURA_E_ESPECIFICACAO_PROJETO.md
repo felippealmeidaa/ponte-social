@@ -54,7 +54,9 @@ NOVA → AGUARDANDO_CONSENTIMENTO → AGUARDANDO_RELATO → AGUARDANDO_CONFIRMAC
 ```
 
 - **Violência em qualquer etapa** interrompe o fluxo e mostra 190 / Ligue 180 / Disque 100 / CREAS, sem perguntas antes; a triagem entra como urgente.
-- Relato muito curto: pede detalhes uma única vez. Nada identificado: Disque Social 121 + CRAS, sem inventar resposta.
+- Relato muito curto: pede detalhes uma única vez. Nada identificado: pede para contar de outro jeito; na segunda vez, oferece o menu de assuntos com "Nenhum desses" (Disque Social 121 + CRAS), sem inventar resposta.
+- Mais de uma necessidade: o caminho da principal vem seguido de um resumo das outras, em ordem de prioridade.
+- Comandos em qualquer etapa: **apagar** (com confirmação, exclui histórico, conversa e triagens do número; casos urgentes de violência ainda abertos ficam com a equipe) e **recomeçar**. Quem já consentiu não é perguntado de novo; "obrigado" depois do fim recebe só um agradecimento.
 - A triagem só vai para a fila se a pessoa pedir contato do CRAS. A correção feita pela pessoa vira exemplo rotulado (`GET /api/v1/triagem/exemplos-rotulados`).
 - Opções numeradas (1/2) em vez de botões: botões interativos não são confiáveis na Evolution/Baileys.
 
@@ -74,7 +76,7 @@ NOVA → AGUARDANDO_CONSENTIMENTO → AGUARDANDO_RELATO → AGUARDANDO_CONFIRMAC
 - Prazo de retenção (`RETENCAO_DIAS`): triagens antigas são apagadas ao iniciar a API.
 - Senhas com Argon2id; JWT para o painel. Rotas do painel exigem login; webhooks não.
 - Nenhum segredo tem valor padrão no código: tudo vem do `.env` (fora do git). Fora de `development`, a API não inicia sem `SECRET_KEY` e `ENCRYPTION_SECRET_KEY`.
-- **Pendente:** validar o consentimento e a base legal com o orientador (`docs/termo_coleta_e_consentimento.md`), comando para o cidadão pedir exclusão dos dados, usuários reais em vez dos de demonstração, HTTPS e limite de requisições na publicação (Ciclo 3).
+- **Pendente:** validar o consentimento e a base legal com o orientador (`docs/termo_coleta_e_consentimento.md`), regra de preservação dos casos urgentes ao apagar, usuários reais em vez dos de demonstração, HTTPS e limite de requisições na publicação (Ciclo 3).
 
 ### 4. Modelo e avaliação
 

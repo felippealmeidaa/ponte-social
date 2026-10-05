@@ -57,7 +57,8 @@ def test_atendente_assume_responde_e_bot_fica_em_silencio():
         assert len(novas) == 1
 
         client.post(f"/api/v1/atendimento/conversas/{conversa_id}/devolver")
-        assert "concorda" in _simular(client, "5562922220001", "oi")["respostas"][0]
+        # já tinha consentido: o bot volta sem pedir o consentimento de novo
+        assert "de novo" in _simular(client, "5562922220001", "oi")["respostas"][0]
 
 
 def test_historico_guarda_mensagem_do_cidadao_anonimizada():

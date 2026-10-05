@@ -73,6 +73,10 @@ export function ServicosMensagens() {
           <ShieldAlert className="size-4 shrink-0 text-urgente" aria-hidden />
           Em qualquer etapa, sinal de violência interrompe a conversa: o bot manda os contatos de emergência e o caso entra como urgente.
         </p>
+        <p className="mt-1 pl-6 text-[13px] text-texto-2">
+          A pessoa também pode enviar <strong className="font-medium text-texto">apagar</strong> para excluir os dados dela
+          ou <strong className="font-medium text-texto">recomeçar</strong> para contar de novo. Quem já aceitou não precisa aceitar outra vez.
+        </p>
       </section>
 
       <div role="tablist" aria-label="O que editar" className="mb-6 flex gap-1 border-b border-linha">
