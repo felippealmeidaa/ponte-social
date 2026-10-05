@@ -6,7 +6,7 @@ from app.core.config import settings
 from app.api.v1.api import api_router
 from app.db import abrir_sessao, init_db
 from app.services.live_chat.manager import live_chat_manager
-from app.services import catalogo, usuarios
+from app.services import catalogo, unidades, usuarios
 from app.services.triagens import aplicar_retencao, popular_demo_se_vazio
 
 
@@ -15,6 +15,8 @@ async def lifespan(app: FastAPI):
     await init_db()
     async with abrir_sessao() as session:
         await catalogo.carregar(session)
+        if rede := await unidades.carregar_rede_exemplo(session):
+            print(f"[REDE] {rede} lugares da rede pública de Anápolis carregados como exemplo (não conferidos).")
         aviso = await usuarios.garantir_usuario_inicial(session)
         if aviso:
             print(f"[CONTAS] {aviso}")

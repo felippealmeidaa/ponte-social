@@ -65,6 +65,9 @@ class Conversa(Base):
     relato: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # já anonimizado
     bairro: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)  # para indicar o CRAS de referência
     unidade_id: Mapped[Optional[str]] = mapped_column(String(16), nullable=True, index=True)  # CRAS do bairro; define o fluxo
+    # Ponto aproximado da pessoa (pino do WhatsApp ou centro do bairro), arredondado a ~100 m: só para achar o lugar mais perto
+    latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     categoria_sugerida: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     categoria_escolhida: Mapped[Optional[str]] = mapped_column(String(40), nullable=True)
     classificacao: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
@@ -130,14 +133,18 @@ class Usuario(Base):
 
 
 class UnidadeAtendimento(Base):
-    """CRAS, CREAS e Centro POP do município, com os bairros que cada um atende.
-    Começa vazia: deve ser preenchida com a lista oficial da prefeitura."""
+    """Lugares da rede do município (CRAS, CREAS, Centro POP, restaurante popular, Vapt Vupt, SINE...), com os
+    bairros que cada um atende, as necessidades que atende e o ponto no mapa. Deve ser conferida com a prefeitura."""
     __tablename__ = "unidades_atendimento"
 
     id: Mapped[str] = mapped_column(String(16), primary_key=True)
     nome: Mapped[str] = mapped_column(String(160))
-    tipo: Mapped[str] = mapped_column(String(20), default="CRAS")  # CRAS | CREAS | CENTRO_POP
+    tipo: Mapped[str] = mapped_column(String(20), default="CRAS")  # ver unidades.TIPOS
     endereco: Mapped[str] = mapped_column(Text, default="")
+    latitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    longitude: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    # Necessidades (categorias do catálogo) que o lugar atende; vazio = o padrão do tipo
+    categorias: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
     telefone: Mapped[str] = mapped_column(String(80), default="")
     horario: Mapped[str] = mapped_column(String(160), default="")
     bairros: Mapped[list] = mapped_column(JSON, default=list)

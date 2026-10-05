@@ -1,0 +1,150 @@
+{
+  "_sobre": "Rede pública de Anápolis (piloto), pesquisada em fontes oficiais em 2026-10-05. NÃO conferida com a prefeitura: a equipe deve confirmar endereço, telefone e horário no painel (Unidades de atendimento) e preencher 'Conferido em'. Carregada só em development e só com a tabela de unidades vazia. Coordenadas do OpenStreetMap (Nominatim); as que não acharam o número exato usam a rua ou o centro do bairro: conferir no mapa.",
+  "unidades": [
+    {
+      "nome": "CRAS Norte",
+      "tipo": "CRAS",
+      "endereco": "Av. do Estado, nº 2, Qd. B, Vila Norte (em frente ao Feirão)",
+      "telefone": "(62) 3902-2639",
+      "horario": "Seg. a sex., horário comercial",
+      "fonte": "TJGO, Rede de Atendimento Anápolis (docs.tjgo.jus.br/rede_atendimento/regiao_3/Anapolis/Assistencia_Social.pdf); Prefeitura, notícia de 04/11/2025 sobre o Cadastro Único",
+      "latitude": -16.28226,
+      "longitude": -48.92307
+    },
+    {
+      "nome": "CRAS Sul",
+      "tipo": "CRAS",
+      "endereco": "Rua Copa, 23, Lt. 04, Residencial Copacabana (ao lado do feirão Reny Cury)",
+      "telefone": "(62) 3902-1539",
+      "horario": "Seg. a sex., horário comercial",
+      "fonte": "TJGO, Rede de Atendimento Anápolis; Prefeitura, notícia de 02/02/2022 (anapolis.go.gov.br/cras-ajuda-a-levar-assistencia-social-para-todas-as-regioes-de-anapolis)",
+      "latitude": -16.37656,
+      "longitude": -48.98576
+    },
+    {
+      "nome": "CRAS Leste",
+      "tipo": "CRAS",
+      "endereco": "Av. JK, Qd. 12, Jardim Alvorada (Praça CEU)",
+      "telefone": "(62) 3902-1573",
+      "horario": "Seg. a sex., horário comercial",
+      "fonte": "TJGO, Rede de Atendimento Anápolis; Prefeitura, notícia de 02/02/2022",
+      "latitude": -16.35504,
+      "longitude": -48.91335
+    },
+    {
+      "nome": "CRAS Leste II",
+      "tipo": "CRAS",
+      "endereco": "Rua Antônio de Souza França, Qd. 09, Lt. 22, Conjunto Habitacional Filostro Machado",
+      "telefone": "(62) 3902-1725",
+      "horario": "Seg. a sex., horário comercial",
+      "fonte": "TJGO, Rede de Atendimento Anápolis; Prefeitura, notícia de 02/02/2022",
+      "latitude": -16.31475,
+      "longitude": -48.90252
+    },
+    {
+      "nome": "CREAS",
+      "tipo": "CREAS",
+      "endereco": "Rua General Joaquim Inácio, 196, Centro",
+      "telefone": "(62) 3902-2662",
+      "horario": "Seg. a sex., horário comercial",
+      "fonte": "TJGO, Rede de Atendimento Anápolis (nº 196). Atenção: notícia da Prefeitura de 04/11/2025 cita o nº 206; conferir.",
+      "latitude": -16.32751,
+      "longitude": -48.95765
+    },
+    {
+      "nome": "Cadastro Único (sede)",
+      "tipo": "CADUNICO",
+      "endereco": "Av. Visconde de Taunay, Feirão do Jundiaí",
+      "telefone": "",
+      "horario": "",
+      "fonte": "Prefeitura, notícia de 04/11/2025 (anapolis.go.gov.br/anapolis-conta-com-sete-locais-de-atendimento-ao-cadastro-unico-confira-quais-sao)",
+      "latitude": -16.3337,
+      "longitude": -48.93995
+    },
+    {
+      "nome": "Restaurante Popular Vila Jaiara",
+      "tipo": "RESTAURANTE_POPULAR",
+      "endereco": "Rua Anchieta, Qd. 1, Lt. 4, Vila Jaiara",
+      "telefone": "",
+      "horario": "Seg. a sex., 11h às 13h. Almoço a R$ 2",
+      "fonte": "Prefeitura, página do Programa Restaurante Popular (anapolis.go.gov.br/servico/programa-restaurante-popular)",
+      "latitude": -16.29252,
+      "longitude": -48.96967
+    },
+    {
+      "nome": "Restaurante Popular Recanto do Sol",
+      "tipo": "RESTAURANTE_POPULAR",
+      "endereco": "Av. João Florentino, Qd. 05, Lt. 24, Recanto do Sol",
+      "telefone": "",
+      "horario": "Seg. a sex., 11h às 13h. Almoço a R$ 2",
+      "fonte": "Prefeitura, notícia \"Restaurante Popular garante segurança alimentar à população\" (anapolis.go.gov.br)",
+      "latitude": -16.27992,
+      "longitude": -48.92961
+    },
+    {
+      "nome": "Restaurante Popular Morumbi",
+      "tipo": "RESTAURANTE_POPULAR",
+      "endereco": "Av. Pedro Ludovico, 6649, Residencial Morumbi",
+      "telefone": "",
+      "horario": "Seg. a sex., 11h às 13h. Almoço a R$ 2",
+      "fonte": "Prefeitura, notícia \"Restaurante Popular garante segurança alimentar à população\" (anapolis.go.gov.br)",
+      "latitude": -16.38169,
+      "longitude": -48.97538
+    },
+    {
+      "nome": "Restaurante Popular Bairro de Lourdes",
+      "tipo": "RESTAURANTE_POPULAR",
+      "endereco": "Av. Comercial, Bairro de Lourdes",
+      "telefone": "",
+      "horario": "Seg. a sex., 11h às 13h. Almoço a R$ 2",
+      "fonte": "Prefeitura, notícia \"Restaurante Popular garante segurança alimentar à população\" (anapolis.go.gov.br)",
+      "latitude": -16.33955,
+      "longitude": -48.91884
+    },
+    {
+      "nome": "Vapt Vupt Anashopping",
+      "tipo": "DOCUMENTOS",
+      "categorias": [
+        "documentacao",
+        "trabalho_renda",
+        "cadastro_atualizacao"
+      ],
+      "endereco": "Av. Universitária, 2221, Santa Isabel (Anashopping)",
+      "telefone": "",
+      "horario": "Seg. a sex., 8h às 17h",
+      "fonte": "Portal Vapt Vupt (vaptvupt.go.gov.br/unidade/anapolis--anashopping); tem posto do SINE (goias.gov.br/social/unidades-de-atendimento-do-sine) e ponto do Cadastro Único (Prefeitura, 04/11/2025)",
+      "latitude": -16.30232,
+      "longitude": -48.94857
+    },
+    {
+      "nome": "Vapt Vupt Anápolis Sul",
+      "tipo": "DOCUMENTOS",
+      "endereco": "Av. Brasil Sul, 495, Vila Santana",
+      "telefone": "",
+      "horario": "Seg. a sex., 8h às 17h",
+      "fonte": "Portal Vapt Vupt (vaptvupt.go.gov.br/unidade/anapolis-sul--jose-miguel-hajjar)",
+      "latitude": -16.3311,
+      "longitude": -48.95086
+    },
+    {
+      "nome": "SINE Centro",
+      "tipo": "SINE",
+      "endereco": "Av. Senador José Lourenço Dias, 333, Centro",
+      "telefone": "",
+      "horario": "Seg. a sex., 8h às 18h",
+      "fonte": "Governo de Goiás, Unidades de atendimento do SINE (goias.gov.br/social/unidades-de-atendimento-do-sine)",
+      "latitude": -16.32499,
+      "longitude": -48.95098
+    },
+    {
+      "nome": "SINE Vila Jaiara",
+      "tipo": "SINE",
+      "endereco": "Av. Fernando Costa, 49, Vila Jaiara",
+      "telefone": "(62) 3902-1187",
+      "horario": "Seg. a sex., 8h às 18h",
+      "fonte": "Governo de Goiás, Unidades de atendimento do SINE",
+      "latitude": -16.29248,
+      "longitude": -48.96782
+    }
+  ]
+}

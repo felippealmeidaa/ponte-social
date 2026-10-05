@@ -64,6 +64,14 @@ class Settings(BaseSettings):
     CONVERSA_EXPIRA_MIN: int = 120
     EVOLUTION_INSTANCE_NAME: str = "cras-anapolis"
 
+    # Município do piloto: completa a busca de bairros e endereços no mapa (OpenStreetMap)
+    CIDADE: str = "Anápolis"
+    UF: str = "Goiás"
+    # Consultar o OpenStreetMap (bairro → ponto no mapa, pino → bairro, endereço da unidade → ponto)
+    GEOCODIFICAR: bool = True
+    # Em development, com a tabela de unidades vazia, carrega a rede pública de Anápolis (data/rede_anapolis.json)
+    CARREGAR_REDE_EXEMPLO: bool = True
+
     # Protótipos da fase 2 (Flow Builder, AI Gateway, API Keys, RAG, Workspaces): desligados por padrão
     HABILITAR_FASE2: bool = False
 

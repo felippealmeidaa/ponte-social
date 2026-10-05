@@ -43,7 +43,8 @@ PROMPT = (
     "- categoria: a necessidade principal. Use \"nao_identificado\" se não for pedido ou se não der para saber.\n"
     "- secundarias: outras necessidades que a pessoa também expressou (pode ser vazia).\n"
     "- resumo: completa a frase \"Entendi que ...\", falando com a pessoa, em até 15 palavras, sem ponto final "
-    "(ex.: \"você está sem comida em casa e tem filhos pequenos\"). Não prometa benefício nem diga que ela tem direito. "
+    "(ex.: \"você está sem comida em casa e tem filhos pequenos\"). Use só o que a pessoa disse: não acrescente urgência, "
+    "detalhes ou sentimentos. Não prometa benefício nem diga que ela tem direito. "
     "Vazio se não for pedido.\n"
     "Na dúvida sobre violência ou risco, escolha violencia_protecao: é melhor encaminhar com prioridade."
 )

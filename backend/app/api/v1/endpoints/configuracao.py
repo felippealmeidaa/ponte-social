@@ -14,7 +14,7 @@ from app.core.config import settings
 from app.core.deps import apenas_coordenacao, apenas_coordenacao_geral, escopo, resolver_unidade, usuario_logado
 from app.db import get_session
 from app.models import Conversa, Triagem, Usuario, agora
-from app.services import catalogo, unidades
+from app.services import catalogo, geo, unidades
 from app.services.bot.fluxo_conversa import caminho_completo
 from app.services.ml.train_evaluator import KNOWLEDGE_SERVICES
 
@@ -129,8 +129,11 @@ async def salvar_opcoes_fluxo(req: OpcoesRequest, unidade: Optional[str] = None,
 # ------------------------------------------------------------------------------
 class UnidadeRequest(BaseModel):
     nome: str = Field(min_length=3, max_length=160)
-    tipo: Literal["CRAS", "CREAS", "CENTRO_POP"] = "CRAS"
+    tipo: Literal["CRAS", "CREAS", "CENTRO_POP", "CADUNICO", "RESTAURANTE_POPULAR", "DOCUMENTOS", "SINE", "OUTRO"] = "CRAS"
     endereco: str = Field(default="", max_length=300)
+    latitude: Optional[float] = Field(default=None, ge=-90, le=90)
+    longitude: Optional[float] = Field(default=None, ge=-180, le=180)
+    categorias: List[str] = Field(default_factory=list)
     telefone: str = Field(default="", max_length=80)
     horario: str = Field(default="", max_length=160)
     bairros: List[str] = Field(default_factory=list)
@@ -147,8 +150,12 @@ async def listar_unidades(session: AsyncSession = Depends(get_session)):
 async def _salvar_unidade(req: UnidadeRequest, usuario: Dict[str, Any], session: AsyncSession, unidade_id: Optional[str] = None):
     if not unidades.data_valida(req.verificado_em):
         raise HTTPException(status_code=422, detail="A data de conferência não pode estar no futuro.")
-    if req.tipo == "CRAS" and not [b for b in req.bairros if b.strip()]:
-        raise HTTPException(status_code=422, detail="Informe pelo menos um bairro atendido por este CRAS.")
+    if req.tipo == "CRAS" and not [b for b in req.bairros if b.strip()] and not req.endereco.strip() and req.latitude is None:
+        raise HTTPException(status_code=422, detail="Informe os bairros atendidos ou o endereço deste CRAS (para achar o mais perto).")
+    if (req.latitude is None) != (req.longitude is None):
+        raise HTTPException(status_code=422, detail="Preencha latitude e longitude juntas, ou deixe as duas vazias.")
+    if req.tipo == "OUTRO" and not req.categorias:
+        raise HTTPException(status_code=422, detail="Marque as necessidades que este lugar atende.")
     try:
         return unidades.para_dict(await unidades.salvar(session, req.model_dump(), usuario.get("sub", ""), unidade_id))
     except ValueError as e:
@@ -181,11 +188,25 @@ async def remover_unidade(unidade_id: str, session: AsyncSession = Depends(get_s
     return {"removida": unidade_id}
 
 
+@router.get("/unidades/localizar", dependencies=[Depends(apenas_coordenacao_geral)])
+async def localizar_endereco(endereco: str):
+    """Procura um endereço do município no mapa (OpenStreetMap) para preencher latitude e longitude."""
+    ponto = await geo.buscar(endereco)
+    if not ponto:
+        raise HTTPException(status_code=404, detail="Não achei esse endereço no mapa. Tente só a rua e o bairro, ou cole as coordenadas do Google Maps.")
+    return {"latitude": ponto[0], "longitude": ponto[1], "mapa": geo.link_mapa(*ponto)}
+
+
 @router.get("/unidades/buscar")
 async def buscar_por_bairro(bairro: str, session: AsyncSession = Depends(get_session)):
-    """Testa qual CRAS o bot indicaria para um bairro."""
-    unidade = await unidades.cras_do_bairro(session, bairro)
-    return {"bairro": bairro, "unidade": unidades.para_dict(unidade) if unidade else None}
+    """Testa qual CRAS o bot indicaria para um bairro: pela lista de bairros ou, sem ela, o mais perto no mapa."""
+    if unidade := await unidades.cras_do_bairro(session, bairro):
+        return {"bairro": bairro, "unidade": unidades.para_dict(unidade), "como": "lista", "km": None}
+    centro = await geo.buscar(bairro)
+    unidade = await unidades.cras_mais_perto(session, centro) if centro else None
+    km = round(geo.distancia_km(centro, unidades.ponto_da(unidade)), 1) if unidade else None
+    return {"bairro": bairro, "unidade": unidades.para_dict(unidade) if unidade else None,
+            "como": "distancia" if unidade else None, "km": km}
 
 
 # ------------------------------------------------------------------------------

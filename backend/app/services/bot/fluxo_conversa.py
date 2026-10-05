@@ -6,8 +6,10 @@ Fluxo da conversa no WhatsApp (plano do projeto, seção 4).
                                                                    ▼               ▼
                                          FINALIZADA ◄─ AGUARDANDO_CONTATO ◄─ AGUARDANDO_CORRECAO
 
-  Com CRAS cadastrado, o bairro vem logo depois do aceite (AGUARDANDO_BAIRRO): ele escolhe o CRAS,
-  e daí em diante valem os textos, as respostas e as opções de fluxo daquele CRAS.
+  Com CRAS cadastrado, o bairro vem logo depois do aceite (AGUARDANDO_BAIRRO): a pessoa manda o pino de
+  localização do WhatsApp ou digita o bairro. Isso escolhe o CRAS (lista de bairros da prefeitura ou, sem ela,
+  o mais perto) e, daí em diante, valem os textos, as respostas e as opções de fluxo daquele CRAS.
+  O ponto também ordena os lugares do caminho: os que atendem a necessidade, do mais perto ao mais longe.
   Estados auxiliares: RELATO_NOVAMENTE (não entendeu uma vez), RETORNO (quem já consentiu volta
   a escrever) e CONFIRMAR_APAGAR.
 
@@ -40,7 +42,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.security import encrypt_secret, mask_phone
 from app.models import Conversa, Mensagem, Triagem, UnidadeAtendimento, agora
-from app.services import catalogo, unidades
+from app.services import catalogo, geo, unidades
 from app.services.anonimizacao import anonimizar_texto, hash_telefone
 from app.services.ml.classifier_service import PRIORIDADE_POR_CATEGORIA, SocialClassifierService
 from app.services.ml.text_rules import normalizar
@@ -97,10 +99,10 @@ def _secundarias_por_prioridade(principal: str, secundarias: Sequence[str]) -> L
     return sorted(validas, key=lambda c: ORDEM_PRIORIDADE.get(PRIORIDADE_POR_CATEGORIA.get(c, "BAIXA"), 3))
 
 
-def caminho_completo(categoria: str, secundarias: Sequence[str] = (), cras: Optional[str] = None,
+def caminho_completo(categoria: str, secundarias: Sequence[str] = (), locais: str = "",
                      unidade: Optional[str] = None, perguntar_contato: bool = True) -> str:
     """Resposta com o caminho da necessidade, usando as respostas do CRAS (ou o padrão da secretaria).
-    cras: descrição da unidade de referência da pessoa."""
+    locais: bloco com os lugares da rede que atendem a necessidade (unidades.bloco_locais)."""
     info = catalogo.servico(categoria, unidade)
     servicos = "\n".join(f"• {s}" for s in info["servicos"])
     documentos = "\n".join(f"• {d}" for d in info["documentos"])
@@ -109,8 +111,8 @@ def caminho_completo(categoria: str, secundarias: Sequence[str] = (), cras: Opti
         f"*O que você pode procurar:*\n{servicos}\n\n"
         f"*Documentos para levar:*\n{documentos}\n\n"
         f"*Onde ir:* {info['local_atendimento']}\n"
-        + (f"*CRAS do seu bairro:* {cras}\n" if cras else "")
-        + f"*Contato:* {info['contato_util']}\n\n"
+        f"*Contato:* {info['contato_util']}\n\n"
+        + (f"{locais}\n\n" if locais else "")
     )
     # Plano, seção 4: mais de uma necessidade → mostrar todas, em ordem de prioridade
     for outra in _secundarias_por_prioridade(categoria, secundarias):
@@ -148,12 +150,17 @@ async def obter_conversa(session: AsyncSession, telefone: str, canal: str) -> Co
 
 
 async def processar_mensagem(session: AsyncSession, telefone: str, texto: Optional[str],
-                             canal: str = "evolution", is_audio: bool = False) -> List[str]:
+                             canal: str = "evolution", is_audio: bool = False,
+                             localizacao: Optional[geo.Ponto] = None) -> List[str]:
     """Recebe uma mensagem do cidadão e devolve as mensagens que o bot deve enviar.
-    Persiste estado e histórico."""
+    localizacao: pino de localização do WhatsApp (latitude, longitude). Persiste estado e histórico."""
     conversa = await obter_conversa(session, telefone, canal)
     texto = (texto or "").strip()
-    registrar(session, conversa, "cidadao", "[áudio]" if is_audio else anonimizar_texto(texto))
+    localizacao = localizacao or geo.coordenadas_no_texto(texto)
+    if localizacao:
+        texto = ""
+    registrar(session, conversa, "cidadao",
+              "[áudio]" if is_audio else "[localização enviada]" if localizacao else anonimizar_texto(texto))
     conversa.nao_lidas = (conversa.nao_lidas or 0) + 1
 
     try:
@@ -171,9 +178,12 @@ async def processar_mensagem(session: AsyncSession, telefone: str, texto: Option
                 conversa.categoria_sugerida = conversa.categoria_escolhida = None
                 conversa.classificacao = None
                 if conversa.bairro:  # a coordenação pode ter mudado os bairros de cada CRAS
-                    unidade = await unidades.cras_do_bairro(session, conversa.bairro)
+                    unidade = await unidades.cras_de_referencia(session, conversa.bairro, _ponto(conversa))
                     conversa.unidade_id = unidade.id if unidade else None
-            respostas = await _passo(session, conversa, telefone, texto)
+            if localizacao and conversa.consentiu_em and conversa.estado != "AGUARDANDO_BAIRRO":
+                respostas = await _localizacao_avulsa(session, conversa, localizacao)
+            else:
+                respostas = await _passo(session, conversa, telefone, texto, localizacao)
         apagada = getattr(conversa, "_apagada", False)
         if not apagada:
             for r in respostas:
@@ -215,8 +225,42 @@ async def _emergencia(session: AsyncSession, conversa: Conversa, telefone: str, 
                         nome="Contato via WhatsApp", categoria_final=VIOLENCIA, bairro=conversa.bairro,
                         conversa_id=conversa.telefone_hash, unidade_id=conversa.unidade_id)
     conversa.estado = "FINALIZADA"
-    creas = await unidades.creas_ativo(session)
-    return [catalogo.texto("emergencia", conversa.unidade_id) + (f"\n\n📍 CREAS: {unidades.descricao(creas)}" if creas else "")]
+    locais = await unidades.locais_para(session, VIOLENCIA, _ponto(conversa), conversa.bairro, limite=2)
+    bloco = unidades.bloco_locais(locais)
+    return [catalogo.texto("emergencia", conversa.unidade_id) + (f"\n\n{bloco}" if bloco else "")]
+
+
+def _ponto(conversa: Conversa) -> Optional[geo.Ponto]:
+    if conversa.latitude is None or conversa.longitude is None:
+        return None
+    return conversa.latitude, conversa.longitude
+
+
+async def _definir_local(session: AsyncSession, conversa: Conversa, bairro: Optional[str],
+                         localizacao: Optional[geo.Ponto]) -> Optional[UnidadeAtendimento]:
+    """Guarda o ponto aproximado da pessoa (pino ou centro do bairro) e escolhe o CRAS de referência."""
+    if localizacao:
+        conversa.latitude, conversa.longitude = geo.arredondar(*localizacao)
+        bairro = await geo.bairro_do_ponto(_ponto(conversa)) or "Localização pelo WhatsApp"
+    elif bairro and (centro := await geo.buscar(bairro)):
+        conversa.latitude, conversa.longitude = geo.arredondar(*centro)
+    conversa.bairro = bairro
+    unidade = await unidades.cras_de_referencia(session, bairro, _ponto(conversa))
+    conversa.unidade_id = unidade.id if unidade else None
+    return unidade
+
+
+async def _localizacao_avulsa(session: AsyncSession, conversa: Conversa, localizacao: geo.Ponto) -> List[str]:
+    """Pino enviado fora da pergunta do bairro: atualiza o ponto e, se o caminho já saiu, mostra os lugares mais perto."""
+    await _definir_local(session, conversa, None, localizacao)
+    resposta = "Recebi sua localização. 📍"
+    if conversa.categoria_escolhida:
+        bloco = unidades.bloco_locais(await unidades.locais_para(session, conversa.categoria_escolhida, _ponto(conversa)))
+        return [resposta + (f"\n\n{bloco}" if bloco else "")]
+    if conversa.estado in ("AGUARDANDO_RELATO", "RELATO_NOVAMENTE", "RETORNO"):
+        conversa.estado = "AGUARDANDO_RELATO"
+        return [resposta + " " + catalogo.texto("pedir_relato", conversa.unidade_id)]
+    return [resposta]
 
 
 async def _precisa_bairro(session: AsyncSession, conversa: Conversa) -> bool:
@@ -241,12 +285,12 @@ async def _mostrar_caminho(session: AsyncSession, conversa: Conversa, telefone: 
     opcoes = catalogo.opcoes_fluxo(u)
     if not opcoes["mostrar_outras_necessidades"]:
         secundarias = ()
-    cras = None
-    if u:
-        unidade = await session.get(UnidadeAtendimento, u)
-        cras = unidades.descricao(unidade) if unidade else None
+    locais = await unidades.locais_para(session, conversa.categoria_escolhida, _ponto(conversa), conversa.bairro)
+    bloco = unidades.bloco_locais(locais)
+    if locais and not _ponto(conversa):
+        bloco += "\n\nSe mandar sua *localização* (📎 → Localização), eu indico os lugares mais perto de você."
     modo = opcoes["contato"]
-    caminho = caminho_completo(conversa.categoria_escolhida, secundarias, cras=cras, unidade=u, perguntar_contato=modo == "perguntar")
+    caminho = caminho_completo(conversa.categoria_escolhida, secundarias, locais=bloco, unidade=u, perguntar_contato=modo == "perguntar")
     if modo == "perguntar":
         conversa.estado = "AGUARDANDO_CONTATO"
         return [caminho]
@@ -257,7 +301,8 @@ async def _mostrar_caminho(session: AsyncSession, conversa: Conversa, telefone: 
     return [caminho, catalogo.texto("fim_sem_contato", u)]
 
 
-async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto: str) -> List[str]:
+async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto: str,
+                localizacao: Optional[geo.Ponto] = None) -> List[str]:
     estado = conversa.estado
     texto_norm = normalizar(texto).strip(" .!?")
 
@@ -335,13 +380,14 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
         return ["Para continuar, responda *1* (Sim, concordo) ou *2* (Não)."]
 
     if estado == "AGUARDANDO_BAIRRO":
-        # O bairro escolhe o CRAS; "não sei" ou bairro de fora seguem com o padrão da secretaria
-        bairro = None if texto_norm in unidades.NAO_SEI else texto.strip()[:80]
-        unidade = await unidades.cras_do_bairro(session, bairro) if bairro else None
-        conversa.bairro, conversa.unidade_id = bairro, (unidade.id if unidade else None)
+        # Pino ou bairro escolhem o CRAS; "não sei" ou bairro não encontrado seguem com o padrão da secretaria
+        bairro = None if localizacao or texto_norm in unidades.NAO_SEI else texto.strip()[:80]
+        unidade = await _definir_local(session, conversa, bairro, localizacao)
         conversa.estado = "AGUARDANDO_RELATO"
         if unidade:
-            return [t("cras_indicado").replace("{cras}", unidade.nome) + "\n\n" + t("pedir_relato")]
+            pela_lista = bool(bairro) and await unidades.cras_do_bairro(session, bairro) is not None
+            chave = "cras_indicado" if pela_lista else "cras_mais_perto"
+            return [t(chave).replace("{cras}", unidade.nome) + "\n\n" + t("pedir_relato")]
         if bairro:
             return [t("bairro_nao_encontrado") + "\n\n" + t("pedir_relato")]
         return [t("pedir_relato")]

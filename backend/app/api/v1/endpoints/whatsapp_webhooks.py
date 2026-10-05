@@ -1,9 +1,9 @@
 import hashlib
 import hmac
 import json
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,12 +30,13 @@ async def _enviar(canal: str, telefone: str, mensagens: List[str]) -> None:
             await evolution_adapter.send_text_message(settings.EVOLUTION_INSTANCE_NAME, telefone, texto)
 
 
-async def process_whatsapp_message_background(phone: str, text: Optional[str], canal: str = "evolution", is_audio: bool = False):
+async def process_whatsapp_message_background(phone: str, text: Optional[str], canal: str = "evolution", is_audio: bool = False,
+                                              localizacao: Optional[Tuple[float, float]] = None):
     """Adaptador de canal → fluxo da conversa (grava o histórico) → envio da resposta pelo mesmo canal.
     Se um atendente assumiu a conversa, o fluxo não devolve respostas e o painel mostra a mensagem."""
     await init_db()
     async with abrir_sessao() as session:
-        respostas = await processar_mensagem(session, phone, text, canal=canal, is_audio=is_audio)
+        respostas = await processar_mensagem(session, phone, text, canal=canal, is_audio=is_audio, localizacao=localizacao)
     await _enviar(canal, phone, respostas)
     await live_chat_manager.broadcast_to_tenant(TENANT_PADRAO, {"event": "NOVA_MENSAGEM", "conversa_id": hash_telefone(phone)})
 
@@ -82,6 +83,12 @@ async def webhook_evolution_api(request: Request, background_tasks: BackgroundTa
         background_tasks.add_task(process_whatsapp_message_background, phone, None, "evolution", True)
         return {"status": "received"}
 
+    local = message_data.get("locationMessage") or message_data.get("liveLocationMessage")
+    if local and local.get("degreesLatitude") is not None and local.get("degreesLongitude") is not None:
+        ponto = (float(local["degreesLatitude"]), float(local["degreesLongitude"]))
+        background_tasks.add_task(process_whatsapp_message_background, phone, None, "evolution", False, ponto)
+        return {"status": "received"}
+
     text = (
         message_data.get("conversation")
         or message_data.get("extendedTextMessage", {}).get("text")
@@ -121,6 +128,12 @@ async def webhook_meta_cloud(request: Request, background_tasks: BackgroundTasks
                 if msg_type == "audio":
                     background_tasks.add_task(process_whatsapp_message_background, from_phone, None, "meta", True)
                     continue
+                if msg_type == "location" and from_phone:
+                    loc = msg.get("location", {})
+                    if loc.get("latitude") is not None and loc.get("longitude") is not None:
+                        ponto = (float(loc["latitude"]), float(loc["longitude"]))
+                        background_tasks.add_task(process_whatsapp_message_background, from_phone, None, "meta", False, ponto)
+                    continue
                 text = ""
                 if msg_type == "text":
                     text = msg.get("text", {}).get("body", "")
@@ -133,12 +146,18 @@ async def webhook_meta_cloud(request: Request, background_tasks: BackgroundTasks
 
 class SimulacaoRequest(BaseModel):
     telefone: str = Field(default="5562900000000", description="Número fictício que identifica a conversa simulada")
-    texto: str = Field(min_length=1, max_length=4000)
+    texto: str = Field(default="", max_length=4000)
+    # Pino de localização, como o WhatsApp manda (o painel usa a localização do navegador)
+    latitude: Optional[float] = Field(default=None, ge=-90, le=90)
+    longitude: Optional[float] = Field(default=None, ge=-180, le=180)
 
 
 @router.post("/simular", dependencies=[Depends(usuario_logado)])
 async def simular_conversa(req: SimulacaoRequest, session: AsyncSession = Depends(get_session)):
     """Conversa com o bot sem WhatsApp: mesmo fluxo e mesmo banco, mas devolve as respostas em vez
     de enviá-las. Serve para testes, para o painel e como plano B na apresentação."""
-    respostas = await processar_mensagem(session, req.telefone, req.texto, canal="simulador")
+    localizacao = (req.latitude, req.longitude) if req.latitude is not None and req.longitude is not None else None
+    if not req.texto.strip() and not localizacao:
+        raise HTTPException(status_code=422, detail="Escreva uma mensagem ou envie uma localização.")
+    respostas = await processar_mensagem(session, req.telefone, req.texto, canal="simulador", localizacao=localizacao)
     return {"respostas": respostas, "conversa_id": hash_telefone(req.telefone)}

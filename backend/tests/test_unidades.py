@@ -51,7 +51,8 @@ def test_cadastro_de_unidade_limpa_bairros_e_valida():
         autenticar(client)
         with unidades(client, cras_teste()) as (cras,):
             assert cras["bairros"] == ["Vila Jaiara", "Recanto do Sol"]  # sem vazios nem repetidos
-        assert client.post("/api/v1/configuracao/unidades", json=cras_teste(bairros=[])).status_code == 422
+        # CRAS precisa de bairros ou de endereço (para achar o mais perto)
+        assert client.post("/api/v1/configuracao/unidades", json=cras_teste(bairros=[], endereco="")).status_code == 422
         assert client.post("/api/v1/configuracao/unidades", json=cras_teste(verificado_em="2999-01-01")).status_code == 422
 
 
@@ -82,7 +83,7 @@ def test_bairro_vem_logo_depois_do_aceite_e_define_o_cras():
             r = conversa(client, tel, "oi", "1", "vila jaiara", "perdi minha identidade e preciso tirar outra", "1", "1")
             assert "bairro" in r[1][0]
             assert "CRAS Teste Norte" in r[2][0] and "conte" in r[2][0].lower()
-            assert "CRAS do seu bairro:* *CRAS Teste Norte* — Rua Exemplo, 100" in r[4][0]
+            assert "*CRAS Teste Norte*\nRua Exemplo, 100" in r[4][0]
             nova = next(t for t in client.get("/api/v1/triagem/fila").json() if t["id"] not in antes)
             assert nova["bairro"] == "vila jaiara" and nova["unidade_id"] == cras["id"]
 
@@ -96,7 +97,7 @@ def test_bairro_desconhecido_ou_nao_sei_segue_o_padrao_da_secretaria():
         autenticar(client)
         with unidades(client, cras_teste()):
             r = conversa(client, telefone(), "oi", "1", "Jundiaí")
-            assert "Não encontrei o CRAS do seu bairro" in r[2][0] and "conte" in r[2][0].lower()
+            assert "Não encontrei esse bairro" in r[2][0] and "conte" in r[2][0].lower()
             r = conversa(client, telefone(), "oi", "1", "não sei")
             assert "Não encontrei" not in r[2][0] and "conte" in r[2][0].lower()
 

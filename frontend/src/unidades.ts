@@ -6,7 +6,7 @@ import { useAtualizacao } from './useAtualizacao';
 export interface UnidadeResumo {
   id: string;
   nome: string;
-  tipo: 'CRAS' | 'CREAS' | 'CENTRO_POP';
+  tipo: string;
   ativo: boolean;
 }
 

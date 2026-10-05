@@ -82,12 +82,23 @@ TEXTOS_PADRAO: Dict[str, Dict[str, str]] = {
         ),
     },
     "pedir_bairro": {
-        "descricao": "Pergunta o bairro para indicar o CRAS de referência (só quando há CRAS cadastrado)",
-        "texto": "Para eu indicar o CRAS mais perto de você, em qual *bairro* você mora? Se não souber, responda *não sei*.",
+        "descricao": "Pede a localização ou o bairro para indicar o CRAS e os lugares mais perto (só quando há CRAS cadastrado)",
+        "texto": (
+            "Para eu indicar os lugares mais perto de você, mande sua *localização* "
+            "(no WhatsApp: 📎 → Localização → Enviar localização atual) ou digite o nome do seu *bairro*. "
+            "Se não souber, responda *não sei*."
+        ),
     },
     "bairro_nao_encontrado": {
-        "descricao": "Bairro não encontrado entre os atendidos pelos CRAS cadastrados",
-        "texto": "Não encontrei o CRAS do seu bairro na minha lista. Você pode confirmar o seu CRAS pelo Disque Social 121.",
+        "descricao": "Bairro não encontrado no mapa nem na lista de bairros dos CRAS",
+        "texto": (
+            "Não encontrei esse bairro. Se quiser, mande sua *localização* (📎 → Localização) a qualquer momento. "
+            "Você também pode confirmar o seu CRAS pelo Disque Social 121."
+        ),
+    },
+    "cras_mais_perto": {
+        "descricao": "Depois da localização ou do bairro, quando o CRAS foi escolhido pela distância ({cras} é trocado pelo nome)",
+        "texto": "O CRAS mais perto de você é o *{cras}*.",
     },
     "nao_entendi_de_novo": {
         "descricao": "Segunda vez sem identificar a necessidade: oferece o menu de assuntos",
@@ -153,6 +164,8 @@ TEXTOS_ANTIGOS: Dict[str, tuple] = {
     ),
     "contato_recusado": ("Tudo bem! Se precisar de novo, é só mandar uma mensagem. Cuide-se. 💚",),
     "fim_sem_contato": ("Procure o CRAS com os documentos da lista. Se precisar, é só mandar uma mensagem. 💚",),
+    "pedir_bairro": ("Para eu indicar o CRAS mais perto de você, em qual *bairro* você mora? Se não souber, responda *não sei*.",),
+    "bairro_nao_encontrado": ("Não encontrei o CRAS do seu bairro na minha lista. Você pode confirmar o seu CRAS pelo Disque Social 121.",),
 }
 
 CAMPOS_SERVICO = ("titulo", "servicos", "documentos", "local_atendimento", "contato_util")
@@ -224,7 +237,7 @@ def validar_texto(chave: str, valor: str) -> Optional[str]:
         faltando = [n for n in OBRIGATORIOS_EMERGENCIA if n not in valor]
         if faltando:
             return f"A mensagem de emergência precisa conter os números {', '.join(faltando)}."
-    if chave == "cras_indicado" and "{cras}" not in valor:
+    if chave in ("cras_indicado", "cras_mais_perto") and "{cras}" not in valor:
         return "O texto precisa conter {cras}, que é trocado pelo nome do CRAS."
     return None
 

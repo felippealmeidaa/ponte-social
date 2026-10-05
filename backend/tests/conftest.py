@@ -9,6 +9,9 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///" + os.path.join(tempfile.mkdtemp(), "teste.db")
 # Testes nunca chamam o Gemini de verdade, mesmo com chave no .env (a IA é simulada onde precisa)
 os.environ["GEMINI_API_KEY"] = ""
+# Nem o OpenStreetMap, nem a rede de exemplo: cada teste cadastra as unidades de que precisa
+os.environ["GEOCODIFICAR"] = "false"
+os.environ["CARREGAR_REDE_EXEMPLO"] = "false"
 
 
 def autenticar(client):

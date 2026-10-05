@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { Bot, QrCode, RefreshCw, Send, Smartphone, Trash2, UserRound, Wifi, WifiOff } from 'lucide-react';
+import { Bot, MapPin, QrCode, RefreshCw, Send, Smartphone, Trash2, UserRound, Wifi, WifiOff } from 'lucide-react';
 import { api, enviar, ErroApi } from '../api';
 import { Aviso, Botao, Esqueleto, Selo } from '../components/ui';
 import { irPara } from '../navegacao';
@@ -93,22 +93,48 @@ function TestarBot() {
   const [conversa, setConversa] = useState<{ de: 'pessoa' | 'bot'; texto: string }[]>([]);
   const [conversaId, setConversaId] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [localizando, setLocalizando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const rolagem = useRef<HTMLDivElement>(null);
   // Chaves de propósito: em navegadores novos scrollTo devolve uma Promise, e o React trataria
   // o retorno como função de limpeza do efeito (a tela inteira quebrava).
   useEffect(() => { rolagem.current?.scrollTo({ top: rolagem.current.scrollHeight }); }, [conversa.length]);
 
-  const mandar = async (e: FormEvent) => {
+  const mandar = (e: FormEvent) => {
     e.preventDefault();
     const t = texto.trim();
     if (!t) return;
     setTexto('');
+    falar({ texto: t }, t);
+  };
+
+  // Como o pino de localização do WhatsApp: usa a localização deste navegador
+  const mandarLocalizacao = () => {
     setErro(null);
-    setConversa((c) => [...c, { de: 'pessoa', texto: t }]);
+    if (!navigator.geolocation) {
+      setErro('Este navegador não informa a localização. Digite as coordenadas na mensagem, por exemplo: -16.3267, -48.9528');
+      return;
+    }
+    setLocalizando(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLocalizando(false);
+        falar({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }, '📍 Localização enviada');
+      },
+      () => {
+        setLocalizando(false);
+        setErro('Não foi possível pegar a localização (permissão negada ou indisponível). Digite as coordenadas na mensagem, por exemplo: -16.3267, -48.9528');
+      },
+      { timeout: 10000 },
+    );
+  };
+
+  const falar = async (corpo: { texto?: string; latitude?: number; longitude?: number }, rotulo: string) => {
+    setErro(null);
+    setConversa((c) => [...c, { de: 'pessoa', texto: rotulo }]);
     setEnviando(true);
     try {
-      const r = await api<{ respostas: string[]; conversa_id: string }>('/webhooks/simular', enviar({ telefone, texto: t }));
+      const r = await api<{ respostas: string[]; conversa_id: string }>('/webhooks/simular', enviar({ telefone, ...corpo }));
       setConversaId(r.conversa_id);
       setConversa((c) => [...c, ...r.respostas.map((x) => ({ de: 'bot' as const, texto: x }))]);
       if (r.respostas.length === 0) setConversa((c) => [...c, { de: 'bot', texto: '(Sem resposta automática: um atendente assumiu esta conversa.)' }]);
@@ -132,7 +158,7 @@ function TestarBot() {
                   {m.de === 'pessoa' ? 'Pessoa' : 'Bot'}
                 </span>
                 <p className={`whitespace-pre-wrap rounded-[6px] px-3.5 py-2.5 text-sm leading-relaxed ${m.de === 'pessoa' ? 'bg-[#d9fdd3] text-[#111b21] rounded-br-[2px]' : 'bg-elevada text-texto rounded-bl-[2px]'}`}>
-                  {m.texto.replace(/\*/g, '')}
+                  <ComLinks texto={m.texto.replace(/\*/g, '')} />
                 </p>
               </li>
             ))}
@@ -142,6 +168,8 @@ function TestarBot() {
           <label htmlFor="msg-teste" className="sr-only">Mensagem da pessoa</label>
           <input id="msg-teste" value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Mensagem da pessoa"
             className="h-10 flex-1 rounded-[5px] border border-linha-forte bg-fundo px-3 text-sm hover:border-texto-3 focus:border-caneta focus:outline-none" />
+          <Botao type="button" icone={MapPin} carregando={localizando} disabled={enviando} onClick={mandarLocalizacao}
+            title="Envia a localização deste navegador, como o pino do WhatsApp">Localização</Botao>
           <Botao type="submit" variante="primario" icone={Send} carregando={enviando} disabled={!texto.trim()}>Enviar</Botao>
         </form>
       </section>
@@ -160,6 +188,15 @@ function TestarBot() {
         {erro && <Aviso>{erro}</Aviso>}
       </aside>
     </div>
+  );
+}
+
+/** Texto do bot com os links (mapa) clicáveis, como no WhatsApp. */
+function ComLinks({ texto }: { texto: string }) {
+  return texto.split(/(https?:\/\/\S+)/g).map((parte, i) =>
+    /^https?:\/\//.test(parte)
+      ? <a key={i} href={parte} target="_blank" rel="noreferrer" className="break-all text-caneta underline underline-offset-2">{parte}</a>
+      : parte,
   );
 }
 
