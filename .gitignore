@@ -1,7 +1,11 @@
-# Environment Variables
+# Environment Variables (qualquer .env, em qualquer pasta; só o modelo vai para o git)
 .env
-.env.local
-.env.production
+.env.*
+!.env.example
+
+# Chaves e certificados
+*.pem
+*.key
 
 # Python
 __pycache__/

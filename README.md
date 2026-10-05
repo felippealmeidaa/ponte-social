@@ -25,9 +25,12 @@ cd frontend && npm install && cd ..
 ```
 Opcional: copie `.env.example` para `backend/.env`. **Sem `.env` o projeto roda com um SQLite local** (`backend/triagens_dev.db`); com ele, usa o Postgres do Docker.
 
+O `.env` está no `.gitignore` e **nunca** deve ir para o git. Nenhum segredo tem valor padrão no código: gere com `python -c "import secrets; print(secrets.token_urlsafe(32))"`. Em `ENVIRONMENT=development`, sem `SECRET_KEY`/`ENCRYPTION_SECRET_KEY`, o backend usa chaves temporárias (os logins deixam de valer ao reiniciar); em qualquer outro ambiente elas são obrigatórias.
+
 ### 2. (Opcional) Serviços Docker — Postgres, Redis e Evolution API
+Exige `POSTGRES_PASSWORD`, `REDIS_PASSWORD` e `EVOLUTION_API_KEY` preenchidos no `backend/.env`. As portas ficam acessíveis só em `127.0.0.1`.
 ```bash
-docker compose -f docker/docker-compose.yml up -d
+docker compose --env-file backend/.env -f docker/docker-compose.yml up -d
 ```
 
 ### 3. Treinar e avaliar o modelo

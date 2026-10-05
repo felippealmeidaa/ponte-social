@@ -1,4 +1,3 @@
-import os
 import httpx
 from typing import Dict, Any, Optional, List
 from app.core.config import settings
@@ -12,8 +11,8 @@ class GeminiService:
     3. Copiloto de IA para criação e sugestão de nós de fluxo no Visual Flow Builder
     """
     def __init__(self, api_key: Optional[str] = None, model: Optional[str] = None):
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY", "")
-        self.model = model or os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+        self.api_key = api_key or settings.GEMINI_API_KEY
+        self.model = model or settings.GEMINI_MODEL
         self.base_url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent"
 
     async def generate_response(self, system_prompt: str, user_message: str) -> Dict[str, Any]:
@@ -26,11 +25,10 @@ class GeminiService:
                 "model": self.model
             }
 
+        # Chave no cabeçalho (não na URL) para não vazar em logs de acesso/proxy
         headers = {
-            "Content-Type": "application/json"
-        }
-        params = {
-            "key": self.api_key
+            "Content-Type": "application/json",
+            "x-goog-api-key": self.api_key
         }
         payload = {
             "system_instruction": {
@@ -53,7 +51,6 @@ class GeminiService:
             async with httpx.AsyncClient(timeout=15.0) as client:
                 response = await client.post(
                     self.base_url,
-                    params=params,
                     json=payload,
                     headers=headers
                 )

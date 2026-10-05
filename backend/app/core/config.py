@@ -1,14 +1,19 @@
-import os
+import secrets
+import warnings
+from pathlib import Path
 from typing import List, Union
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Raiz do repositório (onde fica o .env), independente do diretório de execução
+ROOT_DIR = Path(__file__).resolve().parents[3]
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "CRM Inteligente de Encaminhamento Social"
     API_V1_STR: str = "/api/v1"
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
-    
+
     # CORS
     CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:5173",
@@ -25,42 +30,56 @@ class Settings(BaseSettings):
         elif isinstance(v, list):
             return v
         return ["*"]
-    
+
+    # Segredos: NUNCA coloque valores reais aqui. Defina no arquivo .env (fora do git).
     # JWT
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "crm_social_secret_key_jwt_super_segura_2026_dev")
+    SECRET_KEY: str = ""
     ALGORITHM: str = "HS256"
     # Um turno de trabalho: o painel fica aberto o dia todo no CRAS
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "480"))
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-    
+
     # AES-256 Fernet Encryption
-    ENCRYPTION_SECRET_KEY: str = os.getenv("ENCRYPTION_SECRET_KEY", "dGVzdGVfc2VjcmV0X2tleV9hZXNfMjU2X2Zvcl9jcm1fMjAyNg==")
-    
+    ENCRYPTION_SECRET_KEY: str = ""
+
     # Evolution API v2 (WhatsApp não-oficial)
-    EVOLUTION_API_URL: str = os.getenv("EVOLUTION_API_URL", "http://localhost:8080")
-    EVOLUTION_API_KEY: str = os.getenv("EVOLUTION_API_KEY", "CRM_EVOLUTION_SECRET_KEY_2026")
-    
+    EVOLUTION_API_URL: str = "http://localhost:8080"
+    EVOLUTION_API_KEY: str = ""
+
     # Meta Cloud API (WhatsApp Oficial)
-    META_API_VERSION: str = os.getenv("META_API_VERSION", "v20.0")
-    META_WHATSAPP_TOKEN: str = os.getenv("META_WHATSAPP_TOKEN", "")
-    META_PHONE_NUMBER_ID: str = os.getenv("META_PHONE_NUMBER_ID", "")
-    META_WEBHOOK_VERIFY_TOKEN: str = os.getenv("META_WEBHOOK_VERIFY_TOKEN", "meu_token_de_verificacao_meta_crm_2026")
+    META_API_VERSION: str = "v20.0"
+    META_WHATSAPP_TOKEN: str = ""
+    META_PHONE_NUMBER_ID: str = ""
+    META_WEBHOOK_VERIFY_TOKEN: str = ""
 
     # Banco de dados: Postgres do Docker (postgresql+asyncpg://...) ou, sem configuração, SQLite local
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
+    DATABASE_URL: str = ""
     # LGPD: triagens mais antigas que isso são apagadas na inicialização da API
-    RETENCAO_DIAS: int = int(os.getenv("RETENCAO_DIAS", "180"))
+    RETENCAO_DIAS: int = 180
     # Conversa parada há mais tempo que isso recomeça do início
-    CONVERSA_EXPIRA_MIN: int = int(os.getenv("CONVERSA_EXPIRA_MIN", "120"))
-    EVOLUTION_INSTANCE_NAME: str = os.getenv("EVOLUTION_INSTANCE_NAME", "cras-anapolis")
+    CONVERSA_EXPIRA_MIN: int = 120
+    EVOLUTION_INSTANCE_NAME: str = "cras-anapolis"
 
     # Google Gemini LLM API
-    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
-    GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-3.5-flash-lite"
+
+    @model_validator(mode="after")
+    def check_required_secrets(self) -> "Settings":
+        missing = [name for name in ("SECRET_KEY", "ENCRYPTION_SECRET_KEY") if not getattr(self, name)]
+        if not missing:
+            return self
+        if self.ENVIRONMENT != "development":
+            raise ValueError(f"Defina {', '.join(missing)} no .env antes de rodar em {self.ENVIRONMENT}.")
+        # Em desenvolvimento, gera chaves temporárias (tokens deixam de valer ao reiniciar)
+        for name in missing:
+            setattr(self, name, secrets.token_urlsafe(32))
+        warnings.warn(f"{', '.join(missing)} ausente(s) no .env: usando chave temporária de desenvolvimento.")
+        return self
 
     model_config = SettingsConfigDict(
         case_sensitive=True,
-        env_file=".env",
+        env_file=(ROOT_DIR / ".env", ".env"),
         extra="ignore"
     )
 

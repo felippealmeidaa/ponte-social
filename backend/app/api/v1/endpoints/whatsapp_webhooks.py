@@ -1,3 +1,4 @@
+import hmac
 from typing import List, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, Response
@@ -76,7 +77,8 @@ async def verify_meta_webhook(
     hub_challenge: str = Query(None, alias="hub.challenge"),
 ):
     """Verificação de webhook exigida pela Meta Graph API."""
-    if hub_mode == "subscribe" and hub_verify_token == settings.META_WEBHOOK_VERIFY_TOKEN:
+    expected = settings.META_WEBHOOK_VERIFY_TOKEN
+    if hub_mode == "subscribe" and expected and hub_verify_token and hmac.compare_digest(hub_verify_token, expected):
         return Response(content=hub_challenge, media_type="text/plain")
     return Response(content="Token inválido", status_code=403)
 
