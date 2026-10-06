@@ -22,6 +22,13 @@ export interface Triagem {
   tem_contato: boolean;
   servicos_recomendados: string[];
   documentos_necessarios: string[];
+  /** "es" quando a pessoa escreveu em espanhol: relato_original é o que ela escreveu, relato_traducao é para a equipe. */
+  idioma?: string | null;
+  relato_traducao?: string | null;
+  responsavel?: string | null;
+  responsavel_nome?: string | null;
+  atendido_em?: string | null;
+  avaliacao?: number | null;
 }
 
 export interface ResumoConversa {
@@ -41,5 +48,7 @@ export interface Mensagem {
   id: number;
   autor: 'cidadao' | 'bot' | 'atendente';
   texto: string;
+  /** Em conversa em espanhol: o texto em português. */
+  traducao?: string | null;
   criado_em: string;
 }

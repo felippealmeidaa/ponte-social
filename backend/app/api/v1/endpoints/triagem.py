@@ -1,6 +1,7 @@
 from collections import Counter
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, Literal, Optional
+from statistics import median
+from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -10,9 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import escopo, pode_ver, usuario_logado
 from app.core.security import decrypt_secret
 from app.db import get_session
-from app.models import Triagem
+from app.models import Mensagem, Triagem, UnidadeAtendimento, iso
 from app.services import unidades
 from app.services.avisos import avisar_andamento
+from app.services.llm.resumo import resumir
 from app.services.live_chat.manager import live_chat_manager
 from app.services.ml.classifier_service import SocialClassifierService
 from app.services.triagens import STATUS_VALIDOS, TENANT_PADRAO, criar_triagem, listar, para_dict
@@ -88,6 +90,8 @@ async def atualizar_status_triagem(triagem_id: str, payload: UpdateStatusRequest
     mudou = triagem.status != payload.status
     triagem.status = payload.status
     triagem.atualizado_em = datetime.now(timezone.utc)
+    if payload.status in ATENDIDO and not triagem.atendido_em:
+        triagem.atendido_em = triagem.atualizado_em  # primeira resposta da equipe (tempo de resposta)
     if payload.observacoes is not None:
         triagem.observacoes = payload.observacoes.strip() or None
     await session.commit()
@@ -96,6 +100,81 @@ async def atualizar_status_triagem(triagem_id: str, payload: UpdateStatusRequest
         "event": "STATUS_ATUALIZADO", "triagem_id": triagem_id, "novo_status": payload.status,
     })
     return {"message": "Status atualizado com sucesso", "triagem": para_dict(triagem), "aviso": aviso}
+
+
+ATENDIDO = {"EM_ATENDIMENTO", "ENCAMINHADO_CREAS", "CONCLUIDO"}
+
+
+async def _triagem_ou_404(session: AsyncSession, triagem_id: str, usuario: Dict[str, Any]) -> Triagem:
+    triagem = await session.get(Triagem, triagem_id)
+    if triagem is None or not pode_ver(usuario, triagem.unidade_id):
+        raise HTTPException(status_code=404, detail="Triagem não encontrada")
+    return triagem
+
+
+class AssumirRequest(BaseModel):
+    soltar: bool = False
+    avisar: bool = True
+
+
+@router.post("/{triagem_id}/assumir")
+async def assumir_caso(triagem_id: str, payload: AssumirRequest, usuario: Dict[str, Any] = Depends(usuario_logado),
+                       session: AsyncSession = Depends(get_session)):
+    """Deixa claro quem está cuidando do caso. Assumir um caso aberto já o põe "Em atendimento" (e avisa a pessoa)."""
+    triagem = await _triagem_ou_404(session, triagem_id, usuario)
+    aviso = None
+    if payload.soltar:
+        triagem.responsavel = triagem.responsavel_nome = None
+    else:
+        triagem.responsavel, triagem.responsavel_nome = usuario.get("sub"), usuario.get("nome")
+        if triagem.status in {"PENDENTE", "URGENTE_CREAS"}:
+            triagem.status = "EM_ATENDIMENTO"
+            triagem.atendido_em = triagem.atendido_em or datetime.now(timezone.utc)
+            await session.commit()
+            aviso = await avisar_andamento(session, triagem, "EM_ATENDIMENTO") if payload.avisar else None
+    triagem.atualizado_em = datetime.now(timezone.utc)
+    await session.commit()
+    await live_chat_manager.broadcast_to_tenant(TENANT_PADRAO, {"event": "STATUS_ATUALIZADO", "triagem_id": triagem_id,
+                                                                "novo_status": triagem.status})
+    return {"triagem": para_dict(triagem), "aviso": aviso}
+
+
+@router.get("/{triagem_id}/historico")
+async def historico_da_pessoa(triagem_id: str, usuario: Dict[str, Any] = Depends(usuario_logado),
+                              session: AsyncSession = Depends(get_session)):
+    """Outros pedidos do mesmo número (pela chave da conversa, sem mostrar o número), do mais novo ao mais antigo."""
+    triagem = await _triagem_ou_404(session, triagem_id, usuario)
+    if not triagem.conversa_id:
+        return []
+    outros = (await session.execute(
+        select(Triagem).where(Triagem.conversa_id == triagem.conversa_id, Triagem.id != triagem.id).order_by(Triagem.criado_em.desc())
+    )).scalars().all()
+    return [{"id": t.id, "criado_em": iso(t.criado_em), "categoria": t.categoria, "status": t.status, "avaliacao": t.avaliacao}
+            for t in outros if pode_ver(usuario, t.unidade_id)]
+
+
+@router.get("/{triagem_id}/resumo-ia")
+async def resumo_do_caso(triagem_id: str, usuario: Dict[str, Any] = Depends(usuario_logado),
+                         session: AsyncSession = Depends(get_session)):
+    """Resumo da conversa feito pela IA (gerado uma vez e guardado). None sem IA."""
+    triagem = await _triagem_ou_404(session, triagem_id, usuario)
+    if triagem.resumo_ia:
+        return {"resumo": triagem.resumo_ia}
+    linhas: List[str] = []
+    if triagem.conversa_id:
+        mensagens = (await session.execute(
+            select(Mensagem).where(Mensagem.conversa_id == triagem.conversa_id, Mensagem.criado_em <= (triagem.atualizado_em or datetime.now(timezone.utc)) + timedelta(days=1))
+            .order_by(Mensagem.id).limit(80)
+        )).scalars().all()
+        quem = {"cidadao": "Pessoa", "bot": "Bot", "atendente": "Equipe"}
+        linhas = [f"{quem.get(m.autor, m.autor)}: {m.traducao or m.texto}" for m in mensagens]
+    if not linhas:
+        linhas = [f"Pessoa: {triagem.relato_traducao or triagem.relato_anonimizado}"]
+    resumo = await resumir(linhas)
+    if resumo:
+        triagem.resumo_ia = resumo
+        await session.commit()
+    return {"resumo": resumo}
 
 
 @router.get("/exemplos-rotulados")
@@ -158,4 +237,31 @@ async def indicadores(dias: int = 30, usuario: Dict[str, Any] = Depends(usuario_
             "sugestao_aceita": sum(t.categoria == t.categoria_modelo for t in confirmadas),
         },
         "horas_ate_primeiro_atendimento": round(sum(horas) / len(horas), 1) if horas else None,
+        "tempo_resposta": await _tempo_resposta(session, itens),
+        "avaliacao": {
+            "respostas": len(notas := [t.avaliacao for t in itens if t.avaliacao]),
+            "media": round(sum(notas) / len(notas), 1) if notas else None,
+            "por_nota": {str(n): notas.count(n) for n in range(1, 6)},
+        },
     }
+
+
+async def _tempo_resposta(session: AsyncSession, itens: List[Triagem]) -> List[Dict[str, Any]]:
+    """Minutos entre a chegada e a primeira resposta da equipe, por CRAS, separando urgentes dos demais (mediana)."""
+    def minutos(t: Triagem) -> float:
+        return (t.atendido_em.replace(tzinfo=timezone.utc) - t.criado_em.replace(tzinfo=timezone.utc)).total_seconds() / 60
+
+    grupos: Dict[Optional[str], List[Triagem]] = {}
+    for t in itens:
+        grupos.setdefault(t.unidade_id, []).append(t)
+    nomes = {u.id: u.nome for u in (await session.execute(select(UnidadeAtendimento))).scalars()}
+    saida = []
+    for unidade_id, casos in grupos.items():
+        linha: Dict[str, Any] = {"unidade_id": unidade_id, "nome": nomes.get(unidade_id, "Sem CRAS definido (coordenação)")}
+        for chave, filtro in (("urgentes", lambda t: t.prioridade == "URGENTE_VIOLENCIA"), ("demais", lambda t: t.prioridade != "URGENTE_VIOLENCIA")):
+            do_grupo = [t for t in casos if filtro(t)]
+            atendidos = [minutos(t) for t in do_grupo if t.atendido_em]
+            linha[chave] = {"casos": len(do_grupo), "atendidos": len(atendidos),
+                            "mediana_min": round(median(atendidos)) if atendidos else None}
+        saida.append(linha)
+    return sorted(saida, key=lambda x: x["nome"])

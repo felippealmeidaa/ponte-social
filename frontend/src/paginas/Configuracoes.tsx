@@ -90,7 +90,7 @@ function ConexaoWhatsApp() {
 function TestarBot() {
   const [telefone, setTelefone] = useState('5562900000001');
   const [texto, setTexto] = useState('');
-  const [conversa, setConversa] = useState<{ de: 'pessoa' | 'bot'; texto: string }[]>([]);
+  const [conversa, setConversa] = useState<{ de: 'pessoa' | 'bot'; texto: string; audio?: string }[]>([]);
   const [conversaId, setConversaId] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [localizando, setLocalizando] = useState(false);
@@ -176,9 +176,10 @@ function TestarBot() {
       const dados = new FormData();
       dados.append('telefone', telefone);
       dados.append('audio', audio, 'audio.' + (audio.type.includes('ogg') ? 'ogg' : 'webm'));
-      const r = await api<{ respostas: string[]; conversa_id: string }>('/webhooks/simular-audio', { method: 'POST', body: dados });
+      const r = await api<{ respostas: string[]; conversa_id: string; audio_resposta: string | null }>('/webhooks/simular-audio', { method: 'POST', body: dados });
       setConversaId(r.conversa_id);
-      setConversa((c) => [...c, ...r.respostas.map((x) => ({ de: 'bot' as const, texto: x }))]);
+      setConversa((c) => [...c, ...r.respostas.map((x) => ({ de: 'bot' as const, texto: x })),
+        ...(r.audio_resposta ? [{ de: 'bot' as const, texto: '🔊 Resposta falada', audio: r.audio_resposta }] : [])]);
     } catch (err) {
       setErro(err instanceof ErroApi ? err.message : 'Não foi possível mandar o áudio.');
     } finally {
@@ -191,9 +192,10 @@ function TestarBot() {
     setConversa((c) => [...c, { de: 'pessoa', texto: rotulo }]);
     setEnviando(true);
     try {
-      const r = await api<{ respostas: string[]; conversa_id: string }>('/webhooks/simular', enviar({ telefone, ...corpo }));
+      const r = await api<{ respostas: string[]; conversa_id: string; audio_resposta?: string | null }>('/webhooks/simular', enviar({ telefone, ...corpo }));
       setConversaId(r.conversa_id);
-      setConversa((c) => [...c, ...r.respostas.map((x) => ({ de: 'bot' as const, texto: x }))]);
+      setConversa((c) => [...c, ...r.respostas.map((x) => ({ de: 'bot' as const, texto: x })),
+        ...(r.audio_resposta ? [{ de: 'bot' as const, texto: '🔊 Resposta falada', audio: r.audio_resposta }] : [])]);
       if (r.respostas.length === 0) setConversa((c) => [...c, { de: 'bot', texto: '(Sem resposta automática: um atendente assumiu esta conversa.)' }]);
     } catch (err) {
       setErro(err instanceof ErroApi ? err.message : 'Não foi possível falar com o bot.');
@@ -214,9 +216,13 @@ function TestarBot() {
                   {m.de === 'pessoa' ? <UserRound className="size-3" aria-hidden /> : <Bot className="size-3" aria-hidden />}
                   {m.de === 'pessoa' ? 'Pessoa' : 'Bot'}
                 </span>
-                <p className={`whitespace-pre-wrap rounded-[6px] px-3.5 py-2.5 text-sm leading-relaxed ${m.de === 'pessoa' ? 'bg-[#d9fdd3] text-[#111b21] rounded-br-[2px]' : 'bg-elevada text-texto rounded-bl-[2px]'}`}>
-                  <ComLinks texto={m.texto.replace(/\*/g, '')} />
-                </p>
+                {m.audio ? (
+                  <audio controls src={m.audio} className="h-10 max-w-full" aria-label="Resposta falada do bot" />
+                ) : (
+                  <p className={`whitespace-pre-wrap rounded-[6px] px-3.5 py-2.5 text-sm leading-relaxed ${m.de === 'pessoa' ? 'bg-[#d9fdd3] text-[#111b21] rounded-br-[2px]' : 'bg-elevada text-texto rounded-bl-[2px]'}`}>
+                    <ComLinks texto={m.texto.replace(/\*/g, '')} />
+                  </p>
+                )}
               </li>
             ))}
           </ol>

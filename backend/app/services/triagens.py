@@ -45,6 +45,12 @@ def para_dict(t: Triagem) -> Dict[str, Any]:
         "tem_contato": bool(t.telefone_cifrado),
         "servicos_recomendados": t.servicos_recomendados or [],
         "documentos_necessarios": t.documentos_necessarios or [],
+        "idioma": t.idioma,
+        "relato_traducao": t.relato_traducao,
+        "responsavel": t.responsavel,
+        "responsavel_nome": t.responsavel_nome,
+        "atendido_em": iso(t.atendido_em),
+        "avaliacao": t.avaliacao,
     }
 
 
@@ -63,6 +69,8 @@ async def criar_triagem(
     consentiu_treino: bool = False,
     conversa_id: Optional[str] = None,
     unidade_id: Optional[str] = None,
+    idioma: Optional[str] = None,
+    relato_traducao: Optional[str] = None,
 ) -> Triagem:
     """categoria_final: categoria depois da confirmação/correção do cidadão. Se diferente da sugerida,
     os dados de serviço/documentos passam a ser os da categoria corrigida."""
@@ -92,6 +100,8 @@ async def criar_triagem(
         consentiu_uso_para_treino=consentiu_treino,
         conversa_id=conversa_id,
         unidade_id=unidade_id,
+        idioma=idioma if idioma and idioma != "pt" else None,
+        relato_traducao=anonimizar_texto(relato_traducao) if relato_traducao else None,
     )
     session.add(triagem)
     await session.commit()

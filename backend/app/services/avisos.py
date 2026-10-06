@@ -10,9 +10,10 @@ from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Conversa, Mensagem, Triagem, UnidadeAtendimento
+from app.models import Conversa, Mensagem, Triagem, UnidadeAtendimento, agora
 from app.services import catalogo
 from app.services.channels.envio import enviar_pelo_canal
+from app.services.llm.traducao import traduzir
 from app.services.ml.train_evaluator import VIOLENCIA
 
 TEXTO_POR_STATUS = {"EM_ATENDIMENTO": "aviso_em_atendimento", "CONCLUIDO": "aviso_concluido"}
@@ -44,11 +45,22 @@ async def avisar_andamento(session: AsyncSession, triagem: Triagem, status: str)
     if conversa is None:  # a pessoa apagou os dados
         return {"enviado": False, "motivo": "conversa_apagada"}
     unidade = await session.get(UnidadeAtendimento, triagem.unidade_id) if triagem.unidade_id else None
-    texto = (catalogo.texto(chave, triagem.unidade_id)
-             .replace("{cras}", unidade.nome if unidade else "CRAS")
-             .replace("{assunto}", NOME_ASSUNTO.get(triagem.categoria, "seu pedido")))
-    if not await enviar_pelo_canal(conversa, texto):
-        return {"enviado": False, "motivo": "falha_no_envio"}
-    session.add(Mensagem(conversa_id=conversa.telefone_hash, autor="bot", texto=texto))
+    textos = [catalogo.texto(chave, triagem.unidade_id)
+              .replace("{cras}", unidade.nome if unidade else "CRAS")
+              .replace("{assunto}", NOME_ASSUNTO.get(triagem.categoria, "seu pedido"))]
+    # Concluído: pede a nota de 1 a 5 (se ninguém da equipe estiver conversando com a pessoa agora)
+    avaliar = status == "CONCLUIDO" and not conversa.atendimento_humano
+    if avaliar:
+        textos.append(catalogo.texto("pedir_avaliacao", triagem.unidade_id))
+    enviados = await traduzir(textos, "es") if conversa.idioma == "es" else textos
+    for i, (enviado, pt) in enumerate(zip(enviados, textos)):
+        if not await enviar_pelo_canal(conversa, enviado):
+            if i == 0:
+                return {"enviado": False, "motivo": "falha_no_envio"}
+            avaliar = False
+            break
+        session.add(Mensagem(conversa_id=conversa.telefone_hash, autor="bot", texto=enviado, traducao=pt if pt != enviado else None))
+    if avaliar:
+        conversa.estado, conversa.avaliando_triagem, conversa.atualizado_em = "AGUARDANDO_AVALIACAO", triagem.id, agora()
     await session.commit()
     return {"enviado": True, "motivo": None}

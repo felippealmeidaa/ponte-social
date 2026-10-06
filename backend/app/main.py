@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -6,7 +7,7 @@ from app.core.config import settings
 from app.api.v1.api import api_router
 from app.db import abrir_sessao, init_db
 from app.services.live_chat.manager import live_chat_manager
-from app.services import catalogo, unidades, usuarios
+from app.services import acompanhamento, catalogo, unidades, usuarios
 from app.services.triagens import aplicar_retencao, popular_demo_se_vazio
 
 
@@ -24,7 +25,11 @@ async def lifespan(app: FastAPI):
         if apagadas:
             print(f"[LGPD] {apagadas} triagens apagadas por passarem do prazo de retenção.")
         await popular_demo_se_vazio(session)
+    # Retorno "conseguiu ir ao CRAS?" para quem não quis contato (ver services/acompanhamento.py)
+    tarefa = asyncio.create_task(acompanhamento.rodar_periodicamente()) if settings.ACOMPANHAMENTO_AUTOMATICO else None
     yield
+    if tarefa:
+        tarefa.cancel()
 
 
 app = FastAPI(

@@ -11,12 +11,15 @@ from app.db import get_session
 from app.models import Conversa, Mensagem, Triagem, agora, iso
 from app.services import catalogo
 from app.services.channels.envio import enviar_pelo_canal
+from app.services.llm.traducao import traduzir
 
 router = APIRouter(dependencies=[Depends(usuario_logado)])
 
 
 class RespostaRequest(BaseModel):
     texto: str = Field(min_length=1, max_length=4000)
+    # Pessoa que fala espanhol: o atendente escreve em português e a mensagem sai traduzida
+    traduzir: bool = True
 
 
 def _iso(dt) -> Optional[str]:
@@ -74,8 +77,10 @@ async def mensagens_da_conversa(conversa_id: str, depois_de: int = 0, usuario: D
     mensagens = (await session.execute(q)).scalars().all()
     return {
         "conversa": {"id": conversa.telefone_hash, "telefone_mascarado": conversa.telefone_mascarado, "canal": conversa.canal,
-                     "estado": conversa.estado, "atendimento_humano": conversa.atendimento_humano, "atendente": conversa.atendente},
-        "mensagens": [{"id": m.id, "autor": m.autor, "texto": m.texto, "criado_em": _iso(m.criado_em)} for m in mensagens],
+                     "estado": conversa.estado, "atendimento_humano": conversa.atendimento_humano, "atendente": conversa.atendente,
+                     "idioma": conversa.idioma},
+        "mensagens": [{"id": m.id, "autor": m.autor, "texto": m.texto, "traducao": m.traducao, "criado_em": _iso(m.criado_em)}
+                      for m in mensagens],
     }
 
 
@@ -119,10 +124,12 @@ async def responder(conversa_id: str, req: RespostaRequest, usuario: Dict[str, A
     conversa = await _conversa_ou_404(session, conversa_id, usuario)
     if not conversa.atendimento_humano:
         conversa.atendimento_humano, conversa.atendente = True, usuario.get("sub")
-    mensagem = Mensagem(conversa_id=conversa_id, autor="atendente", texto=req.texto.strip())
+    texto = req.texto.strip()
+    saida = (await traduzir([texto], "es"))[0] if conversa.idioma == "es" and req.traduzir else texto
+    mensagem = Mensagem(conversa_id=conversa_id, autor="atendente", texto=saida, traducao=texto if saida != texto else None)
     session.add(mensagem)
     conversa.atualizado_em, conversa.nao_lidas = agora(), 0
     await session.commit()
-    enviada = await enviar_pelo_canal(conversa, req.texto.strip())
-    return {"id": mensagem.id, "enviada": enviada,
+    enviada = await enviar_pelo_canal(conversa, saida)
+    return {"id": mensagem.id, "enviada": enviada, "traduzida": saida != texto,
             "aviso": None if enviada else "Mensagem salva, mas o WhatsApp não confirmou o envio. Verifique a conexão em Configurações."}

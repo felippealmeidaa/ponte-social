@@ -103,4 +103,4 @@ class SocialClassifierService:
             return {**local, "tipo_mensagem": "pedido", "resumo_ia": ""}
         return {**cls.montar(ia["categoria"], "ia" if ia["categoria"] != NAO_IDENTIFICADO else "nao_identificado",
                              secundarias=ia["secundarias"]),
-                "tipo_mensagem": ia["tipo"], "resumo_ia": ia["resumo"]}
+                "tipo_mensagem": ia["tipo"], "resumo_ia": ia["resumo"], "idioma": ia.get("idioma", "pt")}

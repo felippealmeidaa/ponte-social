@@ -23,6 +23,15 @@ async def enviar_pelo_canal(conversa: Conversa, texto: str) -> bool:
     return await enviar(conversa.canal, telefone, [texto])
 
 
+async def enviar_audio(canal: str, telefone: str, wav: bytes) -> bool:
+    """Resposta falada. Só pela Evolution: a API oficial da Meta não aceita WAV."""
+    if canal != "evolution":
+        return False
+    import base64
+    r = await evolution_adapter.send_audio(settings.EVOLUTION_INSTANCE_NAME, telefone, base64.b64encode(wav).decode())
+    return isinstance(r, dict) and r.get("status") != "error" and not r.get("error")
+
+
 async def enviar(canal: str, telefone: str, mensagens: List[str]) -> bool:
     """Devolve False se alguma mensagem não saiu (os adaptadores não levantam erro: devolvem status error)."""
     tudo_certo = True

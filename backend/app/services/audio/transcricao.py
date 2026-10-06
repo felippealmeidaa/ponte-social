@@ -21,7 +21,8 @@ log = logging.getLogger(__name__)
 MAX_BYTES = 15 * 1024 * 1024
 INAUDIVEL = "[inaudível]"
 PROMPT = (
-    "Transcreva exatamente o que a pessoa fala neste áudio de WhatsApp, em português do Brasil, como texto corrido. "
+    "Transcreva exatamente o que a pessoa fala neste áudio de WhatsApp, no idioma em que ela fala "
+    "(português ou espanhol, sem traduzir), como texto corrido. "
     "Não resuma, não corrija o sentido, não responda à pessoa e não acrescente nada. "
     f"Se não houver fala compreensível, responda apenas {INAUDIVEL}"
 )

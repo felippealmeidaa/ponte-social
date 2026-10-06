@@ -45,6 +45,16 @@ class EvolutionApiAdapter:
             pass
         return None
 
+    async def send_audio(self, instance: str, number: str, audio_base64: str) -> Dict[str, Any]:
+        """Envia um áudio como mensagem de voz (a Evolution converte o WAV para o formato do WhatsApp)."""
+        url = f"{self.base_url}/message/sendWhatsAppAudio/{instance}"
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(url, json={"number": number, "audio": audio_base64}, headers=self.headers)
+                return response.json()
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
+
     async def send_buttons_message(self, instance: str, number: str, title: str, description: str, buttons: List[Dict[str, str]]) -> Dict[str, Any]:
         """Envia mensagem com botões interativos para confirmação de triagem"""
         url = f"{self.base_url}/message/sendButtons/{instance}"

@@ -68,6 +68,57 @@ TEXTOS_PADRAO: Dict[str, Dict[str, str]] = {
         "descricao": "Áudio que não deu para entender (sem fala clara, longo demais ou transcrição indisponível)",
         "texto": "Não consegui entender seu áudio. 🙏 Pode me contar por escrito ou mandar outro áudio mais curto, falando perto do celular?",
     },
+    "oferecer_ajuda": {
+        "descricao": "Quando a pessoa diz \"não entendi\": oferece áudio ou uma explicação mais simples",
+        "texto": "Sem problema! Como fica melhor para você?\n*1* - Ouvir em áudio 🔊\n*2* - Ler uma explicação mais simples e detalhada",
+    },
+    "audio_enviando": {
+        "descricao": "A pessoa pediu áudio: vai junto com a mensagem falada",
+        "texto": "Certo! Te mando em áudio. 🔊",
+    },
+    "audio_indisponivel": {
+        "descricao": "A pessoa pediu áudio, mas não deu para gravar agora: o bot explica por escrito",
+        "texto": "Não consegui gravar o áudio agora. 😕 Vou explicar por escrito:",
+    },
+    "repetir_com_calma": {
+        "descricao": "Quando não dá para gerar uma explicação nova: o bot repete a última mensagem",
+        "texto": "Vou repetir com calma:",
+    },
+    "situacao_sem_pedido": {
+        "descricao": "Resposta a \"meu pedido\" quando a pessoa não tem pedido enviado ao CRAS",
+        "texto": "Não encontrei pedido seu enviado ao CRAS por este número. Se quiser, me conte o que está acontecendo e eu te oriento.",
+    },
+    "situacao_pedido": {
+        "descricao": "Resposta a \"meu pedido\" ({situacao}, {assunto}, {cras} e {data} são trocados)",
+        "texto": "Seu pedido sobre *{assunto}*, enviado em {data}, está *{situacao}* no *{cras}*. Se precisar falar com a equipe, é só responder aqui.",
+    },
+    "situacao_protegida": {
+        "descricao": "Resposta a \"meu pedido\" em caso de violência: sem detalhes, para a segurança da pessoa",
+        "texto": "Seu pedido está com a equipe da assistência social. Se estiver em perigo agora, ligue *190*. Para falar com a equipe, procure o CRAS ou o CREAS.",
+    },
+    "pedir_avaliacao": {
+        "descricao": "Enviada logo depois do aviso de caso concluído: nota de 1 a 5",
+        "texto": "Para melhorar o atendimento: de *1* a *5*, quanto essa ajuda foi útil para você? (*1* = nada, *5* = muito)",
+    },
+    "avaliacao_obrigado": {
+        "descricao": "Depois que a pessoa dá a nota de 1 a 5",
+        "texto": "Obrigado pela resposta! 💚 Se precisar de novo, é só mandar uma mensagem.",
+    },
+    "acompanhamento": {
+        "descricao": "Enviada dias depois a quem não quis contato do CRAS ({assunto} é trocado). Nunca em violência.",
+        "texto": (
+            "Oi! Há alguns dias eu te orientei sobre *{assunto}*. Você conseguiu ir ao CRAS?\n"
+            "*1* - Sim, já fui\n*2* - Ainda não. Quero que o CRAS entre em contato comigo\n*3* - Não preciso mais"
+        ),
+    },
+    "acompanhamento_foi": {
+        "descricao": "Resposta a quem disse que já foi ao CRAS",
+        "texto": "Que bom! 💚 Se precisar de novo, é só mandar uma mensagem.",
+    },
+    "acompanhamento_nao_precisa": {
+        "descricao": "Resposta a quem disse que não precisa mais",
+        "texto": "Tudo bem! Se precisar, é só mandar uma mensagem. Cuide-se. 💚",
+    },
     "aviso_em_atendimento": {
         "descricao": "Aviso pelo WhatsApp quando a equipe começa a atender o caso ({cras} e {assunto} são trocados). Nunca vai em caso de violência.",
         "texto": "Olá! A equipe do *{cras}* recebeu seu pedido sobre *{assunto}* e já está cuidando dele. Se precisar, é só responder aqui.",
@@ -221,6 +272,7 @@ OPCOES_PADRAO: Dict[str, object] = {
     "menu_na_primeira_falha": False,
     "mostrar_outras_necessidades": True,
     "contato": "perguntar",              # perguntar | sempre | nunca
+    "perguntar_depois": True,            # quem não quis contato recebe "conseguiu ir ao CRAS?" dias depois
 }
 VALORES_CONTATO = ("perguntar", "sempre", "nunca")
 SO_SECRETARIA = {"perguntar_bairro"}

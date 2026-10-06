@@ -14,7 +14,7 @@ from app.db import abrir_sessao, get_session, init_db
 from app.services.anonimizacao import hash_telefone
 from app.services.audio.transcricao import transcrever
 from app.services.bot.fluxo_conversa import processar_mensagem
-from app.services.channels.envio import enviar, evolution_adapter, meta_adapter
+from app.services.channels.envio import enviar, enviar_audio, evolution_adapter, meta_adapter
 from app.services.live_chat.manager import live_chat_manager
 from app.services.triagens import TENANT_PADRAO
 
@@ -26,10 +26,14 @@ async def process_whatsapp_message_background(phone: str, text: Optional[str], c
     """Adaptador de canal → fluxo da conversa (grava o histórico) → envio da resposta pelo mesmo canal.
     Se um atendente assumiu a conversa, o fluxo não devolve respostas e o painel mostra a mensagem."""
     await init_db()
+    saida: dict = {}
     async with abrir_sessao() as session:
         respostas = await processar_mensagem(session, phone, text, canal=canal, is_audio=is_audio,
-                                             localizacao=localizacao, de_audio=de_audio)
+                                             localizacao=localizacao, de_audio=de_audio, saida=saida)
     await enviar(canal, phone, respostas)
+    # Áudio só quando a pessoa pede ("manda em áudio" ou "não entendi" → 1): economiza créditos
+    if saida.get("audio"):
+        await enviar_audio(canal, phone, saida["audio"])
     await live_chat_manager.broadcast_to_tenant(TENANT_PADRAO, {"event": "NOVA_MENSAGEM", "conversa_id": hash_telefone(phone)})
 
 
@@ -178,8 +182,13 @@ async def simular_conversa(req: SimulacaoRequest, session: AsyncSession = Depend
     localizacao = (req.latitude, req.longitude) if req.latitude is not None and req.longitude is not None else None
     if not req.texto.strip() and not localizacao:
         raise HTTPException(status_code=422, detail="Escreva uma mensagem ou envie uma localização.")
-    respostas = await processar_mensagem(session, req.telefone, req.texto, canal="simulador", localizacao=localizacao)
-    return {"respostas": respostas, "conversa_id": hash_telefone(req.telefone)}
+    saida: dict = {}
+    respostas = await processar_mensagem(session, req.telefone, req.texto, canal="simulador", localizacao=localizacao, saida=saida)
+    return {"respostas": respostas, "conversa_id": hash_telefone(req.telefone), "audio_resposta": _data_url(saida)}
+
+
+def _data_url(saida: dict) -> Optional[str]:
+    return f"data:audio/wav;base64,{base64.b64encode(saida['audio']).decode()}" if saida.get("audio") else None
 
 
 @router.post("/simular-audio", dependencies=[Depends(usuario_logado)])
@@ -188,5 +197,6 @@ async def simular_audio(telefone: str = Form(default="5562900000000"), audio: Up
     """Áudio gravado no navegador, como um áudio do WhatsApp: transcreve e segue o fluxo. Devolve o que foi ouvido."""
     conteudo = await audio.read()
     texto = await transcrever(conteudo, audio.content_type or "audio/webm")
-    respostas = await processar_mensagem(session, telefone, texto, canal="simulador", is_audio=not texto, de_audio=bool(texto))
-    return {"respostas": respostas, "transcricao": texto, "conversa_id": hash_telefone(telefone)}
+    saida: dict = {}
+    respostas = await processar_mensagem(session, telefone, texto, canal="simulador", is_audio=not texto, de_audio=bool(texto), saida=saida)
+    return {"respostas": respostas, "transcricao": texto, "conversa_id": hash_telefone(telefone), "audio_resposta": _data_url(saida)}

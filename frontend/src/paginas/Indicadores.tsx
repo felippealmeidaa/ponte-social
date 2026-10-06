@@ -21,6 +21,18 @@ interface Resumo {
   por_dia: { dia: string; total: number }[];
   acerto_do_sistema: { confirmadas_pelo_cidadao: number; sugestao_aceita: number };
   horas_ate_primeiro_atendimento: number | null;
+  tempo_resposta: TempoCras[];
+  avaliacao: { respostas: number; media: number | null; por_nota: Record<string, number> };
+}
+
+interface GrupoTempo { casos: number; atendidos: number; mediana_min: number | null }
+interface TempoCras { unidade_id: string | null; nome: string; urgentes: GrupoTempo; demais: GrupoTempo }
+
+function duracao(min: number) {
+  if (min < 60) return `${min} min`;
+  if (min < 1440) return `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}`;
+  const d = Math.round(min / 1440);
+  return `${d} dia${d > 1 ? 's' : ''}`;
 }
 
 const PERIODOS = [7, 30, 90];
@@ -90,6 +102,23 @@ export function Indicadores() {
             </div>
           </div>
 
+          {dados.tempo_resposta.length > 0 && <TempoResposta linhas={dados.tempo_resposta} />}
+
+          {dados.avaliacao.respostas > 0 && dados.avaliacao.media !== null && (
+            <section aria-labelledby="t-nota" className="grid gap-6 lg:grid-cols-[1fr_1.4fr]">
+              <div>
+                <h2 id="t-nota" className="titulo mb-2 text-[22px] leading-[1.05]">Nota das pessoas atendidas</h2>
+                <p className="max-w-[44ch] text-[15px] text-texto-2">
+                  Média <strong className="titulo text-[28px] text-texto tabular">{dados.avaliacao.media.toLocaleString('pt-BR')}</strong> de 5,
+                  em <strong className="text-texto tabular">{dados.avaliacao.respostas}</strong> resposta{dados.avaliacao.respostas > 1 ? 's' : ''}.
+                  A pergunta vai pelo WhatsApp quando o caso é concluído.
+                </p>
+              </div>
+              <Barras itens={['5', '4', '3', '2', '1'].map((n) => ({ chave: n, rotulo: `Nota ${n}${n === '5' ? ' (ajudou muito)' : n === '1' ? ' (não ajudou)' : ''}`, valor: dados.avaliacao.por_nota[n] ?? 0 }))}
+                total={dados.avaliacao.respostas} />
+            </section>
+          )}
+
           <section aria-labelledby="t-acerto" className="rounded-[6px] border border-linha px-5 py-4">
             <h2 id="t-acerto" className="text-sm font-medium">Sugestão do sistema confirmada pelas pessoas</h2>
             {dados.acerto_do_sistema.confirmadas_pelo_cidadao === 0 ? (
@@ -105,6 +134,49 @@ export function Indicadores() {
         </div>
       )}
     </>
+  );
+}
+
+function TempoResposta({ linhas }: { linhas: TempoCras[] }) {
+  const celula = (g: GrupoTempo, urgente: boolean) => (
+    <td className="px-3 py-2.5 align-top">
+      {g.casos === 0 ? <span className="text-texto-3">sem casos</span> : g.mediana_min === null ? (
+        <span className={urgente ? 'font-semibold text-urgente' : 'text-texto-2'}>{g.casos} sem resposta ainda</span>
+      ) : (
+        <>
+          <span className={`font-semibold tabular ${urgente ? 'text-urgente' : 'text-texto'}`}>{duracao(g.mediana_min)}</span>
+          <span className="block text-[12.5px] text-texto-3 tabular">{g.atendidos} de {g.casos} respondidos</span>
+        </>
+      )}
+    </td>
+  );
+  return (
+    <section aria-labelledby="t-tempo">
+      <h2 id="t-tempo" className="titulo mb-1.5 text-[22px] leading-[1.05]">Tempo até a primeira resposta</h2>
+      <p className="mb-4 max-w-[70ch] text-[14px] text-texto-2">
+        Quanto tempo a equipe leva, desde a chegada do caso, para assumir ou marcar “Em atendimento”. Mediana: metade dos casos foi respondida mais rápido que isso.
+      </p>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[520px] border-collapse text-left text-[14.5px]">
+          <thead>
+            <tr className="border-b-2 border-texto text-[13px] text-texto-2">
+              <th scope="col" className="px-3 py-2 font-semibold">Unidade</th>
+              <th scope="col" className="px-3 py-2 font-semibold"><ShieldAlert className="mr-1 inline size-3.5 align-[-2px] text-urgente" aria-hidden />Violência</th>
+              <th scope="col" className="px-3 py-2 font-semibold">Demais casos</th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.map((l) => (
+              <tr key={l.unidade_id ?? 'sem'} className="border-b border-linha">
+                <th scope="row" className="px-3 py-2.5 align-top font-semibold">{l.nome}</th>
+                {celula(l.urgentes, true)}
+                {celula(l.demais, false)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 

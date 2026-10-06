@@ -46,6 +46,7 @@ PROMPT = (
     "(ex.: \"você está sem comida em casa e tem filhos pequenos\"). Use só o que a pessoa disse: não acrescente urgência, "
     "detalhes ou sentimentos. Não prometa benefício nem diga que ela tem direito. "
     "Vazio se não for pedido.\n"
+    "- idioma: \"es\" se a mensagem está em espanhol, \"pt\" se em português, \"outro\" se em outro idioma.\n"
     "Na dúvida sobre violência ou risco, escolha violencia_protecao: é melhor encaminhar com prioridade."
 )
 
@@ -58,8 +59,9 @@ SCHEMA = {
         "categoria": {"type": "STRING", "enum": _TODAS},
         "secundarias": {"type": "ARRAY", "items": {"type": "STRING", "enum": CATEGORIAS}},
         "resumo": {"type": "STRING"},
+        "idioma": {"type": "STRING", "enum": ["pt", "es", "outro"]},
     },
-    "required": ["tipo", "categoria", "secundarias", "resumo"],
+    "required": ["tipo", "categoria", "secundarias", "resumo", "idioma"],
 }
 
 
@@ -75,7 +77,9 @@ def _validar(dados: Any) -> Optional[Dict[str, Any]]:
     categoria = dados["categoria"] if tipo == "pedido" else NAO_IDENTIFICADO
     secundarias = [c for c in dados.get("secundarias") or [] if c in CATEGORIAS and c != categoria]
     resumo = str(dados.get("resumo") or "").strip().rstrip(".")[:160] if categoria != NAO_IDENTIFICADO else ""
-    return {"tipo": tipo, "categoria": categoria, "secundarias": list(dict.fromkeys(secundarias)), "resumo": resumo}
+    idioma = dados.get("idioma") if dados.get("idioma") in ("pt", "es", "outro") else "pt"
+    return {"tipo": tipo, "categoria": categoria, "secundarias": list(dict.fromkeys(secundarias)), "resumo": resumo,
+            "idioma": idioma}
 
 
 async def entender(texto: str) -> Optional[Dict[str, Any]]:

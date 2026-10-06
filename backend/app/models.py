@@ -54,6 +54,18 @@ class Triagem(Base):
     observacoes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     consentiu_uso_para_treino: Mapped[bool] = mapped_column(default=False)
 
+    # Relato em outro idioma (ex.: espanhol): o relato fica como a pessoa escreveu e a equipe lê a tradução
+    idioma: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
+    relato_traducao: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Quem da equipe assumiu o caso e quando ele foi atendido pela primeira vez (tempo de resposta)
+    responsavel: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    responsavel_nome: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    atendido_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Nota de 1 a 5 que a pessoa deu pelo WhatsApp depois de concluído
+    avaliacao: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    # Resumo da conversa feito pela IA para a ficha (gerado na primeira vez que alguém abre)
+    resumo_ia: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
 
 class Conversa(Base):
     """Estado da conversa de cada contato no WhatsApp (ver services/bot/fluxo_conversa.py).
@@ -82,6 +94,16 @@ class Conversa(Base):
     # Atendimento humano: com um atendente na conversa, o bot fica em silêncio
     atendimento_humano: Mapped[bool] = mapped_column(default=False)
     atendente: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    # "es" quando a pessoa escreve em espanhol: o bot responde traduzido e a equipe lê em português
+    idioma: Mapped[Optional[str]] = mapped_column(String(5), nullable=True)
+    # Retorno dias depois para quem não quis contato: {"em", "categoria", "relato", "classificacao", "enviado"}
+    acompanhamento: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    # Triagem concluída esperando a nota de 1 a 5
+    avaliando_triagem: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
+    # Última resposta do bot (em português): é o que vai em áudio ou explicado de novo quando a pessoa não entende
+    ultima_resposta: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # "Não entendi": a etapa em que a conversa estava, para voltar a ela depois da ajuda
+    ajuda: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     nao_lidas: Mapped[int] = mapped_column(Integer, default=0)
 
 
@@ -93,6 +115,8 @@ class Mensagem(Base):
     conversa_id: Mapped[str] = mapped_column(String(64), index=True)
     autor: Mapped[str] = mapped_column(String(20))  # cidadao | bot | atendente
     texto: Mapped[str] = mapped_column(Text)
+    # Em conversa noutro idioma: o texto em português (o que a pessoa escreveu traduzido, ou o original do bot/atendente)
+    traducao: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=agora, index=True)
 
 

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { ClipboardPlus, Inbox, Search, X } from 'lucide-react';
+import { ClipboardPlus, Inbox, Languages, Search, UserRoundCheck, X } from 'lucide-react';
+import { sessaoSalva } from '../api';
 import { FichaCaso } from '../components/FichaCaso';
 import { RegistrarAtendimento } from '../components/RegistrarAtendimento';
 import { Aviso, Botao, Esqueleto, Selo, TituloFileira, Vazio } from '../components/ui';
@@ -43,6 +44,8 @@ export function Fila({ fila, filtroEstado }: { fila: ReturnType<typeof useAtuali
   const [abertoId, setAbertoId] = useState<string | null>(null);
   const [registrando, setRegistrando] = useState(false);
   const [vistos, setVistos] = useState<Set<string> | null>(lerVistos);
+  const [meus, setMeus] = useState(false);
+  const eu = sessaoSalva()?.id ?? null;
 
   const triagens = useMemo(() => fila.dados ?? [], [fila.dados]);
 
@@ -71,9 +74,12 @@ export function Fila({ fila, filtroEstado }: { fila: ReturnType<typeof useAtuali
     const termo = busca.trim().toLowerCase();
     return triagens.filter((t) =>
       (!filtroEstado || t.status === filtroEstado) &&
-      (!termo || [t.relato_original, t.bairro, nomeCategoria(t.categoria), t.telefone_mascarado].some((c) => c.toLowerCase().includes(termo))),
+      (!meus || (eu !== null && t.responsavel === eu)) &&
+      (!termo || [t.relato_original, t.relato_traducao ?? '', t.bairro, nomeCategoria(t.categoria), t.telefone_mascarado]
+        .some((c) => c.toLowerCase().includes(termo))),
     );
-  }, [triagens, busca, filtroEstado]);
+  }, [triagens, busca, filtroEstado, meus, eu]);
+  const quantosMeus = eu ? triagens.filter((t) => t.responsavel === eu && t.status !== 'CONCLUIDO' && t.status !== 'ARQUIVADO').length : 0;
 
   const fileiras: Fileira[] = useMemo(() => {
     const porEspera = (a: Triagem, b: Triagem) => a.criado_em.localeCompare(b.criado_em);
@@ -111,9 +117,24 @@ export function Fila({ fila, filtroEstado }: { fila: ReturnType<typeof useAtuali
               className="h-10 w-72 max-w-full rounded-[5px] border border-linha-forte bg-superficie pl-9 pr-3 text-[15px] hover:border-texto-3 focus:border-caneta focus:outline-none focus:ring-2 focus:ring-caneta/15"
             />
           </label>
+          <button type="button" aria-pressed={meus} onClick={() => setMeus((m) => !m)}
+            className={`inline-flex h-10 items-center gap-2 rounded-[5px] border px-3.5 text-[14.5px] transition-colors duration-150 ${meus
+              ? 'border-caneta bg-caneta-fundo font-semibold text-caneta'
+              : 'border-linha-forte bg-superficie text-texto hover:border-texto-3 hover:bg-elevada'}`}>
+            <UserRoundCheck className="size-4" aria-hidden />
+            Meus casos
+            {quantosMeus > 0 && <span className="rounded-full bg-caneta px-1.5 text-[12px] font-bold leading-[18px] text-white tabular">{quantosMeus}</span>}
+          </button>
           <Botao variante="primario" icone={ClipboardPlus} onClick={() => setRegistrando(true)}>Registrar atendimento</Botao>
         </div>
       </header>
+
+      {meus && (
+        <div className="mb-6 flex items-center gap-2 text-sm text-texto-2">
+          Mostrando só os casos que você assumiu.
+          <Botao tamanho="sm" variante="fantasma" icone={X} onClick={() => setMeus(false)}>Mostrar todos</Botao>
+        </div>
+      )}
 
       {filtroEstado && ESTADOS[filtroEstado] && (
         <div className="mb-6 flex items-center gap-2 text-sm text-texto-2">
@@ -244,12 +265,22 @@ function Guia({ caso, novo, grande, onAbrir }: { caso: Triagem; novo: boolean; g
             <span className="shrink-0 text-[13px] font-semibold text-caneta">Novo</span>
           ) : null}
         </span>
-        <span className={`${grande ? 'line-clamp-3 text-[16.5px]' : 'line-clamp-2 text-[15px]'} leading-snug text-texto`}>“{caso.relato_original}”</span>
+        <span className={`${grande ? 'line-clamp-3 text-[16.5px]' : 'line-clamp-2 text-[15px]'} leading-snug text-texto`}>
+          {caso.relato_traducao && (
+            <span className="mr-1.5 inline-flex translate-y-[-1px] items-center gap-1 rounded-[4px] bg-info-fundo px-1.5 align-middle text-[11.5px] font-semibold text-info">
+              <Languages className="size-3" aria-hidden />traduzido
+            </span>
+          )}
+          “{caso.relato_traducao ?? caso.relato_original}”
+        </span>
         <span className="grid grid-cols-2 gap-x-6 gap-y-1 border-t border-linha pt-2.5 text-[13px] sm:grid-cols-4">
           <span><span className="block text-[11.5px] text-texto-3">Bairro</span><span className="font-semibold">{caso.bairro !== 'Não informado' ? caso.bairro : 'não informado'}</span></span>
           <span><span className="block text-[11.5px] text-texto-3">Chegou por</span><span className="font-semibold">{CANAIS[caso.canal] ?? caso.canal}</span></span>
           <span><span className="block text-[11.5px] text-texto-3">Prioridade</span><span className={`font-semibold ${urgente ? 'text-urgente' : ''}`}>{prioridade.rotulo}</span></span>
-          <span><span className="block text-[11.5px] text-texto-3">Situação</span><Selo tom={estado.tom} semIcone>{estado.rotulo}</Selo></span>
+          <span>
+            <span className="block text-[11.5px] text-texto-3">Situação</span><Selo tom={estado.tom} semIcone>{estado.rotulo}</Selo>
+            {caso.responsavel_nome && <span className="mt-0.5 block truncate text-[12px] text-texto-2">com {caso.responsavel_nome}</span>}
+          </span>
         </span>
       </span>
     </button>

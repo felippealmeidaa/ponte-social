@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowLeft, Bot, Hand, MessagesSquare, Send, UserRound } from 'lucide-react';
+import { ArrowLeft, Bot, Hand, Languages, MessagesSquare, Send, UserRound } from 'lucide-react';
 import { api, enviar, ErroApi } from '../api';
 import { Aviso, Botao, Esqueleto, Selo, Vazio } from '../components/ui';
 import { irPara } from '../navegacao';
@@ -103,6 +103,7 @@ function Conversa({ id, resumo, onMudou }: { id: string; resumo?: ResumoConversa
   const [erro, setErro] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
+  const [idioma, setIdioma] = useState<string | null>(null);
   const rolagem = useRef<HTMLDivElement>(null);
   const ultimoId = useRef(0);
 
@@ -112,8 +113,9 @@ function Conversa({ id, resumo, onMudou }: { id: string; resumo?: ResumoConversa
     if (buscando.current) return; // uma busca por vez, senão as mesmas mensagens chegam duas vezes
     buscando.current = true;
     try {
-      const r = await api<{ conversa: { atendimento_humano: boolean }; mensagens: Mensagem[] }>(`/atendimento/conversas/${id}/mensagens?depois_de=${ultimoId.current}`);
+      const r = await api<{ conversa: { atendimento_humano: boolean; idioma?: string | null }; mensagens: Mensagem[] }>(`/atendimento/conversas/${id}/mensagens?depois_de=${ultimoId.current}`);
       setHumano(r.conversa.atendimento_humano);
+      setIdioma(r.conversa.idioma ?? null);
       if (r.mensagens.length) {
         ultimoId.current = Math.max(ultimoId.current, r.mensagens[r.mensagens.length - 1].id);
         setMensagens((m) => {
@@ -201,6 +203,12 @@ function Conversa({ id, resumo, onMudou }: { id: string; resumo?: ResumoConversa
         </div>
       </div>
 
+      {idioma === 'es' && (
+        <p className="flex items-center gap-2 border-b border-linha bg-info-fundo px-5 py-2 text-[13.5px] text-info">
+          <Languages className="size-4 shrink-0" aria-hidden />
+          Esta pessoa escreve em espanhol. Você lê tudo em português, e o que você escrever vai traduzido para o espanhol.
+        </p>
+      )}
       <div ref={rolagem} className="max-h-[60dvh] flex-1 overflow-y-auto px-5 py-5" aria-live="polite">
         {!carregou && !erro && <div className="flex flex-col gap-3" aria-busy="true">{[0, 1, 2].map((i) => <Esqueleto key={i} className={`h-14 ${i % 2 ? 'ml-auto w-2/3' : 'w-1/2'}`} />)}</div>}
         <ol className="flex flex-col gap-3">
@@ -219,7 +227,7 @@ function Conversa({ id, resumo, onMudou }: { id: string; resumo?: ResumoConversa
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }}
-            placeholder={humano ? 'Escreva para a pessoa (Enter envia, Shift+Enter quebra linha)' : 'Responder assume a conversa e pausa o bot'}
+            placeholder={idioma === 'es' ? 'Escreva em português: vai traduzido para o espanhol (Enter envia)' : humano ? 'Escreva para a pessoa (Enter envia, Shift+Enter quebra linha)' : 'Responder assume a conversa e pausa o bot'}
             className="min-h-11 flex-1 resize-none rounded-[5px] border border-linha-forte bg-fundo px-3 py-2.5 text-sm hover:border-texto-3 focus:border-caneta focus:outline-none"
           />
           <Botao type="submit" variante="primario" icone={Send} carregando={ocupado} disabled={!texto.trim()}>Enviar</Botao>
@@ -243,7 +251,15 @@ function Balao({ mensagem: m }: { mensagem: Mensagem }) {
       <span className="flex items-center gap-1 text-[11px] text-texto-3">
         <Icone className="size-3" aria-hidden />{autor}, {new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
       </span>
-      <p className={`whitespace-pre-wrap rounded-[6px] px-3.5 py-2.5 text-sm leading-relaxed ${estilo}`}><TextoWhatsApp texto={m.texto} /></p>
+      <p className={`whitespace-pre-wrap rounded-[6px] px-3.5 py-2.5 text-sm leading-relaxed ${estilo}`}><TextoWhatsApp texto={m.traducao ?? m.texto} /></p>
+      {m.traducao && (
+        <details className={`max-w-full text-[12px] text-texto-3 ${doCidadao ? '' : 'text-right'}`}>
+          <summary className="inline-flex cursor-pointer list-none items-center gap-1 hover:text-texto-2">
+            <Languages className="size-3" aria-hidden />{doCidadao ? 'traduzido do espanhol · ver original' : 'enviado em espanhol · ver'}
+          </summary>
+          <p lang="es" className="mt-1 whitespace-pre-wrap text-left text-[12.5px] italic leading-snug text-texto-2"><TextoWhatsApp texto={m.texto} /></p>
+        </details>
+      )}
     </li>
   );
 }

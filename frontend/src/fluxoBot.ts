@@ -5,7 +5,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   Ban, BookOpenCheck, Hand, HeartHandshake, Inbox, ListChecks, MapPin, MessageCircleQuestion, MessageSquareText,
-  MessageSquarePlus, Mic, Phone, RotateCcw, ShieldAlert, Siren, ThumbsUp, Trash2, Undo2, UserRound,
+  MessageSquarePlus, Mic, Phone, Volume2, RotateCcw, ShieldAlert, Siren, ThumbsUp, Trash2, Undo2, UserRound,
 } from 'lucide-react';
 
 export type TipoEtapa = 'normal' | 'urgente' | 'fim' | 'automatico';
@@ -58,6 +58,7 @@ export type OpcoesFluxo = {
   menu_na_primeira_falha: boolean;
   mostrar_outras_necessidades: boolean;
   contato: 'perguntar' | 'sempre' | 'nunca';
+  perguntar_depois: boolean;
 };
 
 const TRAVA_SEGURANCA = 'Proteção da vida: vale para todos os CRAS e não pode ser desligada.';
@@ -153,7 +154,10 @@ export const ETAPAS: Etapa[] = [
   },
   {
     id: 'encerrado', titulo: 'Encerrado', icone: HeartHandshake, tipo: 'fim',
-    quando: 'A pessoa recebeu o caminho e não quis contato. Nada entra na fila, e o bot avisa que o pedido não foi enviado ao CRAS.', textos: [],
+    quando: 'A pessoa recebeu o caminho e não quis contato. Nada entra na fila, e o bot avisa que o pedido não foi enviado ao CRAS. Dias depois, o bot pergunta se ela conseguiu ir; se não, ela pode pedir contato.',
+    textos: ['acompanhamento', 'acompanhamento_foi', 'acompanhamento_nao_precisa'], estados: ['AGUARDANDO_ACOMPANHAMENTO'],
+    opcoes: [{ chave: 'perguntar_depois', tipo: 'bool', rotulo: 'Perguntar dias depois se a pessoa conseguiu ir ao CRAS',
+      ajuda: 'Quem não quis contato recebe, 3 dias depois, “Você conseguiu ir ao CRAS?”. Se ainda não foi, pode pedir contato e o caso entra na Fila. Nunca em caso de violência.' }],
   },
 
   // Comandos e situações à parte
@@ -178,7 +182,12 @@ export const ETAPAS: Etapa[] = [
   },
   {
     id: 'audio', titulo: 'Mensagem de áudio', icone: Mic, tipo: 'normal',
-    quando: 'A pessoa manda áudio: o bot transcreve, diz o que ouviu (“🎤 Ouvi seu áudio assim…”) e segue a conversa como se ela tivesse escrito. Se não der para entender, manda o texto abaixo.', textos: ['audio'],
+    quando: 'A pessoa manda áudio: o bot transcreve, diz o que ouviu (“🎤 Ouvi seu áudio assim…”) e segue a conversa como se ela tivesse escrito; a resposta vai por escrito (áudio só se ela pedir). Se não der para entender, manda o texto abaixo.', textos: ['audio'],
+  },
+  {
+    id: 'ajuda', titulo: '“não entendi” e áudio', icone: Volume2, tipo: 'normal',
+    quando: 'A qualquer momento. Se a pessoa disser “não entendi”, o bot oferece ouvir a última resposta em áudio ou ler uma explicação mais simples, e depois volta para a etapa em que estava. Se pedir “manda em áudio”, vai direto o áudio. Fora isso, o bot não manda áudio (economiza créditos).',
+    textos: ['oferecer_ajuda', 'audio_enviando', 'audio_indisponivel', 'repetir_com_calma'], estados: ['AGUARDANDO_AJUDA'],
   },
   {
     id: 'atendente', titulo: 'Atendente assumiu', icone: UserRound, tipo: 'normal',
@@ -224,7 +233,7 @@ export const DESVIOS: Record<string, { rotulo: string; etapa: string }[][]> = {
 /** Vale em qualquer etapa, para todos os CRAS. */
 export const SEGURANCA = ['violencia', 'emergencia', 'fila_urgente'];
 
-export const COMANDOS = ['apagar', 'recomecar', 'retorno', 'agradecimento', 'audio', 'atendente'];
+export const COMANDOS = ['apagar', 'recomecar', 'ajuda', 'retorno', 'agradecimento', 'audio', 'atendente'];
 
 /** Coluna do trilho a que uma etapa pertence (a principal ou a de onde sai o desvio), para a orelha do editor. */
 export function colunaDaEtapa(id: string): number | null {

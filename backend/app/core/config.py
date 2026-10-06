@@ -87,6 +87,13 @@ class Settings(BaseSettings):
     # Áudio do WhatsApp: transcreve (Gemini ou Whisper local) para o bot entender quem fala em vez de escrever
     TRANSCREVER_AUDIO: bool = True
     AUDIO_MAX_SEGUNDOS: int = 180
+    # Quem manda áudio recebe a resposta também falada (Gemini TTS; só pela Evolution)
+    RESPONDER_EM_AUDIO: bool = True
+    GEMINI_TTS_MODEL: str = "gemini-2.5-flash-preview-tts"
+    GEMINI_TTS_VOZ: str = "Kore"
+    # Quem não quis contato do CRAS recebe, depois destes dias, a pergunta "conseguiu ir?"
+    RETORNO_DIAS: int = 3
+    ACOMPANHAMENTO_AUTOMATICO: bool = True
 
     @model_validator(mode="after")
     def check_required_secrets(self) -> "Settings":

@@ -36,7 +36,7 @@ CATEGORIAS_POR_TIPO = {
     "SINE": ["trabalho_renda"],
     "OUTRO": [],
 }
-NAO_SEI = {"nao sei", "nao lembro", "sei la", "n sei", "nao", "nenhum", "pular"}
+NAO_SEI = {"nao sei", "nao lembro", "sei la", "n sei", "nao", "nenhum", "pular", "no se", "no lo se"}
 # Tolera erros de digitação ("jaiaira" → "Jaiara"), sem confundir bairros diferentes
 SEMELHANCA_MINIMA = 0.82
 # Até 2 lugares onde se pede o benefício (CRAS, CadÚnico, documentos, SINE, CREAS) e, depois, até 2 de

@@ -71,5 +71,6 @@ def test_ia_nao_inventa_categoria():
     assert entendimento._validar({"tipo": "pedido", "categoria": "auxilio_gas", "secundarias": [], "resumo": "x"}) is None
     r = entendimento._validar({"tipo": "pedido", "categoria": "moradia", "secundarias": ["moradia", "inventada", "alimentacao"],
                                "resumo": "você foi despejado."})
-    assert r == {"tipo": "pedido", "categoria": "moradia", "secundarias": ["alimentacao"], "resumo": "você foi despejado"}
+    assert r == {"tipo": "pedido", "categoria": "moradia", "secundarias": ["alimentacao"], "resumo": "você foi despejado",
+                 "idioma": "pt"}
     assert entendimento._validar({"tipo": "cumprimento", "categoria": "moradia", "secundarias": [], "resumo": "x"})["categoria"] == "nao_identificado"

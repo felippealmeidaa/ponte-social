@@ -27,6 +27,13 @@ Regras:
   Travados para todos: violência, aceite, "apagar" e "recomeçar". Na emergência, mostra o CREAS cadastrado.
 - Áudio: a mensagem transcrita segue como texto; o bot começa dizendo o que ouviu, para a pessoa corrigir
   se ele ouviu errado (menos na emergência, que vem sempre primeiro). Sem transcrição, pede para escrever.
+- Espanhol: quem escreve em espanhol é atendido em espanhol. O bot lê a tradução em português (as regras de
+  segurança são em português) e responde traduzido; a equipe vê tudo em português (Mensagem.traducao).
+- Áudio só quando a pessoa pede (economiza créditos): "manda em áudio" fala a última resposta; "não entendi"
+  oferece *1* áudio ou *2* explicação mais simples, e depois a conversa volta para a etapa em que estava.
+- "Meu pedido" em qualquer etapa: o bot diz a situação do último pedido (em violência, sem detalhes).
+- Quem não quis contato recebe, dias depois, "conseguiu ir ao CRAS?" (services/acompanhamento.py); quem teve o
+  caso concluído pode dar uma nota de 1 a 5 (services/avisos.py). As duas respostas chegam aqui.
 - Comandos em qualquer etapa: "apagar" (exclui os dados da pessoa, com confirmação) e "recomeçar".
 - Conversa parada além de CONVERSA_EXPIRA_MIN recomeça; quem já consentiu não é perguntado de novo.
 - A triagem só entra na fila se a pessoa pedir contato do CRAS.
@@ -49,6 +56,9 @@ from app.core.security import encrypt_secret, mask_phone
 from app.models import Conversa, Mensagem, Triagem, UnidadeAtendimento, agora
 from app.services import catalogo, desenho_fluxo, geo, unidades
 from app.services.anonimizacao import anonimizar_texto, hash_telefone
+from app.services.audio.voz import falar
+from app.services.llm.explicar import explicar
+from app.services.llm.traducao import parece_espanhol, precisa_traduzir, traduzir
 from app.services.ml.classifier_service import PRIORIDADE_POR_CATEGORIA, SocialClassifierService
 from app.services.ml.text_rules import normalizar
 from app.services.ml.train_evaluator import CATEGORIAS, NAO_IDENTIFICADO, VIOLENCIA
@@ -68,13 +78,31 @@ NOMES_CATEGORIA = {
 # Etapas em que a mensagem é o relato da pessoa: só nelas a IA lê o texto
 ETAPAS_DE_RELATO = {"AGUARDANDO_RELATO", "RELATO_NOVAMENTE", "RETORNO"}
 
-SIM = {"1", "sim", "s", "ss", "isso", "certo", "concordo", "aceito", "pode", "quero", "claro", "ok", "beleza", "isso mesmo"}
-NAO = {"2", "nao", "n", "nao quero", "errado", "nao e isso", "negativo"}
+SIM = {"1", "sim", "s", "ss", "isso", "certo", "concordo", "aceito", "pode", "quero", "claro", "ok", "beleza", "isso mesmo", "si"}
+NAO = {"2", "nao", "n", "nao quero", "errado", "nao e isso", "negativo", "no"}
 
 # Escolha de como informar onde mora (texto pedir_bairro). "4" (prefiro não informar) segue sem local.
 OPCOES_LOCAL = {"1": "pedir_localizacao", "2": "pedir_cep", "3": "pedir_nome_bairro"}
 
-COMANDO_APAGAR = {"apagar", "apagar meus dados", "apagar dados", "excluir meus dados", "excluir dados", "apague meus dados"}
+COMANDO_SITUACAO = {"meu pedido", "e o meu pedido", "cade meu pedido", "como esta meu pedido", "como ta meu pedido",
+                    "situacao do meu pedido", "status do meu pedido", "status do pedido", "andamento do meu pedido",
+                    "meu caso", "como esta meu caso", "status", "situacao", "andamento"}
+COMANDO_NAO_ENTENDI = {"nao entendi", "nao entendi nada", "nao entendo", "nao compreendi", "nao consegui entender",
+                       "como assim", "explica melhor", "explique melhor", "pode explicar", "pode explicar melhor",
+                       "explica de novo", "nao entendi direito", "nao to entendendo", "nao estou entendendo"}
+COMANDO_AUDIO = {"audio", "manda audio", "manda um audio", "mande audio", "mande um audio", "em audio", "manda em audio",
+                 "mande em audio", "quero audio", "quero em audio", "quero ouvir", "pode mandar audio", "pode mandar um audio",
+                 "me manda um audio", "me manda audio", "explica em audio", "fala em audio", "responde em audio",
+                 "nao sei ler", "nao consigo ler"}
+# Canais em que dá para mandar áudio (a API oficial da Meta não aceita o WAV gerado)
+CANAIS_COM_AUDIO = {"evolution", "simulador"}
+# Etapas em que o bot espera uma resposta que pode chegar dias depois: não expiram
+ESPERA_LONGA = {"AGUARDANDO_AVALIACAO", "AGUARDANDO_ACOMPANHAMENTO"}
+SITUACAO_PEDIDO = {"PENDENTE": "aguardando a equipe", "EM_ATENDIMENTO": "em atendimento", "CONCLUIDO": "concluído",
+                   "ARQUIVADO": "encerrado"}
+
+COMANDO_APAGAR = {"apagar", "apagar meus dados", "apagar dados", "excluir meus dados", "excluir dados", "apague meus dados",
+                  "borrar", "borrar mis datos", "eliminar mis datos"}
 COMANDO_RECOMECAR = {"recomecar", "reiniciar", "comecar de novo", "menu", "inicio", "voltar ao inicio"}
 AGRADECIMENTO = {"obrigado", "obrigada", "obg", "brigado", "brigada", "valeu", "vlw", "agradeco", "muito obrigado",
                  "muito obrigada", "ok obrigado", "ok obrigada", "ok", "beleza", "blz", "ta bom", "certo", "👍", "🙏"}
@@ -141,8 +169,8 @@ def caminho_completo(categoria: str, secundarias: Sequence[str] = (), locais: st
     return texto
 
 
-def registrar(session: AsyncSession, conversa: Conversa, autor: str, texto: str) -> None:
-    session.add(Mensagem(conversa_id=conversa.telefone_hash, autor=autor, texto=texto))
+def registrar(session: AsyncSession, conversa: Conversa, autor: str, texto: str, traducao: Optional[str] = None) -> None:
+    session.add(Mensagem(conversa_id=conversa.telefone_hash, autor=autor, texto=texto, traducao=traducao))
 
 
 async def obter_conversa(session: AsyncSession, telefone: str, canal: str) -> Conversa:
@@ -159,18 +187,28 @@ async def obter_conversa(session: AsyncSession, telefone: str, canal: str) -> Co
 
 async def processar_mensagem(session: AsyncSession, telefone: str, texto: Optional[str],
                              canal: str = "evolution", is_audio: bool = False,
-                             localizacao: Optional[geo.Ponto] = None, de_audio: bool = False) -> List[str]:
+                             localizacao: Optional[geo.Ponto] = None, de_audio: bool = False,
+                             saida: Optional[dict] = None) -> List[str]:
     """Recebe uma mensagem do cidadão e devolve as mensagens que o bot deve enviar.
     localizacao: pino de localização do WhatsApp (latitude, longitude). Persiste estado e histórico.
-    is_audio: áudio que não deu para transcrever. de_audio: texto que veio da transcrição de um áudio."""
+    is_audio: áudio que não deu para transcrever. de_audio: texto que veio da transcrição de um áudio.
+    saida: se a pessoa pediu áudio, recebe {"audio": bytes WAV} para quem chamou enviar junto."""
     conversa = await obter_conversa(session, telefone, canal)
     texto = (texto or "").strip()
     localizacao = localizacao or geo.coordenadas_no_texto(texto)
     if localizacao:
         texto = ""
+    # Espanhol: o bot lê a tradução em português; o original fica no histórico e no relato do caso
+    original = texto
+    if texto and not conversa.idioma and parece_espanhol(texto):
+        conversa.idioma = "es"
+    if conversa.idioma == "es" and precisa_traduzir(texto):
+        texto = (await traduzir([texto], "pt"))[0]
+    conversa._original = original if original != texto else None
     registrar(session, conversa, "cidadao",
               "[áudio]" if is_audio else "[localização enviada]" if localizacao
-              else ("🎤 " if de_audio else "") + anonimizar_texto(texto))
+              else ("🎤 " if de_audio else "") + anonimizar_texto(original),
+              traducao=anonimizar_texto(texto) if conversa._original else None)
     conversa.nao_lidas = (conversa.nao_lidas or 0) + 1
 
     try:
@@ -181,7 +219,7 @@ async def processar_mensagem(session: AsyncSession, telefone: str, texto: Option
         else:
             expirada = conversa.atualizado_em is not None and \
                 conversa.atualizado_em.replace(tzinfo=agora().tzinfo) < agora() - timedelta(minutes=settings.CONVERSA_EXPIRA_MIN)
-            if expirada or conversa.estado == "FINALIZADA":
+            if (expirada or conversa.estado == "FINALIZADA") and conversa.estado not in ESPERA_LONGA:
                 # Quem já consentiu não precisa aceitar de novo a cada conversa
                 conversa.estado = "RETORNO" if conversa.consentiu_em else "NOVA"
                 conversa.tentativas, conversa.relato = 0, None
@@ -195,13 +233,21 @@ async def processar_mensagem(session: AsyncSession, telefone: str, texto: Option
             else:
                 respostas = await _passo(session, conversa, telefone, texto, localizacao)
         apagada = getattr(conversa, "_apagada", False)
+        # Guarda a resposta para "não entendi" / "manda em áudio" (a ajuda em si não substitui a resposta guardada)
+        if respostas and not apagada and not getattr(conversa, "_ajuda", False):
+            conversa.ultima_resposta = "\n\n".join(respostas)
+        if saida is not None and getattr(conversa, "_voz", None):
+            saida["audio"] = conversa._voz
+        if getattr(conversa, "_idioma_detectado", None) == "es" and not apagada:
+            conversa.idioma = "es"  # a IA viu espanhol num relato que escapou da detecção rápida
         if de_audio and respostas and not apagada and not getattr(conversa, "_emergencia", False):
-            ouvido = texto if len(texto) <= 280 else texto[:277] + "…"
+            ouvido = original if len(original) <= 280 else original[:277] + "…"
             respostas = [f"🎤 Ouvi seu áudio assim: “{ouvido}”"] + respostas
+        enviadas = await traduzir(respostas, "es") if conversa.idioma == "es" and not apagada else respostas
         if not apagada:
-            for r in respostas:
-                registrar(session, conversa, "bot", r)
-        return respostas
+            for enviada, pt in zip(enviadas, respostas):
+                registrar(session, conversa, "bot", enviada, traducao=pt if enviada != pt else None)
+        return enviadas
     finally:
         if not getattr(conversa, "_apagada", False):
             conversa.atualizado_em = agora()
@@ -222,21 +268,66 @@ async def _apagar_dados(session: AsyncSession, conversa: Conversa) -> bool:
     return mantidos > 0
 
 
+async def _relato_e_traducao(conversa: Conversa, relato_pt: str, original: Optional[str]):
+    """Em espanhol, o caso guarda o que a pessoa escreveu e a tradução para a equipe."""
+    if conversa.idioma != "es":
+        return relato_pt, None
+    if original and original != relato_pt:
+        return original, relato_pt
+    traduzido = (await traduzir([relato_pt], "pt"))[0]
+    return relato_pt, traduzido if traduzido != relato_pt else None
+
+
 async def _registrar_triagem(session: AsyncSession, conversa: Conversa, telefone: str) -> None:
     classificacao = conversa.classificacao or {}
+    relato, traducao = await _relato_e_traducao(conversa, conversa.relato, classificacao.get("original"))
     await criar_triagem(
-        session, conversa.relato, classificacao, canal="whatsapp", telefone=telefone,
+        session, relato, classificacao, canal="whatsapp", telefone=telefone,
         nome="Contato via WhatsApp", categoria_final=conversa.categoria_escolhida, bairro=conversa.bairro,
         confirmada=bool(classificacao.get("confirmada")), consentiu_treino=True,
         conversa_id=conversa.telefone_hash, unidade_id=conversa.unidade_id,
+        idioma=conversa.idioma, relato_traducao=traducao,
     )
+
+
+def _agendar_acompanhamento(conversa: Conversa) -> None:
+    """Quem não quis contato recebe, dias depois, "conseguiu ir ao CRAS?". Nunca em violência."""
+    if not catalogo.opcoes_fluxo(conversa.unidade_id)["perguntar_depois"] or conversa.categoria_escolhida in (None, VIOLENCIA):
+        return
+    conversa.acompanhamento = {
+        "em": (agora() + timedelta(days=settings.RETORNO_DIAS)).isoformat(), "enviado": False,
+        "categoria": conversa.categoria_escolhida, "relato": conversa.relato, "classificacao": conversa.classificacao,
+    }
+
+
+async def _situacao_pedido(session: AsyncSession, conversa: Conversa) -> str:
+    """Resposta ao "meu pedido". Em violência não dá detalhes: o celular pode estar com quem agride."""
+    from app.services.avisos import NOME_ASSUNTO  # evita import circular
+    u = conversa.unidade_id
+    triagem = (await session.execute(
+        select(Triagem).where(Triagem.conversa_id == conversa.telefone_hash).order_by(Triagem.criado_em.desc()).limit(1)
+    )).scalar_one_or_none()
+    if triagem is None:
+        return catalogo.texto("situacao_sem_pedido", u)
+    if triagem.categoria == VIOLENCIA or triagem.prioridade == "URGENTE_VIOLENCIA" or triagem.status not in SITUACAO_PEDIDO:
+        return catalogo.texto("situacao_protegida", u)
+    unidade = await session.get(UnidadeAtendimento, triagem.unidade_id) if triagem.unidade_id else None
+    criado = triagem.criado_em.replace(tzinfo=agora().tzinfo).astimezone(agora().tzinfo)
+    return (catalogo.texto("situacao_pedido", triagem.unidade_id)
+            .replace("{situacao}", SITUACAO_PEDIDO[triagem.status])
+            .replace("{assunto}", NOME_ASSUNTO.get(triagem.categoria, "seu pedido"))
+            .replace("{cras}", unidade.nome if unidade else "CRAS")
+            .replace("{data}", criado.strftime("%d/%m")))
 
 
 async def _emergencia(session: AsyncSession, conversa: Conversa, telefone: str, texto: str) -> List[str]:
     classificacao = SocialClassifierService.classify_relato(anonimizar_texto(texto))
-    await criar_triagem(session, texto, classificacao, canal="whatsapp", telefone=telefone,
+    relato, traducao = await _relato_e_traducao(conversa, texto, getattr(conversa, "_original", None))
+    await criar_triagem(session, relato, classificacao, canal="whatsapp", telefone=telefone,
                         nome="Contato via WhatsApp", categoria_final=VIOLENCIA, bairro=conversa.bairro,
-                        conversa_id=conversa.telefone_hash, unidade_id=conversa.unidade_id)
+                        conversa_id=conversa.telefone_hash, unidade_id=conversa.unidade_id,
+                        idioma=conversa.idioma, relato_traducao=traducao)
+    conversa.acompanhamento = None
     conversa.estado = "FINALIZADA"
     conversa._emergencia = True  # marcador em memória: a emergência vai sozinha, sem eco do áudio
     locais = await unidades.locais_para(session, VIOLENCIA, _ponto(conversa), conversa.bairro, limite=2)
@@ -289,6 +380,25 @@ async def _precisa_bairro(session: AsyncSession, conversa: Conversa) -> bool:
     return bool(catalogo.opcoes_fluxo(None)["perguntar_bairro"]) and not conversa.bairro and await unidades.tem_cras_ativo(session)
 
 
+async def _responder_em_audio(conversa: Conversa) -> List[str]:
+    """Fala a última resposta. Sem áudio possível (canal, crédito ou falha), explica por escrito."""
+    conversa._ajuda = True
+    ultima = conversa.ultima_resposta or ""
+    falado = (await traduzir([ultima], "es"))[0] if conversa.idioma == "es" else ultima
+    voz = await falar(falado, conversa.idioma) if conversa.canal in CANAIS_COM_AUDIO else None
+    if voz:
+        conversa._voz = voz
+        return [catalogo.texto("audio_enviando", conversa.unidade_id)]
+    return [catalogo.texto("audio_indisponivel", conversa.unidade_id), await explicar(ultima) or ultima]
+
+
+async def _explicar_melhor(conversa: Conversa) -> List[str]:
+    conversa._ajuda = True
+    ultima = conversa.ultima_resposta or ""
+    explicado = await explicar(ultima)
+    return [explicado] if explicado else [catalogo.texto("repetir_com_calma", conversa.unidade_id), ultima]
+
+
 def _so_cumprimento(texto: str, classificacao: Optional[dict]) -> bool:
     """"oi", "bom dia". Com IA, ela diz; sem IA, mensagem curta em que o modelo não achou necessidade."""
     tipo = (classificacao or {}).get("tipo_mensagem")
@@ -319,8 +429,11 @@ async def _mostrar_caminho(session: AsyncSession, conversa: Conversa, telefone: 
     conversa.estado = "FINALIZADA"
     if modo == "sempre":  # este CRAS quer todo caso na fila, sem perguntar
         await _registrar_triagem(session, conversa, telefone)
-        return await _antes(session, conversa, "caminho", [caminho]) +             await _antes(session, conversa, "fila", [catalogo.texto("contato_confirmado", u)])
-    return await _antes(session, conversa, "caminho", [caminho]) +         await _antes(session, conversa, "encerrado", [catalogo.texto("fim_sem_contato", u)])
+        return (await _antes(session, conversa, "caminho", [caminho])
+                + await _antes(session, conversa, "fila", [catalogo.texto("contato_confirmado", u)]))
+    _agendar_acompanhamento(conversa)
+    return await _antes(session, conversa, "caminho", [caminho]) + \
+        await _antes(session, conversa, "encerrado", [catalogo.texto("fim_sem_contato", u)])
 
 
 async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto: str,
@@ -344,6 +457,26 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
         conversa.relato = conversa.categoria_sugerida = conversa.categoria_escolhida = None
         conversa.classificacao = None
         return await _antes(session, conversa, "relato", [t("pedir_relato")])
+    if texto_norm in COMANDO_SITUACAO:
+        return [await _situacao_pedido(session, conversa)]
+
+    # "Não entendi": 1 = áudio, 2 = explicação mais simples; depois volta para a etapa em que estava
+    if estado == "AGUARDANDO_AJUDA" and texto_norm in COMANDO_NAO_ENTENDI:
+        conversa._ajuda = True
+        return [t("oferecer_ajuda")]
+    if estado == "AGUARDANDO_AJUDA":
+        conversa.estado = estado = (conversa.ajuda or {}).get("estado") or "RETORNO"
+        conversa.ajuda = None
+        if texto.strip() == "1":
+            return await _responder_em_audio(conversa)
+        if texto.strip() == "2":
+            return await _explicar_melhor(conversa)
+        # respondeu outra coisa: segue a conversa da etapa em que estava
+    elif conversa.ultima_resposta and texto_norm in COMANDO_AUDIO:
+        return await _responder_em_audio(conversa)
+    elif conversa.ultima_resposta and texto_norm in COMANDO_NAO_ENTENDI:
+        conversa.ajuda, conversa.estado, conversa._ajuda = {"estado": estado}, "AGUARDANDO_AJUDA", True
+        return [t("oferecer_ajuda")]
 
     # Classifica o mesmo texto que será gravado (sem CPF/telefone/e-mail). A IA só lê a mensagem depois do
     # aceite e nas etapas em que a pessoa conta a situação; no resto, basta o modelo local (e a regra de violência).
@@ -353,6 +486,9 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
         classificacao = await SocialClassifierService.classificar(anonimizar_texto(texto))
     else:
         classificacao = SocialClassifierService.classify_relato(anonimizar_texto(texto))
+
+    if classificacao and classificacao.get("idioma") == "es":
+        conversa._idioma_detectado = "es"
 
     # Violência interrompe qualquer etapa (exceto respostas curtas de menu, como "1" ou "sim")
     if classificacao and classificacao["categoria"] == VIOLENCIA and _resposta(texto) is None and not texto.isdigit():
@@ -369,6 +505,30 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
             conversa.estado = "FINALIZADA"
             return [t("apagar_cancelado")]
         return ["Responda *1* para apagar seus dados ou *2* para manter."]
+
+    if estado == "AGUARDANDO_AVALIACAO":
+        triagem = await session.get(Triagem, conversa.avaliando_triagem) if conversa.avaliando_triagem else None
+        conversa.avaliando_triagem = None
+        if texto.strip() in {"1", "2", "3", "4", "5"} and triagem:
+            triagem.avaliacao = int(texto.strip())
+            conversa.estado = "FINALIZADA"
+            return [t("avaliacao_obrigado")]
+        conversa.estado = estado = "RETORNO"  # respondeu outra coisa: segue como conversa nova
+
+    if estado == "AGUARDANDO_ACOMPANHAMENTO":
+        acomp, conversa.acompanhamento = conversa.acompanhamento or {}, None
+        escolha = texto.strip()
+        if escolha in {"1", "2", "3"}:
+            conversa.estado = "FINALIZADA"
+            if escolha == "1":
+                return [t("acompanhamento_foi")]
+            if escolha == "3":
+                return [t("acompanhamento_nao_precisa")]
+            conversa.relato, conversa.classificacao = acomp.get("relato"), acomp.get("classificacao")
+            conversa.categoria_escolhida = acomp.get("categoria")
+            await _registrar_triagem(session, conversa, telefone)
+            return [t("contato_confirmado")]
+        conversa.estado = estado = "RETORNO"
 
     if estado == "NOVA":
         conversa.estado = "AGUARDANDO_CONSENTIMENTO"
@@ -443,7 +603,8 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
             conversa.tentativas = 1
             return [t("relato_curto")]
         conversa.relato = anonimizar_texto(texto)
-        conversa.classificacao = classificacao
+        original = getattr(conversa, "_original", None)
+        conversa.classificacao = {**classificacao, "original": anonimizar_texto(original)} if original else classificacao
         if classificacao["categoria"] == NAO_IDENTIFICADO:
             if estado == "AGUARDANDO_RELATO" and not opcoes["menu_na_primeira_falha"]:
                 conversa.estado = "RELATO_NOVAMENTE"
@@ -500,6 +661,7 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
             return ["Responda *1* para enviar seu pedido ao CRAS ou *2* para não enviar (o CRAS não fica sabendo do seu caso)."]
         conversa.estado = "FINALIZADA"
         if resposta is False:
+            _agendar_acompanhamento(conversa)
             return await _antes(session, conversa, "encerrado", [t("contato_recusado")])
         await _registrar_triagem(session, conversa, telefone)
         return await _antes(session, conversa, "fila", [t("contato_confirmado")])
