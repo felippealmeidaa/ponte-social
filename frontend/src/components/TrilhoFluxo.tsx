@@ -110,7 +110,7 @@ function Estacao({ etapa, indice, ...estado }: EstadoTrilho & { etapa: Etapa; in
 }
 
 /** Linha curta embaixo do nome: desligada, travada, conversas agora, personalizada. */
-function Situacao({ etapa, contagem, puladas, personalizadas }: EstadoTrilho & { etapa: Etapa }) {
+export function Situacao({ etapa, contagem, puladas, personalizadas }: EstadoTrilho & { etapa: Etapa }) {
   const n = contagem[etapa.id] ?? 0;
   const partes = [
     puladas[etapa.id] && <span key="p" className="text-texto-3">{puladas[etapa.id].curto}</span>,

@@ -19,7 +19,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.models import UnidadeAtendimento, agora
+from app.models import UnidadeAtendimento, agora, iso
 from app.services import geo
 from app.services.ml.text_rules import normalizar
 from app.services.ml.train_evaluator import CATEGORIAS, VIOLENCIA
@@ -63,7 +63,7 @@ def para_dict(u: UnidadeAtendimento) -> dict:
         "latitude": u.latitude, "longitude": u.longitude, "categorias": categorias_da(u),
         "mapa": geo.link_mapa(u.latitude, u.longitude, u.endereco) if (ponto_da(u) or u.endereco) else None,
         "verificado_em": u.verificado_em.isoformat() if u.verificado_em else None, "ativo": u.ativo,
-        "atualizado_em": u.atualizado_em.isoformat() if u.atualizado_em else None, "atualizado_por": u.atualizado_por,
+        "atualizado_em": iso(u.atualizado_em), "atualizado_por": u.atualizado_por,
     }
 
 

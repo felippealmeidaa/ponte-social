@@ -14,7 +14,7 @@ from app.core.config import settings
 from app.core.deps import apenas_coordenacao, apenas_coordenacao_geral, escopo, resolver_unidade, usuario_logado
 from app.db import get_session
 from app.models import Conversa, Triagem, Usuario, agora
-from app.services import catalogo, geo, unidades
+from app.services import catalogo, desenho_fluxo, geo, unidades
 from app.services.bot.fluxo_conversa import caminho_completo
 from app.services.ml.train_evaluator import KNOWLEDGE_SERVICES
 
@@ -122,6 +122,24 @@ async def salvar_opcoes_fluxo(req: OpcoesRequest, unidade: Optional[str] = None,
     if erro:
         raise HTTPException(status_code=422, detail=erro)
     return await catalogo.salvar_opcoes(session, req.opcoes, usuario.get("sub", ""), alvo)
+
+
+@router.get("/fluxo/desenho")
+async def ler_desenho_fluxo(unidade: Optional[str] = None, usuario: Dict[str, Any] = Depends(usuario_logado),
+                            session: AsyncSession = Depends(get_session)):
+    return await desenho_fluxo.ler(session, await resolver_unidade(usuario, unidade, session))
+
+
+@router.put("/fluxo/desenho")
+async def salvar_desenho_fluxo(req: Dict[str, Any], unidade: Optional[str] = None,
+                               usuario: Dict[str, Any] = Depends(apenas_coordenacao), session: AsyncSession = Depends(get_session)):
+    """Posições dos quadradinhos e mensagens extras. Campo omitido fica como está; null volta ao da secretaria."""
+    alvo = await resolver_unidade(usuario, unidade, session)
+    dados = {k: v for k, v in req.items() if k in ("posicoes", "extras")}
+    erro = desenho_fluxo.validar(dados.get("posicoes"), dados.get("extras"))
+    if erro:
+        raise HTTPException(status_code=422, detail=erro)
+    return await desenho_fluxo.salvar(session, dados, usuario.get("sub", ""), alvo)
 
 
 # ------------------------------------------------------------------------------

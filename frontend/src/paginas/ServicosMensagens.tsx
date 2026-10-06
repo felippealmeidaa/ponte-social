@@ -1,30 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { ArrowRight, CircleAlert, Lock, Pencil, RotateCcw, Save, ShieldAlert } from 'lucide-react';
+import { ArrowRight, LayoutGrid, Lock, Move, Pencil, Plus, RotateCcw, Save, Trash2 } from 'lucide-react';
 import { api, atualizar, enviar, ErroApi } from '../api';
+import { CanvasFluxo } from '../components/CanvasFluxo';
 import { TrilhoFluxo } from '../components/TrilhoFluxo';
 import { Aviso, Botao, Campo, Chave, classeEntrada, Esqueleto, Segmentado } from '../components/ui';
 import {
-  colunaDaEtapa, contagemPorEtapa, ETAPAS, etapasPuladas, LIGACOES, TRILHO, type Etapa, type OpcaoEtapa, type OpcoesFluxo,
+  contagemPorEtapa, ETAPAS, etapaDaExtra, type MensagemExtra, type Ponto, etapasPuladas, LIGACOES, TRILHO, type Etapa, type OpcaoEtapa, type OpcoesFluxo,
 } from '../fluxoBot';
 import { comUnidade, contaAtual, nomeUnidade, useUnidades, type UnidadeResumo } from '../unidades';
 import { useAtualizacao } from '../useAtualizacao';
+import { Respostas } from './RespostasNecessidade';
 import { Unidades } from './Unidades';
-import { dataHora, nomeCategoria } from '../vocabulario';
+import { dataHora } from '../vocabulario';
 
-interface Servico {
-  categoria: string;
-  titulo: string;
-  servicos: string[];
-  documentos: string[];
-  local_atendimento: string;
-  contato_util: string;
-  urgencia: boolean;
-  personalizado: boolean;
-  fonte: string;
-  verificado_em: string | null;
-  atualizado_em: string | null;
-  atualizado_por: string | null;
-}
 
 interface TextoBot {
   chave: string;
@@ -36,6 +24,14 @@ interface TextoBot {
   atualizado_por: string | null;
 }
 
+interface RespostaDesenho {
+  posicoes: Record<string, Ponto>;
+  extras: MensagemExtra[];
+  ancoras: string[];
+  posicoes_proprias: boolean;
+  extras_proprias: boolean;
+}
+
 interface RespostaOpcoes {
   opcoes: OpcoesFluxo;
   personalizadas: string[];
@@ -43,16 +39,6 @@ interface RespostaOpcoes {
   atualizado_por: string | null;
 }
 
-// Plano, seção 9: cada regra precisa de fonte e data, revisadas a cada ciclo (~6 meses)
-const VALIDADE_CONFERENCIA_DIAS = 180;
-
-function situacaoFonte(s: Pick<Servico, 'fonte' | 'verificado_em'>): 'ok' | 'conferir' | 'revisar' {
-  if (!s.fonte.trim() || !s.verificado_em) return 'conferir';
-  const dias = (Date.now() - new Date(`${s.verificado_em}T00:00:00`).getTime()) / 86_400_000;
-  return dias > VALIDADE_CONFERENCIA_DIAS ? 'revisar' : 'ok';
-}
-
-const ROTULO_SITUACAO = { conferir: 'a conferir', revisar: 'revisar' } as const;
 
 type Aba = 'fluxo' | 'respostas' | 'unidades';
 
@@ -163,7 +149,11 @@ function Fluxo({ ctx, unidades, irPara }: { ctx: Contexto; unidades: UnidadeResu
   const textos = useAtualizacao(useCallback(() => api<TextoBot[]>(comUnidade('/configuracao/textos', unidade)), [unidade]), 0);
   const opcoes = useAtualizacao(useCallback(() => api<RespostaOpcoes>(comUnidade('/configuracao/fluxo/opcoes', unidade)), [unidade]), 0);
   const agora = useAtualizacao(useCallback(() => api<Agora>(comUnidade('/configuracao/fluxo/agora', unidade)), [unidade]), 10000);
+  const desenho = useAtualizacao(useCallback(() => api<RespostaDesenho>(comUnidade('/configuracao/fluxo/desenho', unidade)), [unidade]), 0);
   const [selecionada, setSelecionada] = useState('boas_vindas');
+  const [orelha, setOrelha] = useState<number | null>(null);
+  const [salvandoDesenho, setSalvandoDesenho] = useState<'salvando' | 'salvo' | null>(null);
+  const [erroDesenho, setErroDesenho] = useState<string | null>(null);
   const editor = useRef<HTMLElement>(null);
   const larga = useTelaLarga();
 
@@ -187,18 +177,51 @@ function Fluxo({ ctx, unidades, irPara }: { ctx: Contexto; unidades: UnidadeResu
     if (!larga) requestAnimationFrame(() => editor.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   }, [larga]);
 
-  const etapa = POR_ID[selecionada];
+  /** Salva só o que mudou (posições ou extras; null volta ao padrão). A tela mostra a mudança antes da resposta. */
+  const { dados: dadosDesenho, setDados: setDesenho, recarregar: recarregarDesenho } = desenho;
+  const salvarDesenho = useCallback(async (parcial: { posicoes?: Record<string, Ponto> | null; extras?: MensagemExtra[] }) => {
+    if (dadosDesenho) {
+      setDesenho({
+        ...dadosDesenho,
+        posicoes: parcial.posicoes === null ? {} : parcial.posicoes ?? dadosDesenho.posicoes,
+        extras: parcial.extras ?? dadosDesenho.extras,
+      });
+    }
+    setSalvandoDesenho('salvando');
+    setErroDesenho(null);
+    try {
+      setDesenho(await api<RespostaDesenho>(comUnidade('/configuracao/fluxo/desenho', unidade), atualizar(parcial, 'PUT')));
+      setSalvandoDesenho('salvo');
+      return true;
+    } catch (e) {
+      setErroDesenho(e instanceof ErroApi ? e.message : 'Não foi possível salvar o desenho.');
+      setSalvandoDesenho(null);
+      recarregarDesenho();
+      return false;
+    }
+  }, [dadosDesenho, setDesenho, recarregarDesenho, unidade]);
+
+  const adicionar = useCallback((antesDe: string) => {
+    setSelecionada(`novo:${antesDe}`);
+    requestAnimationFrame(() => editor.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+  }, []);
+
+  const extras = dadosDesenho?.extras ?? [];
+  const extraEscolhida = extras.find((e) => e.id === selecionada) ?? null;
+  const novaAntesDe = selecionada.startsWith('novo:') ? selecionada.slice(5) : null;
+  const etapa = extraEscolhida ? etapaDaExtra(extraEscolhida) : POR_ID[selecionada] ?? (novaAntesDe ? null : POR_ID.boas_vindas);
   const usados = new Set(ETAPAS.flatMap((e) => e.textos));
   const avulsos = textos.dados?.filter((t) => !usados.has(t.chave)) ?? [];
   const totalAgora = Object.values(contagem).reduce((a, b) => a + b, 0);
-  const coluna = colunaDaEtapa(etapa.id);
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
         <p className="max-w-[72ch] text-[15px] text-texto-2">
-          A conversa segue o trilho, na ordem dos números; os desvios ficam embaixo da etapa de onde saem.
-          Escolha uma etapa para ver e editar o que o bot diz nela.
+          {larga
+            ? 'A conversa vai da esquerda para a direita; os desvios descem da etapa de onde saem.'
+            : 'A conversa segue o trilho, na ordem dos números; os desvios ficam embaixo da etapa de onde saem.'}
+          {' '}Escolha uma etapa para ver e editar o que o bot diz nela.
         </p>
         {agora.dados && (
           <p role="status" className="text-[13px] text-texto-3">
@@ -208,11 +231,39 @@ function Fluxo({ ctx, unidades, irPara }: { ctx: Contexto; unidades: UnidadeResu
       </div>
 
       {opcoes.erro && <Aviso>{opcoes.erro}</Aviso>}
-      <TrilhoFluxo selecionada={selecionada} contagem={contagem} puladas={puladas} personalizadas={personalizadas} onAbrir={abrir} />
+      {erroDesenho && <Aviso>{erroDesenho}</Aviso>}
+      {larga && ctx.podeEditar && dadosDesenho && (
+        <div className="-mb-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <p className="flex items-center gap-2 text-[13.5px] text-texto-2">
+            <Move className="size-4 shrink-0 text-texto-3" aria-hidden />
+            Arraste os quadradinhos para organizar. No <Plus className="inline size-3.5" aria-label="mais" /> de uma ligação, ponha uma mensagem a mais.
+          </p>
+          <div className="flex items-center gap-3">
+            <p role="status" className="text-[13px] text-texto-3">
+              {salvandoDesenho === 'salvando' ? 'Salvando…' : salvandoDesenho === 'salvo' ? 'Desenho salvo.' : ''}
+            </p>
+            <Botao tamanho="sm" icone={LayoutGrid} disabled={Object.keys(dadosDesenho.posicoes).length === 0}
+              onClick={() => salvarDesenho({ posicoes: null })}>
+              Organizar automaticamente
+            </Botao>
+          </div>
+        </div>
+      )}
+      {larga
+        ? <CanvasFluxo selecionada={selecionada} contagem={contagem} puladas={puladas} personalizadas={personalizadas} onAbrir={abrir}
+            posicoes={dadosDesenho?.posicoes ?? {}} extras={extras} ancoras={dadosDesenho?.ancoras ?? []}
+            podeEditar={ctx.podeEditar && Boolean(dadosDesenho)} onMover={(posicoes) => { void salvarDesenho({ posicoes }); }}
+            onAdicionar={adicionar} onOrelha={setOrelha} />
+        : <TrilhoFluxo selecionada={selecionada} contagem={contagem} puladas={puladas} personalizadas={personalizadas} onAbrir={abrir} />}
 
-      <section ref={editor} aria-labelledby="t-etapa" data-sem-orelha={coluna === null ? '' : undefined}
-        style={coluna === null ? undefined : { '--orelha': `calc(21px + ${coluna} * ((100% - 102px) / 6 + 12px) + (100% - 102px) / 12)` } as CSSProperties}
+      <section ref={editor} aria-labelledby="t-etapa" data-sem-orelha={orelha === null || novaAntesDe ? '' : undefined}
+        style={orelha === null ? undefined : { '--orelha': `${orelha}px` } as CSSProperties}
         className="editor-etapa mt-2 scroll-mt-4 rounded-[6px] border border-linha-forte bg-superficie shadow-[0_10px_28px_-20px_rgb(23_40_74/0.45)]">
+        {(extraEscolhida || novaAntesDe) && dadosDesenho ? (
+          <EditorExtra key={selecionada} extra={extraEscolhida} antesDe={extraEscolhida?.antes_de ?? novaAntesDe!} desenho={dadosDesenho} ctx={ctx}
+            onSalvar={async (lista, id) => { if (await salvarDesenho({ extras: lista })) setSelecionada(id); }}
+            onRemover={async (lista, antesDe) => { if (await salvarDesenho({ extras: lista })) setSelecionada(antesDe); }} />
+        ) : etapa && (
         <div key={etapa.id} className="assentar flex flex-col gap-6 p-5 sm:p-6">
           <CabecalhoEtapa etapa={etapa} contagem={contagem[etapa.id] ?? 0} />
           {puladas[etapa.id] && <Aviso tom="info">{puladas[etapa.id].motivo}</Aviso>}
@@ -232,6 +283,7 @@ function Fluxo({ ctx, unidades, irPara }: { ctx: Contexto; unidades: UnidadeResu
             </aside>
           </div>
         </div>
+        )}
       </section>
 
       {avulsos.length > 0 && (
@@ -242,6 +294,91 @@ function Fluxo({ ctx, unidades, irPara }: { ctx: Contexto; unidades: UnidadeResu
           </div>
         </section>
       )}
+    </div>
+  );
+}
+
+/** Mensagem extra: o que a pessoa recebe e antes de qual etapa. Salvar manda a lista inteira deste fluxo. */
+function EditorExtra({ extra, antesDe, desenho, ctx, onSalvar, onRemover }: {
+  extra: MensagemExtra | null; antesDe: string; desenho: RespostaDesenho; ctx: Contexto;
+  onSalvar: (lista: MensagemExtra[], id: string) => Promise<void>; onRemover: (lista: MensagemExtra[], antesDe: string) => Promise<void>;
+}) {
+  const [titulo, setTitulo] = useState(extra?.titulo ?? '');
+  const [texto, setTexto] = useState(extra?.texto ?? '');
+  const [ancora, setAncora] = useState(antesDe);
+  const [ocupado, setOcupado] = useState<'salvando' | 'removendo' | null>(null);
+  const [confirmarRemocao, setConfirmarRemocao] = useState(false);
+  const somenteLeitura = !ctx.podeEditar;
+  const nova = !extra;
+  const alterado = nova ? texto.trim().length > 0 : titulo !== extra.titulo || texto !== extra.texto || ancora !== extra.antes_de;
+  const herdadas = Boolean(ctx.unidade) && !desenho.extras_proprias && desenho.extras.length > 0;
+  const cabecalho = etapaDaExtra({ id: extra?.id ?? 'novo', antes_de: ancora, titulo: titulo.trim() || (nova ? 'Nova mensagem extra' : 'Mensagem extra'), texto });
+
+  const salvar = async () => {
+    setOcupado('salvando');
+    const id = extra?.id ?? `x-${Math.random().toString(36).slice(2, 10)}`;
+    const item = { id, antes_de: ancora, titulo: titulo.trim() || 'Mensagem extra', texto: texto.trim() };
+    const lista = nova ? [...desenho.extras, item] : desenho.extras.map((e) => (e.id === id ? item : e));
+    await onSalvar(lista, id);
+    setOcupado(null);
+  };
+
+  const remover = async () => {
+    if (!extra) return;
+    setOcupado('removendo');
+    await onRemover(desenho.extras.filter((e) => e.id !== extra.id), extra.antes_de);
+    setOcupado(null);
+  };
+
+  return (
+    <div className="assentar flex flex-col gap-6 p-5 sm:p-6">
+      <CabecalhoEtapa etapa={cabecalho} contagem={0} />
+      {herdadas && (
+        <Aviso tom="info">Estas mensagens extras vêm do padrão da secretaria. Ao salvar, este CRAS passa a ter as suas próprias.</Aviso>
+      )}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="flex min-w-0 flex-col gap-3">
+          <h3 className="text-[13.5px] font-semibold text-texto-2">O que a pessoa vê no WhatsApp</h3>
+          <div className="conversa-whats flex flex-col gap-3 rounded-[6px] border border-linha px-4 py-5 sm:px-6">
+            <div className="balao-whats ml-2 max-w-[560px] whitespace-pre-wrap px-3 py-2 text-[14.5px] leading-[1.45]">
+              {texto.trim() ? whatsapp(texto) : <span className="text-[#54656f]">A mensagem aparece aqui enquanto você escreve.</span>}
+            </div>
+            <p className="pl-2 text-[12.5px] text-[#54656f]">Logo depois vem a mensagem de “{POR_ID[ancora]?.titulo}”.</p>
+          </div>
+        </div>
+        <aside className="flex flex-col gap-4 rounded-[6px] border border-linha p-4">
+          <fieldset disabled={somenteLeitura || ocupado !== null} className="flex flex-col gap-4 disabled:opacity-80">
+            <Campo id="extra-titulo" rotulo="Nome do quadradinho" dica="Só aparece no painel.">
+              <input id="extra-titulo" maxLength={60} value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Horário de atendimento" className={classeEntrada} />
+            </Campo>
+            <Campo id="extra-texto" rotulo="Mensagem" dica="Use *asteriscos* para negrito, como no WhatsApp.">
+              <textarea id="extra-texto" rows={5} maxLength={1000} value={texto} onChange={(e) => setTexto(e.target.value)} className={`${classeEntrada} resize-y`} />
+            </Campo>
+            <Campo id="extra-ancora" rotulo="Enviar logo antes de">
+              <select id="extra-ancora" value={ancora} onChange={(e) => setAncora(e.target.value)} className={classeEntrada}>
+                {desenho.ancoras.map((a) => <option key={a} value={a}>{POR_ID[a]?.titulo ?? a}</option>)}
+              </select>
+            </Campo>
+          </fieldset>
+          <p className="flex items-start gap-2 text-[13px] leading-snug text-texto-2">
+            <Lock className="mt-0.5 size-4 shrink-0 text-texto-3" aria-hidden />
+            Antes do aceite e na violência não entra mensagem extra: essas etapas são travadas.
+          </p>
+          {!somenteLeitura && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Botao variante="primario" icone={Save} disabled={!alterado || !texto.trim() || ocupado !== null} onClick={salvar}>
+                {ocupado === 'salvando' ? 'Salvando…' : nova ? 'Adicionar ao fluxo' : 'Salvar'}
+              </Botao>
+              {!nova && (confirmarRemocao ? (
+                <Botao variante="perigo" icone={Trash2} disabled={ocupado !== null} onClick={remover}>{ocupado === 'removendo' ? 'Removendo…' : 'Confirmar remoção'}</Botao>
+              ) : (
+                <Botao icone={Trash2} onClick={() => setConfirmarRemocao(true)}>Remover do fluxo</Botao>
+              ))}
+            </div>
+          )}
+          {somenteLeitura && <p className="text-[13px] text-texto-3">Só a coordenação muda as mensagens extras.</p>}
+        </aside>
+      </div>
     </div>
   );
 }
@@ -406,180 +543,6 @@ function ParaOndeVai({ etapa, semConfirmacao, onAbrir }: { etapa: Etapa; semConf
         <p className="text-[14px] leading-relaxed text-texto-2">{etapa.depois ?? (etapa.tipo === 'fim' ? 'A conversa termina aqui.' : 'Depois disso, a conversa segue de onde estava.')}</p>
       )}
     </section>
-  );
-}
-
-const linhas = (t: string) => t.split('\n').map((l) => l.trim()).filter(Boolean);
-
-function Respostas({ ctx }: { ctx: Contexto }) {
-  const { dados, erro, recarregar } = useAtualizacao(useCallback(() => api<Servico[]>(comUnidade('/configuracao/servicos', ctx.unidade)), [ctx.unidade]), 0);
-  const [selecionada, setSelecionada] = useState<string>('renda_beneficio');
-  const servico = dados?.find((s) => s.categoria === selecionada);
-
-  if (erro) return <Aviso>{erro}</Aviso>;
-  if (!dados) return <Esqueleto className="h-96" />;
-
-  const pendentes = dados.filter((s) => situacaoFonte(s) !== 'ok').length;
-
-  return (
-    <>
-    {pendentes > 0 && (
-      <p className="mb-4 flex items-center gap-2 text-[13px] text-texto-2">
-        <CircleAlert className="size-4 shrink-0 text-caneta" aria-hidden />
-        {pendentes === 1 ? '1 necessidade está' : `${pendentes} necessidades estão`} sem fonte oficial conferida.
-        Antes de usar com o público, confira cada resposta numa fonte oficial e registre o link e a data.
-      </p>
-    )}
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
-      <nav aria-label="Necessidades">
-        <ul className="flex gap-1 overflow-x-auto lg:flex-col">
-          {dados.map((s) => (
-            <li key={s.categoria} className="shrink-0">
-              <button onClick={() => setSelecionada(s.categoria)} aria-current={selecionada === s.categoria ? 'true' : undefined}
-                className={`flex w-full items-center gap-2 rounded-[5px] px-3 py-2 text-left text-sm ${selecionada === s.categoria ? 'bg-elevada text-texto font-medium' : 'text-texto-2 hover:bg-elevada/60 hover:text-texto'}`}>
-                {s.urgencia && <ShieldAlert className="size-4 shrink-0 text-urgente" aria-hidden />}
-                {nomeCategoria(s.categoria)}
-                {s.personalizado && <span className="ml-auto shrink-0 whitespace-nowrap pl-2 text-[11px] text-texto-3">personalizada</span>}
-                {situacaoFonte(s) !== 'ok' && (
-                  <span className={`${s.personalizado ? '' : 'ml-auto'} shrink-0 whitespace-nowrap pl-2 text-[11px] text-caneta`}>{ROTULO_SITUACAO[situacaoFonte(s) as 'conferir' | 'revisar']}</span>
-                )}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
-      {servico && <EditorServico key={servico.categoria + (servico.atualizado_em ?? '') + servico.personalizado} servico={servico} ctx={ctx} onSalvo={recarregar} />}
-    </div>
-    </>
-  );
-}
-
-function EditorServico({ servico, ctx, onSalvo }: { servico: Servico; ctx: Contexto; onSalvo: () => void }) {
-  const [titulo, setTitulo] = useState(servico.titulo);
-  const [servicos, setServicos] = useState(servico.servicos.join('\n'));
-  const [documentos, setDocumentos] = useState(servico.documentos.join('\n'));
-  const [local, setLocal] = useState(servico.local_atendimento);
-  const [contato, setContato] = useState(servico.contato_util);
-  const [fonte, setFonte] = useState(servico.fonte);
-  const [verificadoEm, setVerificadoEm] = useState(servico.verificado_em ?? '');
-  const [estado, setEstado] = useState<'livre' | 'salvando' | 'salvo' | 'restaurando'>('livre');
-  const [erro, setErro] = useState<string | null>(null);
-  const somenteLeitura = !ctx.podeEditar;
-
-  const alterado = titulo !== servico.titulo || servicos !== servico.servicos.join('\n') || documentos !== servico.documentos.join('\n')
-    || local !== servico.local_atendimento || contato !== servico.contato_util
-    || fonte !== servico.fonte || verificadoEm !== (servico.verificado_em ?? '');
-  const [hoje] = useState(() => new Date().toLocaleDateString('sv-SE'));
-
-  const salvar = async () => {
-    setEstado('salvando');
-    setErro(null);
-    try {
-      await api(comUnidade(`/configuracao/servicos/${servico.categoria}`, ctx.unidade), atualizar({
-        titulo, servicos: linhas(servicos), documentos: linhas(documentos), local_atendimento: local, contato_util: contato,
-        fonte, verificado_em: verificadoEm || null,
-      }, 'PUT'));
-      setEstado('salvo');
-      onSalvo();
-    } catch (e) {
-      setErro(e instanceof ErroApi ? e.message : 'Não foi possível salvar.');
-      setEstado('livre');
-    }
-  };
-
-  const restaurar = async () => {
-    setEstado('restaurando');
-    try {
-      await api(comUnidade(`/configuracao/servicos/${servico.categoria}/restaurar`, ctx.unidade), { method: 'POST' });
-      onSalvo();
-    } catch (e) {
-      setErro(e instanceof ErroApi ? e.message : 'Não foi possível restaurar.');
-      setEstado('livre');
-    }
-  };
-
-  return (
-    <div className="grid gap-8 xl:grid-cols-[1fr_360px]">
-      <div className="flex flex-col gap-4">
-        {ctx.unidade && (
-          <p className="text-[13px] text-texto-2">
-            {servico.personalizado ? 'Personalizada para este CRAS.' : 'Usando o padrão da secretaria. Ao salvar, vira uma versão só deste CRAS.'}
-          </p>
-        )}
-        <fieldset disabled={somenteLeitura} className="flex flex-col gap-4 disabled:opacity-80">
-          <Campo id="titulo" rotulo="Título da resposta">
-            <input id="titulo" value={titulo} onChange={(e) => setTitulo(e.target.value)} className={classeEntrada} />
-          </Campo>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Campo id="servicos" rotulo="O que a pessoa pode procurar" dica="Um item por linha.">
-              <textarea id="servicos" rows={6} value={servicos} onChange={(e) => setServicos(e.target.value)} className={`${classeEntrada} resize-y`} />
-            </Campo>
-            <Campo id="documentos" rotulo="Documentos para levar" dica="Um item por linha.">
-              <textarea id="documentos" rows={6} value={documentos} onChange={(e) => setDocumentos(e.target.value)} className={`${classeEntrada} resize-y`} />
-            </Campo>
-          </div>
-          <Campo id="local" rotulo="Onde ir" dica="Endereço e horário ajudam a pessoa a não perder a viagem.">
-            <textarea id="local" rows={2} value={local} onChange={(e) => setLocal(e.target.value)} className={`${classeEntrada} resize-y`} />
-          </Campo>
-          <Campo id="contato" rotulo="Contato">
-            <input id="contato" value={contato} onChange={(e) => setContato(e.target.value)} className={classeEntrada} />
-          </Campo>
-          <div className="grid gap-4 md:grid-cols-[1fr_180px]">
-            <Campo id="fonte" rotulo="Fonte oficial" dica="Link ou documento de onde vieram serviços, documentos e local (gov.br, prefeitura, CRAS).">
-              <input id="fonte" value={fonte} onChange={(e) => setFonte(e.target.value)} placeholder="https://…" className={classeEntrada} />
-            </Campo>
-            <Campo id="verificado" rotulo="Conferido em" dica="Data em que alguém conferiu.">
-              <input id="verificado" type="date" max={hoje} value={verificadoEm} onChange={(e) => setVerificadoEm(e.target.value)} className={classeEntrada} />
-            </Campo>
-          </div>
-        </fieldset>
-        {situacaoFonte({ fonte, verificado_em: verificadoEm || null }) === 'conferir' && (
-          <p className="flex items-center gap-2 text-[13px] text-texto-2">
-            <CircleAlert className="size-4 shrink-0 text-caneta" aria-hidden />
-            Sem fonte e data, esta resposta ainda não foi conferida numa fonte oficial.
-          </p>
-        )}
-        {situacaoFonte({ fonte, verificado_em: verificadoEm || null }) === 'revisar' && (
-          <p className="flex items-center gap-2 text-[13px] text-texto-2">
-            <CircleAlert className="size-4 shrink-0 text-caneta" aria-hidden />
-            Conferida há mais de {VALIDADE_CONFERENCIA_DIAS / 30} meses: vale revisar se as regras mudaram.
-          </p>
-        )}
-        {erro && <Aviso>{erro}</Aviso>}
-        {!somenteLeitura && (
-          <div className="flex flex-wrap items-center gap-3">
-            <Botao variante="primario" icone={Save} carregando={estado === 'salvando'} disabled={!alterado} onClick={salvar}>
-              {ctx.unidade ? 'Salvar para este CRAS' : 'Salvar resposta'}
-            </Botao>
-            {(!ctx.unidade || servico.personalizado) && (
-              <Botao variante="fantasma" icone={RotateCcw} carregando={estado === 'restaurando'} onClick={restaurar}>
-                {ctx.unidade ? 'Voltar ao padrão da secretaria' : 'Voltar ao texto original'}
-              </Botao>
-            )}
-            {estado === 'salvo' && !alterado && <span role="status" className="text-sm text-ok">Salvo. Já vale para as próximas conversas.</span>}
-          </div>
-        )}
-        {servico.atualizado_em && (
-          <p className="text-xs text-texto-3">Última alteração em {dataHora(servico.atualizado_em)}{servico.atualizado_por ? ` por ${servico.atualizado_por}` : ''}.</p>
-        )}
-      </div>
-
-      <aside aria-label="Prévia no WhatsApp" className="xl:sticky xl:top-6 self-start">
-        <p className="mb-2 text-[13.5px] font-semibold text-texto-2">O que a pessoa vê no WhatsApp</p>
-        <div className="conversa-whats rounded-[6px] border border-linha py-4 pl-5 pr-4">
-          <div className="balao-whats px-3.5 py-2.5 text-[13.5px] leading-relaxed">
-            <p className="font-semibold">📋 {titulo}</p>
-            <p className="mt-3 font-semibold">O que você pode procurar:</p>
-            {linhas(servicos).map((s) => <p key={s}>• {s}</p>)}
-            <p className="mt-3 font-semibold">Documentos para levar:</p>
-            {linhas(documentos).map((d) => <p key={d}>• {d}</p>)}
-            <p className="mt-3"><span className="font-semibold">Onde ir:</span> {local}</p>
-            <p><span className="font-semibold">Contato:</span> {contato}</p>
-            <p className="mt-3 text-[#54656f]">Lembre: é uma orientação. Quem confirma o seu direito é o profissional do atendimento.</p>
-          </div>
-        </div>
-      </aside>
-    </div>
   );
 }
 

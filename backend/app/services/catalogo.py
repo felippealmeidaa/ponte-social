@@ -9,12 +9,13 @@ Cada CRAS pode personalizar respostas, textos e opções do fluxo. O que ele nã
 padrão da secretaria (tabelas servicos_categoria, textos_bot e opcoes_fluxo["padrao"]).
 """
 import copy
+from datetime import datetime
 from typing import Dict, List, Optional
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import OpcoesFluxo, ServicoCategoria, ServicoUnidade, TextoBot, TextoUnidade, agora
+from app.models import OpcoesFluxo, ServicoCategoria, ServicoUnidade, TextoBot, TextoUnidade, agora, iso
 from app.services.ml.train_evaluator import KNOWLEDGE_SERVICES
 
 TEXTOS_PADRAO: Dict[str, Dict[str, str]] = {
@@ -64,8 +65,16 @@ TEXTOS_PADRAO: Dict[str, Dict[str, str]] = {
         ),
     },
     "audio": {
-        "descricao": "A pessoa mandou áudio",
-        "texto": "Por enquanto eu só consigo ler mensagens escritas. Pode me contar por texto? 🙏",
+        "descricao": "Áudio que não deu para entender (sem fala clara, longo demais ou transcrição indisponível)",
+        "texto": "Não consegui entender seu áudio. 🙏 Pode me contar por escrito ou mandar outro áudio mais curto, falando perto do celular?",
+    },
+    "aviso_em_atendimento": {
+        "descricao": "Aviso pelo WhatsApp quando a equipe começa a atender o caso ({cras} e {assunto} são trocados). Nunca vai em caso de violência.",
+        "texto": "Olá! A equipe do *{cras}* recebeu seu pedido sobre *{assunto}* e já está cuidando dele. Se precisar, é só responder aqui.",
+    },
+    "aviso_concluido": {
+        "descricao": "Aviso pelo WhatsApp quando o caso é concluído ({cras} e {assunto} são trocados). Nunca vai em caso de violência.",
+        "texto": "Seu atendimento sobre *{assunto}* no *{cras}* foi concluído. Se precisar de novo, é só mandar uma mensagem. 💚",
     },
     "contato_confirmado": {
         "descricao": "A pessoa pediu contato do CRAS (triagem entra na fila)",
@@ -189,6 +198,7 @@ TEXTOS_ANTIGOS: Dict[str, tuple] = {
     ),
     "contato_recusado": ("Tudo bem! Se precisar de novo, é só mandar uma mensagem. Cuide-se. 💚",),
     "fim_sem_contato": ("Procure o CRAS com os documentos da lista. Se precisar, é só mandar uma mensagem. 💚",),
+    "audio": ("Por enquanto eu só consigo ler mensagens escritas. Pode me contar por texto? 🙏",),
     "pedir_bairro": (
         "Para eu indicar o CRAS mais perto de você, em qual *bairro* você mora? Se não souber, responda *não sei*.",
         "Para eu indicar os lugares mais perto de você, mande sua *localização* "
@@ -277,7 +287,7 @@ def _limpar_lista(itens: List[str]) -> List[str]:
 
 
 def _iso(valor) -> Optional[str]:
-    return valor.isoformat() if valor else None
+    return iso(valor) if isinstance(valor, datetime) else (valor.isoformat() if valor else None)
 
 
 async def carregar(session: AsyncSession) -> None:

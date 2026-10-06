@@ -213,6 +213,14 @@
   box-shadow: 0 1px 0 var(--color-superficie);
 }
 
+/* Fluxo do bot em canvas: pontos da prancheta, como no n8n, sobre o papel claro */
+.canvas-fluxo {
+  background-color: var(--color-elevada);
+  background-image: radial-gradient(circle, color-mix(in oklab, var(--color-linha-forte) 70%, transparent) 1.1px, transparent 1.3px);
+  background-size: 18px 18px;
+  background-position: 9px 9px;
+}
+
 /* Fluxo do bot: editor da etapa com uma orelha que aponta para a etapa escolhida no trilho */
 .editor-etapa {
   position: relative;

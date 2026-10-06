@@ -30,6 +30,21 @@ class EvolutionApiAdapter:
         except Exception as e:
             return {"status": "error", "message": str(e)}
 
+    async def get_media_base64(self, instance: str, mensagem: Dict[str, Any]) -> Optional[Dict[str, str]]:
+        """Baixa a mídia (áudio) de uma mensagem recebida. mensagem = o "data" do webhook messages.upsert.
+        Devolve {"base64", "mimetype"} ou None."""
+        url = f"{self.base_url}/chat/getBase64FromMediaMessage/{instance}"
+        payload = {"message": {"key": mensagem.get("key", {}), "message": mensagem.get("message", {})}, "convertToMp4": False}
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(url, json=payload, headers=self.headers)
+            dados = response.json() if response.status_code in (200, 201) else {}
+            if dados.get("base64"):
+                return {"base64": dados["base64"], "mimetype": dados.get("mimetype") or "audio/ogg"}
+        except Exception:
+            pass
+        return None
+
     async def send_buttons_message(self, instance: str, number: str, title: str, description: str, buttons: List[Dict[str, str]]) -> Dict[str, Any]:
         """Envia mensagem com botões interativos para confirmação de triagem"""
         url = f"{self.base_url}/message/sendButtons/{instance}"

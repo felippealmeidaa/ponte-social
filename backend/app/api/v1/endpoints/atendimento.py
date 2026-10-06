@@ -6,18 +6,13 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
 from app.core.deps import escopo, pode_ver, usuario_logado
-from app.core.security import decrypt_secret
 from app.db import get_session
-from app.models import Conversa, Mensagem, Triagem, agora
+from app.models import Conversa, Mensagem, Triagem, agora, iso
 from app.services import catalogo
-from app.services.channels.evolution_adapter import EvolutionApiAdapter
-from app.services.channels.meta_cloud_adapter import MetaCloudApiAdapter
+from app.services.channels.envio import enviar_pelo_canal
 
 router = APIRouter(dependencies=[Depends(usuario_logado)])
-evolution_adapter = EvolutionApiAdapter()
-meta_adapter = MetaCloudApiAdapter()
 
 
 class RespostaRequest(BaseModel):
@@ -25,7 +20,7 @@ class RespostaRequest(BaseModel):
 
 
 def _iso(dt) -> Optional[str]:
-    return dt.isoformat() if dt else None
+    return iso(dt)
 
 
 async def _conversa_ou_404(session: AsyncSession, conversa_id: str, usuario: Dict[str, Any]) -> Conversa:
@@ -33,20 +28,6 @@ async def _conversa_ou_404(session: AsyncSession, conversa_id: str, usuario: Dic
     if conversa is None or not pode_ver(usuario, conversa.unidade_id):
         raise HTTPException(status_code=404, detail="Conversa não encontrada")
     return conversa
-
-
-async def enviar_pelo_canal(conversa: Conversa, texto: str) -> bool:
-    """Envia pelo mesmo canal em que a pessoa escreveu. No simulador não há envio externo."""
-    if conversa.canal == "simulador":
-        return True
-    telefone = decrypt_secret(conversa.telefone_cifrado)
-    if not telefone:
-        return False
-    if conversa.canal == "meta":
-        resultado = await meta_adapter.send_text_message(telefone, texto)
-    else:
-        resultado = await evolution_adapter.send_text_message(settings.EVOLUTION_INSTANCE_NAME, telefone, texto)
-    return not (isinstance(resultado, dict) and resultado.get("status") == "error")
 
 
 @router.get("/conversas")

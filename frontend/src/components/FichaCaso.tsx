@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, FileText, MessagesSquare, Phone, Save } from 'lucide-react';
+import { BellRing, Eye, FileText, MessagesSquare, Phone, Save, ShieldAlert } from 'lucide-react';
 import { api, atualizar, ErroApi } from '../api';
 import { irPara } from '../navegacao';
 import type { Triagem } from '../tipos';
@@ -15,6 +15,8 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
   const [salvando, setSalvando] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [salvo, setSalvo] = useState(false);
+  const [avisar, setAvisar] = useState(true);
+  const [aviso, setAviso] = useState<{ enviado: boolean; motivo: string | null } | null>(null);
 
   if (!caso) return <PainelLateral aberto={false} titulo="" onFechar={onFechar}>{null}</PainelLateral>;
 
@@ -22,7 +24,9 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
     setSalvando(acao);
     setErro(null);
     try {
-      const r = await api<{ triagem: Triagem }>(`/triagem/${caso.id}/status`, atualizar({ status, observacoes }));
+      const r = await api<{ triagem: Triagem; aviso: { enviado: boolean; motivo: string | null } | null }>(
+        `/triagem/${caso.id}/status`, atualizar({ status, observacoes, avisar }));
+      setAviso(r.aviso);
       onAlterado(r.triagem);
       if (acao === 'observacoes') setSalvo(true);
     } catch (e) {
@@ -47,6 +51,8 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
   const prioridade = PRIORIDADES[caso.prioridade] ?? PRIORIDADES.BAIXA;
   const estado = ESTADOS[caso.status] ?? ESTADOS.PENDENTE;
   const corrigido = caso.categoria_confirmada_pelo_cidadao && caso.categoria !== caso.categoria_modelo;
+  const violencia = caso.categoria === 'violencia_protecao' || caso.prioridade === 'URGENTE_VIOLENCIA';
+  const temWhatsApp = caso.canal === 'whatsapp' && Boolean(caso.conversa_id);
 
   return (
     <PainelLateral aberto titulo={nomeCategoria(caso.categoria)} onFechar={onFechar}>
@@ -136,6 +142,33 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
               );
             })}
           </div>
+          {temWhatsApp && !violencia && (
+            <label className="mt-3 flex items-start gap-2.5 text-[13.5px] leading-snug text-texto-2">
+              <input type="checkbox" checked={avisar} onChange={(e) => setAvisar(e.target.checked)}
+                className="mt-0.5 size-4 shrink-0 accent-[var(--color-caneta)]" />
+              <span>
+                <span className="font-semibold text-texto">Avisar a pessoa pelo WhatsApp</span> ao marcar “Em atendimento” ou “Concluído”.
+                Ela recebe uma mensagem curta dizendo que a equipe viu o pedido.
+              </span>
+            </label>
+          )}
+          {temWhatsApp && violencia && (
+            <p className="mt-3 flex items-start gap-2 text-[13px] leading-snug text-texto-2">
+              <ShieldAlert className="mt-0.5 size-4 shrink-0 text-urgente" aria-hidden />
+              Em caso de violência, o sistema não manda aviso pelo WhatsApp: o celular pode estar com quem agride. Fale com a pessoa pelo canal mais seguro.
+            </p>
+          )}
+          {aviso?.enviado && (
+            <p role="status" className="mt-2 flex items-center gap-1.5 text-[13px] font-semibold text-ok">
+              <BellRing className="size-4" aria-hidden />A pessoa foi avisada pelo WhatsApp.
+            </p>
+          )}
+          {aviso && !aviso.enviado && aviso.motivo === 'falha_no_envio' && (
+            <div className="mt-2"><Aviso tom="info">A situação foi salva, mas o aviso não saiu pelo WhatsApp. Confira a conexão em Configurações.</Aviso></div>
+          )}
+          {aviso && !aviso.enviado && aviso.motivo === 'conversa_apagada' && (
+            <p className="mt-2 text-[13px] text-texto-3">A pessoa apagou a conversa: não há como avisar pelo WhatsApp.</p>
+          )}
         </section>
 
         <section>

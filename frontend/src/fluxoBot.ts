@@ -5,7 +5,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   Ban, BookOpenCheck, Hand, HeartHandshake, Inbox, ListChecks, MapPin, MessageCircleQuestion, MessageSquareText,
-  Mic, Phone, RotateCcw, ShieldAlert, Siren, ThumbsUp, Trash2, Undo2, UserRound,
+  MessageSquarePlus, Mic, Phone, RotateCcw, ShieldAlert, Siren, ThumbsUp, Trash2, Undo2, UserRound,
 } from 'lucide-react';
 
 export type TipoEtapa = 'normal' | 'urgente' | 'fim' | 'automatico';
@@ -178,7 +178,7 @@ export const ETAPAS: Etapa[] = [
   },
   {
     id: 'audio', titulo: 'Mensagem de áudio', icone: Mic, tipo: 'normal',
-    quando: 'Por enquanto o bot só lê texto e pede para a pessoa escrever.', textos: ['audio'],
+    quando: 'A pessoa manda áudio: o bot transcreve, diz o que ouviu (“🎤 Ouvi seu áudio assim…”) e segue a conversa como se ela tivesse escrito. Se não der para entender, manda o texto abaixo.', textos: ['audio'],
   },
   {
     id: 'atendente', titulo: 'Atendente assumiu', icone: UserRound, tipo: 'normal',
@@ -260,4 +260,17 @@ export function etapasPuladas(opcoes: OpcoesFluxo | null, temCras: boolean, vend
   if (opcoes.contato === 'nunca') saida.fila = { curto: 'ninguém entra', motivo: 'Contato “nunca”: o bot só orienta; nada entra na fila (a não ser violência).' };
   if (opcoes.contato === 'sempre') saida.encerrado = { curto: 'não acontece', motivo: 'Contato “sempre”: todo caso entra na fila, sem perguntar.' };
   return saida;
+}
+
+export interface Ponto { x: number; y: number }
+/** Mensagem a mais que o CRAS pôs no fluxo; o bot envia logo antes da etapa antes_de. */
+export interface MensagemExtra { id: string; antes_de: string; titulo: string; texto: string }
+
+/** Uma mensagem extra vira um quadradinho como os outros. */
+export function etapaDaExtra(e: MensagemExtra): Etapa {
+  const antes = ETAPAS.find((x) => x.id === e.antes_de)?.titulo ?? e.antes_de;
+  return {
+    id: e.id, titulo: e.titulo || 'Mensagem extra', icone: MessageSquarePlus, tipo: 'normal', textos: [],
+    quando: `Mensagem a mais, enviada logo antes de “${antes}”.`,
+  };
 }

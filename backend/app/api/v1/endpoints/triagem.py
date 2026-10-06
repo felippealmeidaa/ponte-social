@@ -12,6 +12,7 @@ from app.core.security import decrypt_secret
 from app.db import get_session
 from app.models import Triagem
 from app.services import unidades
+from app.services.avisos import avisar_andamento
 from app.services.live_chat.manager import live_chat_manager
 from app.services.ml.classifier_service import SocialClassifierService
 from app.services.triagens import STATUS_VALIDOS, TENANT_PADRAO, criar_triagem, listar, para_dict
@@ -32,6 +33,8 @@ class TriagemRequest(BaseModel):
 class UpdateStatusRequest(BaseModel):
     status: str
     observacoes: Optional[str] = None
+    # Avisar a pessoa pelo WhatsApp (em atendimento / concluído). Violência nunca é avisada.
+    avisar: bool = True
 
 
 @router.post("/predizer")
@@ -82,15 +85,17 @@ async def atualizar_status_triagem(triagem_id: str, payload: UpdateStatusRequest
     triagem = await session.get(Triagem, triagem_id)
     if triagem is None or not pode_ver(usuario, triagem.unidade_id):
         raise HTTPException(status_code=404, detail="Triagem não encontrada")
+    mudou = triagem.status != payload.status
     triagem.status = payload.status
     triagem.atualizado_em = datetime.now(timezone.utc)
     if payload.observacoes is not None:
         triagem.observacoes = payload.observacoes.strip() or None
     await session.commit()
+    aviso = await avisar_andamento(session, triagem, payload.status) if mudou and payload.avisar else None
     await live_chat_manager.broadcast_to_tenant(TENANT_PADRAO, {
         "event": "STATUS_ATUALIZADO", "triagem_id": triagem_id, "novo_status": payload.status,
     })
-    return {"message": "Status atualizado com sucesso", "triagem": para_dict(triagem)}
+    return {"message": "Status atualizado com sucesso", "triagem": para_dict(triagem), "aviso": aviso}
 
 
 @router.get("/exemplos-rotulados")

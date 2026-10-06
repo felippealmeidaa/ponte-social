@@ -25,10 +25,14 @@ Regras:
   Cada CRAS escolhe: confirmar ou não a necessidade, pedir detalhes de relato curto, menu de assuntos na
   1ª ou 2ª falha, mostrar outras necessidades e como fica o contato (perguntar, sempre ou nunca).
   Travados para todos: violência, aceite, "apagar" e "recomeçar". Na emergência, mostra o CREAS cadastrado.
+- Áudio: a mensagem transcrita segue como texto; o bot começa dizendo o que ouviu, para a pessoa corrigir
+  se ele ouviu errado (menos na emergência, que vem sempre primeiro). Sem transcrição, pede para escrever.
 - Comandos em qualquer etapa: "apagar" (exclui os dados da pessoa, com confirmação) e "recomeçar".
 - Conversa parada além de CONVERSA_EXPIRA_MIN recomeça; quem já consentiu não é perguntado de novo.
 - A triagem só entra na fila se a pessoa pedir contato do CRAS.
 - Com um atendente na conversa (atendimento_humano), o bot só registra as mensagens.
+- Mensagens extras do painel (desenho_fluxo) vão logo antes da etapa a que foram presas, nunca antes do aceite
+  nem na violência.
 
 Os textos vêm de services/catalogo.py e podem ser editados pelo CRAS no painel.
 Respostas são texto com opções numeradas (1/2): botões interativos não funcionam de forma
@@ -43,7 +47,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.security import encrypt_secret, mask_phone
 from app.models import Conversa, Mensagem, Triagem, UnidadeAtendimento, agora
-from app.services import catalogo, geo, unidades
+from app.services import catalogo, desenho_fluxo, geo, unidades
 from app.services.anonimizacao import anonimizar_texto, hash_telefone
 from app.services.ml.classifier_service import PRIORIDADE_POR_CATEGORIA, SocialClassifierService
 from app.services.ml.text_rules import normalizar
@@ -155,16 +159,18 @@ async def obter_conversa(session: AsyncSession, telefone: str, canal: str) -> Co
 
 async def processar_mensagem(session: AsyncSession, telefone: str, texto: Optional[str],
                              canal: str = "evolution", is_audio: bool = False,
-                             localizacao: Optional[geo.Ponto] = None) -> List[str]:
+                             localizacao: Optional[geo.Ponto] = None, de_audio: bool = False) -> List[str]:
     """Recebe uma mensagem do cidadão e devolve as mensagens que o bot deve enviar.
-    localizacao: pino de localização do WhatsApp (latitude, longitude). Persiste estado e histórico."""
+    localizacao: pino de localização do WhatsApp (latitude, longitude). Persiste estado e histórico.
+    is_audio: áudio que não deu para transcrever. de_audio: texto que veio da transcrição de um áudio."""
     conversa = await obter_conversa(session, telefone, canal)
     texto = (texto or "").strip()
     localizacao = localizacao or geo.coordenadas_no_texto(texto)
     if localizacao:
         texto = ""
     registrar(session, conversa, "cidadao",
-              "[áudio]" if is_audio else "[localização enviada]" if localizacao else anonimizar_texto(texto))
+              "[áudio]" if is_audio else "[localização enviada]" if localizacao
+              else ("🎤 " if de_audio else "") + anonimizar_texto(texto))
     conversa.nao_lidas = (conversa.nao_lidas or 0) + 1
 
     try:
@@ -189,6 +195,9 @@ async def processar_mensagem(session: AsyncSession, telefone: str, texto: Option
             else:
                 respostas = await _passo(session, conversa, telefone, texto, localizacao)
         apagada = getattr(conversa, "_apagada", False)
+        if de_audio and respostas and not apagada and not getattr(conversa, "_emergencia", False):
+            ouvido = texto if len(texto) <= 280 else texto[:277] + "…"
+            respostas = [f"🎤 Ouvi seu áudio assim: “{ouvido}”"] + respostas
         if not apagada:
             for r in respostas:
                 registrar(session, conversa, "bot", r)
@@ -229,9 +238,15 @@ async def _emergencia(session: AsyncSession, conversa: Conversa, telefone: str, 
                         nome="Contato via WhatsApp", categoria_final=VIOLENCIA, bairro=conversa.bairro,
                         conversa_id=conversa.telefone_hash, unidade_id=conversa.unidade_id)
     conversa.estado = "FINALIZADA"
+    conversa._emergencia = True  # marcador em memória: a emergência vai sozinha, sem eco do áudio
     locais = await unidades.locais_para(session, VIOLENCIA, _ponto(conversa), conversa.bairro, limite=2)
     bloco = unidades.bloco_locais(locais, titulo="📍 *Onde buscar proteção:*")
     return [catalogo.texto("emergencia", conversa.unidade_id) + (f"\n\n{bloco}" if bloco else "")]
+
+
+async def _antes(session: AsyncSession, conversa: Conversa, etapa: str, respostas: List[str]) -> List[str]:
+    """Mensagens extras que o CRAS pôs antes desta etapa, seguidas da resposta da etapa."""
+    return await desenho_fluxo.extras_antes(session, etapa, conversa.unidade_id) + respostas
 
 
 def _ponto(conversa: Conversa) -> Optional[geo.Ponto]:
@@ -265,7 +280,7 @@ async def _localizacao_avulsa(session: AsyncSession, conversa: Conversa, localiz
         return [resposta + (f"\n\n{bloco}" if bloco else "")]
     if conversa.estado in ("AGUARDANDO_RELATO", "RELATO_NOVAMENTE", "RETORNO"):
         conversa.estado = "AGUARDANDO_RELATO"
-        return [resposta + " " + catalogo.texto("pedir_relato", conversa.unidade_id)]
+        return await _antes(session, conversa, "relato", [resposta + " " + catalogo.texto("pedir_relato", conversa.unidade_id)])
     return [resposta]
 
 
@@ -300,12 +315,12 @@ async def _mostrar_caminho(session: AsyncSession, conversa: Conversa, telefone: 
     caminho = caminho_completo(conversa.categoria_escolhida, secundarias, locais=bloco, unidade=u, perguntar_contato=modo == "perguntar")
     if modo == "perguntar":
         conversa.estado = "AGUARDANDO_CONTATO"
-        return [caminho]
+        return await _antes(session, conversa, "caminho", [caminho])
     conversa.estado = "FINALIZADA"
     if modo == "sempre":  # este CRAS quer todo caso na fila, sem perguntar
         await _registrar_triagem(session, conversa, telefone)
-        return [caminho, catalogo.texto("contato_confirmado", u)]
-    return [caminho, catalogo.texto("fim_sem_contato", u)]
+        return await _antes(session, conversa, "caminho", [caminho]) +             await _antes(session, conversa, "fila", [catalogo.texto("contato_confirmado", u)])
+    return await _antes(session, conversa, "caminho", [caminho]) +         await _antes(session, conversa, "encerrado", [catalogo.texto("fim_sem_contato", u)])
 
 
 async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto: str,
@@ -328,7 +343,7 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
         conversa.estado, conversa.tentativas = "AGUARDANDO_RELATO", 0
         conversa.relato = conversa.categoria_sugerida = conversa.categoria_escolhida = None
         conversa.classificacao = None
-        return [t("pedir_relato")]
+        return await _antes(session, conversa, "relato", [t("pedir_relato")])
 
     # Classifica o mesmo texto que será gravado (sem CPF/telefone/e-mail). A IA só lê a mensagem depois do
     # aceite e nas etapas em que a pessoa conta a situação; no resto, basta o modelo local (e a regra de violência).
@@ -365,10 +380,10 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
             return [t("agradecimento")]
         if await _precisa_bairro(session, conversa):
             conversa.estado = "AGUARDANDO_BAIRRO"
-            return [t("pedir_bairro")]
+            return await _antes(session, conversa, "bairro", [t("pedir_bairro")])
         conversa.estado = "AGUARDANDO_RELATO"
         if _so_cumprimento(texto, classificacao):  # "oi", "bom dia": cumprimenta e pede o relato
-            return [t("retorno")]
+            return await _antes(session, conversa, "relato", [t("retorno")])
         estado = "AGUARDANDO_RELATO"  # mensagem longa já é o relato
 
     if estado == "AGUARDANDO_CONSENTIMENTO":
@@ -377,9 +392,9 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
             conversa.consentiu_em = agora()
             if await _precisa_bairro(session, conversa):
                 conversa.estado = "AGUARDANDO_BAIRRO"
-                return [t("pedir_bairro")]
+                return await _antes(session, conversa, "bairro", [t("pedir_bairro")])
             conversa.estado = "AGUARDANDO_RELATO"
-            return [t("pedir_relato")]
+            return await _antes(session, conversa, "relato", [t("pedir_relato")])
         if resposta is False:
             conversa.consentiu_em = None
             conversa.estado = "FINALIZADA"
@@ -409,12 +424,14 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
         if unidade:
             pela_lista = bool(bairro) and await unidades.cras_do_bairro(session, bairro) is not None
             chave = "cras_indicado" if pela_lista else "cras_mais_perto"
-            return [prefixo + t(chave).replace("{cras}", unidade.nome) + "\n\n" + t("pedir_relato")]
-        if cep:
-            return [prefixo + "\n" + t("pedir_relato")]
-        if bairro:
-            return [t("bairro_nao_encontrado") + "\n\n" + t("pedir_relato")]
-        return [t("pedir_relato")]
+            resposta = prefixo + t(chave).replace("{cras}", unidade.nome) + "\n\n" + t("pedir_relato")
+        elif cep:
+            resposta = prefixo + "\n" + t("pedir_relato")
+        elif bairro:
+            resposta = t("bairro_nao_encontrado") + "\n\n" + t("pedir_relato")
+        else:
+            resposta = t("pedir_relato")
+        return await _antes(session, conversa, "relato", [resposta])
 
     if estado in ("AGUARDANDO_RELATO", "RELATO_NOVAMENTE"):
         opcoes = catalogo.opcoes_fluxo(conversa.unidade_id)
@@ -447,8 +464,10 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
         ] if opcoes["mostrar_outras_necessidades"] else [NOMES_CATEGORIA[classificacao["categoria"]]]
         resumo = classificacao.get("resumo_ia")
         if resumo:  # a IA resumiu a situação com as palavras dela
-            return [f"Entendi que {resumo}. Posso te orientar sobre *{' e '.join(assuntos)}*. Está certo?\n*1* - Sim\n*2* - Não"]
-        return [f"Entendi que você precisa de ajuda com *{' e '.join(assuntos)}*. Está certo?\n*1* - Sim\n*2* - Não"]
+            pergunta = f"Entendi que {resumo}. Posso te orientar sobre *{' e '.join(assuntos)}*. Está certo?\n*1* - Sim\n*2* - Não"
+        else:
+            pergunta = f"Entendi que você precisa de ajuda com *{' e '.join(assuntos)}*. Está certo?\n*1* - Sim\n*2* - Não"
+        return await _antes(session, conversa, "confirmacao", [pergunta])
 
     if estado == "AGUARDANDO_CONFIRMACAO":
         resposta = _resposta(texto)
@@ -481,9 +500,9 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
             return ["Responda *1* para enviar seu pedido ao CRAS ou *2* para não enviar (o CRAS não fica sabendo do seu caso)."]
         conversa.estado = "FINALIZADA"
         if resposta is False:
-            return [t("contato_recusado")]
+            return await _antes(session, conversa, "encerrado", [t("contato_recusado")])
         await _registrar_triagem(session, conversa, telefone)
-        return [t("contato_confirmado")]
+        return await _antes(session, conversa, "fila", [t("contato_confirmado")])
 
     conversa.estado = "AGUARDANDO_CONSENTIMENTO"
     return [t("boas_vindas")]

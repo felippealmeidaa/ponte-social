@@ -8,6 +8,7 @@ import { Indicadores } from './paginas/Indicadores';
 import { ServicosMensagens } from './paginas/ServicosMensagens';
 import { Configuracoes } from './paginas/Configuracoes';
 import type { ResumoConversa, Triagem } from './tipos';
+import { AlertaUrgente } from './components/AlertaUrgente';
 import { useAtualizacao } from './useAtualizacao';
 import { nomeUnidade, useUnidades } from './unidades';
 import type { Rota } from './navegacao';
@@ -112,6 +113,10 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
           ))}
         </nav>
       </header>
+
+      <div className="mx-auto max-w-[1440px] md:px-8">
+        <AlertaUrgente triagens={triagens} />
+      </div>
 
       <main className="mx-auto max-w-[1440px] md:px-8">
         <div className="folha -mt-px min-h-[70vh] rounded-none px-4 py-6 md:rounded-[6px] md:rounded-tl-none md:px-9 md:py-8">

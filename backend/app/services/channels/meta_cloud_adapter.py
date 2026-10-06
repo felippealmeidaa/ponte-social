@@ -1,5 +1,5 @@
 import httpx
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from app.core.config import settings
 
 class MetaCloudApiAdapter:
@@ -29,6 +29,21 @@ class MetaCloudApiAdapter:
                 return response.json()
         except Exception as e:
             return {"status": "error", "message": str(e)}
+
+    async def download_media(self, media_id: str) -> Optional[Tuple[bytes, str]]:
+        """Baixa uma mídia recebida (áudio): primeiro pega o link temporário, depois o arquivo, com o token."""
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                info = await client.get(f"https://graph.facebook.com/{self.version}/{media_id}", headers=self.headers)
+                if info.status_code != 200:
+                    return None
+                dados = info.json()
+                arquivo = await client.get(dados["url"], headers={"Authorization": f"Bearer {self.access_token}"})
+            if arquivo.status_code != 200:
+                return None
+            return arquivo.content, dados.get("mime_type") or "audio/ogg"
+        except Exception:
+            return None
 
     async def send_interactive_buttons(self, to_phone: str, body_text: str, buttons: List[Dict[str, str]]) -> Dict[str, Any]:
         """Envia mensagem interativa com botões oficiais da Meta"""

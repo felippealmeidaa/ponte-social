@@ -11,6 +11,14 @@ def agora() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def iso(dt: Optional[datetime]) -> Optional[str]:
+    """Data e hora para o painel, sempre com o fuso. O SQLite devolve sem fuso o que foi gravado em UTC;
+    sem o "+00:00", o navegador lê como hora local e tudo fica 3 horas adiantado."""
+    if dt is None:
+        return None
+    return (dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt).isoformat()
+
+
 class Triagem(Base):
     """Uma triagem na fila do CRAS. Guarda só o necessário (plano, seção 10):
     relato anonimizado, categoria, prioridade e status; telefone mascarado + criptografado."""
@@ -179,6 +187,18 @@ class TextoUnidade(Base):
     unidade_id: Mapped[str] = mapped_column(String(16), primary_key=True)
     chave: Mapped[str] = mapped_column(String(40), primary_key=True)
     texto: Mapped[str] = mapped_column(Text)
+    atualizado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    atualizado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+
+
+class DesenhoFluxo(Base):
+    """Fluxo no painel: posição de cada quadradinho e mensagens extras que o bot envia.
+    unidade_id = "padrao" para a secretaria; ou o id de um CRAS. Campo None = usa o da secretaria."""
+    __tablename__ = "desenho_fluxo"
+
+    unidade_id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    posicoes: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)  # {id: {"x": .., "y": ..}}
+    extras: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)    # [{id, antes_de, titulo, texto}]
     atualizado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     atualizado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
 

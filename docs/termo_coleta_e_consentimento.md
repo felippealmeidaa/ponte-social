@@ -73,6 +73,7 @@ O que falta definir **[validar]**:
 5. **Uso para treinar o modelo.** O texto fala em "melhorar este serviço". Se as mensagens forem usadas para treino, deixar isso explícito ("usar sua mensagem, sem identificar você, para ensinar o sistema").
 6. **Serviços de fora que recebem dados.** O termo de hoje não cita nenhum. O que o sistema envia:
    - **Google (Gemini):** com `GEMINI_API_KEY` preenchida, o relato vai para o Gemini entender a necessidade, já sem CPF, telefone, e-mail e CEP (nomes não são removidos). Sem a chave, quem lê é o modelo local e nada sai do servidor.
+   - **Áudio:** quando a pessoa manda áudio, o arquivo vai para o Gemini só para ser transcrito (sem a chave, para o Whisper local, se instalado). A voz não fica guardada; no histórico fica o texto transcrito, anonimizado.
    - **Localização (opcional):** depois do aceite, a pessoa escolhe enviar a localização do WhatsApp, digitar o CEP, digitar o bairro ou não informar nada. O CEP vai para o ViaCEP; o bairro, a rua do CEP (sem número) e o ponto arredondado (~100 m) vão para o OpenStreetMap (Nominatim). O sistema guarda só o bairro e o ponto arredondado; o CEP aparece no histórico como `[cep]`.
 
    Validar se as boas-vindas devem citar o Google, por exemplo: "Para entender sua mensagem, ela é lida por uma inteligência artificial do Google, sem seu nome, CPF ou telefone." (O texto do bot não foi mudado; isso depende do orientador.)

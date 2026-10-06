@@ -47,10 +47,5 @@ class WhisperAudioService:
             except Exception as e:
                 print(f"Erro na transcrição: {e}")
 
-        # Fallback de demonstração
-        return {
-            "status": "success",
-            "text": "Preciso urgente atualizar meu cadastro no Bolsa Família pois estou sem renda.",
-            "language": "pt",
-            "engine": "Whisper Fallback Engine"
-        }
+        # Sem transcrição de verdade, não inventa texto: quem chama pede para a pessoa escrever
+        return {"status": "error", "text": "", "language": "pt", "message": "Transcrição indisponível."}

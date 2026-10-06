@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.security import encrypt_secret, mask_phone
-from app.models import Conversa, Mensagem, Triagem, agora
+from app.models import Conversa, Mensagem, Triagem, agora, iso
 from app.services.anonimizacao import anonimizar_texto
 from app.services.live_chat.manager import live_chat_manager
 from app.services.ml.classifier_service import PRIORIDADE_POR_CATEGORIA, SocialClassifierService
@@ -22,8 +22,8 @@ def para_dict(t: Triagem) -> Dict[str, Any]:
     """Formato consumido pelo painel (mesmos nomes de campo do protótipo anterior)."""
     return {
         "id": t.id,
-        "criado_em": t.criado_em.isoformat() if t.criado_em else None,
-        "atualizado_em": t.atualizado_em.isoformat() if t.atualizado_em else None,
+        "criado_em": iso(t.criado_em),
+        "atualizado_em": iso(t.atualizado_em),
         "canal": t.canal,
         "nome_cidadao": t.nome_cidadao,
         "telefone_mascarado": t.telefone_mascarado,

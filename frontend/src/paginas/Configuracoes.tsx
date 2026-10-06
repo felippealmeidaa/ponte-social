@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { Bot, MapPin, QrCode, RefreshCw, Send, Smartphone, Trash2, UserRound, Wifi, WifiOff } from 'lucide-react';
+import { Bot, MapPin, Mic, QrCode, RefreshCw, Send, Smartphone, Square, Trash2, UserRound, Wifi, WifiOff } from 'lucide-react';
 import { api, enviar, ErroApi } from '../api';
 import { Aviso, Botao, Esqueleto, Selo } from '../components/ui';
 import { irPara } from '../navegacao';
@@ -94,8 +94,12 @@ function TestarBot() {
   const [conversaId, setConversaId] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [localizando, setLocalizando] = useState(false);
+  const [gravando, setGravando] = useState<number | null>(null); // segundos gravados
   const [erro, setErro] = useState<string | null>(null);
   const rolagem = useRef<HTMLDivElement>(null);
+  const gravador = useRef<MediaRecorder | null>(null);
+  const relogio = useRef<number | undefined>(undefined);
+  useEffect(() => () => { window.clearInterval(relogio.current); gravador.current?.stream.getTracks().forEach((t) => t.stop()); }, []);
   // Chaves de propósito: em navegadores novos scrollTo devolve uma Promise, e o React trataria
   // o retorno como função de limpeza do efeito (a tela inteira quebrava).
   useEffect(() => { rolagem.current?.scrollTo({ top: rolagem.current.scrollHeight }); }, [conversa.length]);
@@ -127,6 +131,59 @@ function TestarBot() {
       },
       { timeout: 10000 },
     );
+  };
+
+  // Como o áudio do WhatsApp: grava pelo microfone deste computador; o bot transcreve e segue a conversa
+  const alternarGravacao = async () => {
+    setErro(null);
+    if (gravador.current) {
+      gravador.current.stop();
+      return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setErro('Este navegador não grava áudio.');
+      return;
+    }
+    let fluxo: MediaStream;
+    try {
+      fluxo = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      setErro('Sem permissão para usar o microfone. Libere o microfone para este site e tente de novo.');
+      return;
+    }
+    const partes: Blob[] = [];
+    const rec = new MediaRecorder(fluxo);
+    gravador.current = rec;
+    const inicio = Date.now();
+    setGravando(0);
+    relogio.current = window.setInterval(() => setGravando(Math.floor((Date.now() - inicio) / 1000)), 250);
+    rec.ondataavailable = (e) => { if (e.data.size) partes.push(e.data); };
+    rec.onstop = () => {
+      window.clearInterval(relogio.current);
+      fluxo.getTracks().forEach((t) => t.stop());
+      gravador.current = null;
+      setGravando(null);
+      const segundos = Math.max(1, Math.round((Date.now() - inicio) / 1000));
+      void mandarAudio(new Blob(partes, { type: rec.mimeType || 'audio/webm' }), segundos);
+    };
+    rec.start();
+  };
+
+  const mandarAudio = async (audio: Blob, segundos: number) => {
+    setConversa((c) => [...c, { de: 'pessoa', texto: `🎤 Áudio de ${segundos} s` }]);
+    setEnviando(true);
+    try {
+      const dados = new FormData();
+      dados.append('telefone', telefone);
+      dados.append('audio', audio, 'audio.' + (audio.type.includes('ogg') ? 'ogg' : 'webm'));
+      const r = await api<{ respostas: string[]; conversa_id: string }>('/webhooks/simular-audio', { method: 'POST', body: dados });
+      setConversaId(r.conversa_id);
+      setConversa((c) => [...c, ...r.respostas.map((x) => ({ de: 'bot' as const, texto: x }))]);
+    } catch (err) {
+      setErro(err instanceof ErroApi ? err.message : 'Não foi possível mandar o áudio.');
+    } finally {
+      setEnviando(false);
+    }
   };
 
   const falar = async (corpo: { texto?: string; latitude?: number; longitude?: number }, rotulo: string) => {
@@ -168,8 +225,13 @@ function TestarBot() {
           <label htmlFor="msg-teste" className="sr-only">Mensagem da pessoa</label>
           <input id="msg-teste" value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Mensagem da pessoa"
             className="h-10 flex-1 rounded-[5px] border border-linha-forte bg-fundo px-3 text-sm hover:border-texto-3 focus:border-caneta focus:outline-none" />
-          <Botao type="button" icone={MapPin} carregando={localizando} disabled={enviando} onClick={mandarLocalizacao}
+          <Botao type="button" icone={MapPin} carregando={localizando} disabled={enviando || gravando !== null} onClick={mandarLocalizacao}
             title="Envia a localização deste navegador, como o pino do WhatsApp">Localização</Botao>
+          <Botao type="button" variante={gravando !== null ? 'perigo' : 'secundario'} icone={gravando !== null ? Square : Mic}
+            disabled={enviando && gravando === null} onClick={alternarGravacao} aria-pressed={gravando !== null}
+            title="Grava pelo microfone, como um áudio do WhatsApp">
+            {gravando !== null ? `Parar e enviar (${gravando} s)` : 'Áudio'}
+          </Botao>
           <Botao type="submit" variante="primario" icone={Send} carregando={enviando} disabled={!texto.trim()}>Enviar</Botao>
         </form>
       </section>

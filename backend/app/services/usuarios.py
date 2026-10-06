@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.security import hash_password, verify_password
-from app.models import UnidadeAtendimento, Usuario, agora
+from app.models import UnidadeAtendimento, Usuario, agora, iso
 
 PAPEIS = ("ADMIN", "ATENDENTE")
 SENHA_MINIMA = 8
@@ -29,8 +29,8 @@ def para_dict(u: Usuario) -> dict:
     return {
         "id": u.id, "login": u.login, "name": u.nome, "email": u.email, "role": u.papel, "ativo": u.ativo,
         "unidade_id": u.unidade_id,
-        "criado_em": u.criado_em.isoformat() if u.criado_em else None,
-        "ultimo_acesso": u.ultimo_acesso.isoformat() if u.ultimo_acesso else None,
+        "criado_em": iso(u.criado_em),
+        "ultimo_acesso": iso(u.ultimo_acesso),
     }
 
 

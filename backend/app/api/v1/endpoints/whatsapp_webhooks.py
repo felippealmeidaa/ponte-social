@@ -1,9 +1,10 @@
+import base64
 import hashlib
 import hmac
 import json
-from typing import List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,34 +12,51 @@ from app.core.config import settings
 from app.core.deps import usuario_logado
 from app.db import abrir_sessao, get_session, init_db
 from app.services.anonimizacao import hash_telefone
+from app.services.audio.transcricao import transcrever
 from app.services.bot.fluxo_conversa import processar_mensagem
-from app.services.channels.evolution_adapter import EvolutionApiAdapter
-from app.services.channels.meta_cloud_adapter import MetaCloudApiAdapter
+from app.services.channels.envio import enviar, evolution_adapter, meta_adapter
 from app.services.live_chat.manager import live_chat_manager
 from app.services.triagens import TENANT_PADRAO
 
 router = APIRouter()
-evolution_adapter = EvolutionApiAdapter()
-meta_adapter = MetaCloudApiAdapter()
-
-
-async def _enviar(canal: str, telefone: str, mensagens: List[str]) -> None:
-    for texto in mensagens:
-        if canal == "meta":
-            await meta_adapter.send_text_message(telefone, texto)
-        else:
-            await evolution_adapter.send_text_message(settings.EVOLUTION_INSTANCE_NAME, telefone, texto)
 
 
 async def process_whatsapp_message_background(phone: str, text: Optional[str], canal: str = "evolution", is_audio: bool = False,
-                                              localizacao: Optional[Tuple[float, float]] = None):
+                                              localizacao: Optional[Tuple[float, float]] = None, de_audio: bool = False):
     """Adaptador de canal → fluxo da conversa (grava o histórico) → envio da resposta pelo mesmo canal.
     Se um atendente assumiu a conversa, o fluxo não devolve respostas e o painel mostra a mensagem."""
     await init_db()
     async with abrir_sessao() as session:
-        respostas = await processar_mensagem(session, phone, text, canal=canal, is_audio=is_audio, localizacao=localizacao)
-    await _enviar(canal, phone, respostas)
+        respostas = await processar_mensagem(session, phone, text, canal=canal, is_audio=is_audio,
+                                             localizacao=localizacao, de_audio=de_audio)
+    await enviar(canal, phone, respostas)
     await live_chat_manager.broadcast_to_tenant(TENANT_PADRAO, {"event": "NOVA_MENSAGEM", "conversa_id": hash_telefone(phone)})
+
+
+async def _baixar_audio(canal: str, ref: Dict[str, Any]) -> Tuple[Optional[bytes], str]:
+    """Bytes e tipo do áudio recebido. Evolution: vem no webhook (opção base64) ou é baixado; Meta: pelo id da mídia."""
+    if canal == "meta":
+        baixado = await meta_adapter.download_media(ref.get("id", ""))
+        return (baixado[0], baixado[1]) if baixado else (None, "")
+    mensagem = ref.get("message", {}) or {}
+    mime = (mensagem.get("audioMessage") or {}).get("mimetype") or "audio/ogg"
+    conteudo = mensagem.get("base64") or ref.get("base64")
+    if not conteudo:
+        midia = await evolution_adapter.get_media_base64(settings.EVOLUTION_INSTANCE_NAME, ref)
+        conteudo, mime = (midia["base64"], midia["mimetype"]) if midia else (None, mime)
+    try:
+        return (base64.b64decode(conteudo), mime) if conteudo else (None, mime)
+    except Exception:
+        return None, mime
+
+
+async def process_audio_background(phone: str, canal: str, ref: Dict[str, Any], segundos: Optional[int] = None):
+    """Áudio: transcreve e segue como se a pessoa tivesse escrito. Sem transcrição, o bot pede para escrever."""
+    texto = None
+    if segundos is None or segundos <= settings.AUDIO_MAX_SEGUNDOS:
+        audio, mime = await _baixar_audio(canal, ref)
+        texto = await transcrever(audio, mime)
+    await process_whatsapp_message_background(phone, texto, canal, is_audio=not texto, de_audio=bool(texto))
 
 
 def _token_evolution_valido(request: Request) -> bool:
@@ -80,7 +98,8 @@ async def webhook_evolution_api(request: Request, background_tasks: BackgroundTa
     phone = remote_jid.split("@")[0]
     message_data = data.get("message", {}) or {}
     if "audioMessage" in message_data:
-        background_tasks.add_task(process_whatsapp_message_background, phone, None, "evolution", True)
+        segundos = (message_data.get("audioMessage") or {}).get("seconds")
+        background_tasks.add_task(process_audio_background, phone, "evolution", data, segundos)
         return {"status": "received"}
 
     local = message_data.get("locationMessage") or message_data.get("liveLocationMessage")
@@ -125,8 +144,8 @@ async def webhook_meta_cloud(request: Request, background_tasks: BackgroundTasks
         for change in entry.get("changes", []):
             for msg in change.get("value", {}).get("messages", []):
                 from_phone, msg_type = msg.get("from"), msg.get("type")
-                if msg_type == "audio":
-                    background_tasks.add_task(process_whatsapp_message_background, from_phone, None, "meta", True)
+                if msg_type == "audio" and from_phone:
+                    background_tasks.add_task(process_audio_background, from_phone, "meta", msg.get("audio", {}))
                     continue
                 if msg_type == "location" and from_phone:
                     loc = msg.get("location", {})
@@ -161,3 +180,13 @@ async def simular_conversa(req: SimulacaoRequest, session: AsyncSession = Depend
         raise HTTPException(status_code=422, detail="Escreva uma mensagem ou envie uma localização.")
     respostas = await processar_mensagem(session, req.telefone, req.texto, canal="simulador", localizacao=localizacao)
     return {"respostas": respostas, "conversa_id": hash_telefone(req.telefone)}
+
+
+@router.post("/simular-audio", dependencies=[Depends(usuario_logado)])
+async def simular_audio(telefone: str = Form(default="5562900000000"), audio: UploadFile = File(...),
+                        session: AsyncSession = Depends(get_session)):
+    """Áudio gravado no navegador, como um áudio do WhatsApp: transcreve e segue o fluxo. Devolve o que foi ouvido."""
+    conteudo = await audio.read()
+    texto = await transcrever(conteudo, audio.content_type or "audio/webm")
+    respostas = await processar_mensagem(session, telefone, texto, canal="simulador", is_audio=not texto, de_audio=bool(texto))
+    return {"respostas": respostas, "transcricao": texto, "conversa_id": hash_telefone(telefone)}

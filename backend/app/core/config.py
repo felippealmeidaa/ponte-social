@@ -84,6 +84,9 @@ class Settings(BaseSettings):
     # Google Gemini LLM API
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-3.5-flash-lite"
+    # Áudio do WhatsApp: transcreve (Gemini ou Whisper local) para o bot entender quem fala em vez de escrever
+    TRANSCREVER_AUDIO: bool = True
+    AUDIO_MAX_SEGUNDOS: int = 180
 
     @model_validator(mode="after")
     def check_required_secrets(self) -> "Settings":

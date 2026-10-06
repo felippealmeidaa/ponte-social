@@ -64,7 +64,8 @@ let tokenEmMemoria: string | null = lerArmazenado(CHAVE_TOKEN);
 
 export async function api<T>(caminho: string, opcoes: RequestInit = {}): Promise<T> {
   const cabecalhos = new Headers(opcoes.headers);
-  if (opcoes.body && !cabecalhos.has('Content-Type')) cabecalhos.set('Content-Type', 'application/json');
+  // FormData (áudio) leva o próprio Content-Type com o boundary
+  if (opcoes.body && !(opcoes.body instanceof FormData) && !cabecalhos.has('Content-Type')) cabecalhos.set('Content-Type', 'application/json');
   if (tokenEmMemoria) cabecalhos.set('Authorization', `Bearer ${tokenEmMemoria}`);
 
   let resposta: Response;
