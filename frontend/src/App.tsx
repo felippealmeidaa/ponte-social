@@ -9,6 +9,7 @@ import { ServicosMensagens } from './paginas/ServicosMensagens';
 import { Configuracoes } from './paginas/Configuracoes';
 import type { ResumoConversa, Triagem } from './tipos';
 import { AlertaUrgente } from './components/AlertaUrgente';
+import { BotaoTema } from './components/Tema';
 import { useAtualizacao } from './useAtualizacao';
 import { nomeUnidade, useUnidades } from './unidades';
 import type { Rota } from './navegacao';
@@ -79,7 +80,7 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
             <p className="text-[13.5px] text-texto-2">Encaminhamento da assistência social</p>
           </div>
 
-          <dl className="hidden flex-1 grid-cols-[repeat(3,minmax(0,auto))_auto] items-end justify-end gap-x-8 md:grid">
+          <dl className="hidden flex-1 grid-cols-[repeat(3,minmax(0,auto))_auto_auto] items-end justify-end gap-x-8 md:grid">
             <CampoCabecalho rotulo="Unidade">{usuario.unidade_id ? nomeUnidade(unidades.dados, usuario.unidade_id) : 'Todas as unidades'}</CampoCabecalho>
             <CampoCabecalho rotulo={papel}>{usuario.name}</CampoCabecalho>
             <CampoCabecalho rotulo="Na fila agora">
@@ -90,14 +91,18 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
                 </a>
               ) : '–'}
             </CampoCabecalho>
+            <BotaoTema className="mb-1" />
             <button onClick={onSair} className="mb-1 inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1.5 text-[13.5px] text-texto-2 hover:bg-superficie hover:text-texto">
               <LogOut className="size-4" aria-hidden />Sair
             </button>
           </dl>
 
-          <button onClick={onSair} className="rounded-[5px] p-2 text-texto-2 hover:bg-superficie md:hidden" aria-label="Sair do sistema">
-            <LogOut className="size-5" aria-hidden />
-          </button>
+          <div className="flex items-center md:hidden">
+            <BotaoTema compacto className="p-2" />
+            <button onClick={onSair} className="rounded-[5px] p-2 text-texto-2 hover:bg-superficie" aria-label="Sair do sistema">
+              <LogOut className="size-5" aria-hidden />
+            </button>
+          </div>
         </div>
 
         <nav aria-label="Principal" className="mt-5 hidden gap-0.5 md:flex">
@@ -107,7 +112,7 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
               <Icone className="size-[17px] shrink-0" aria-hidden />
               {rotulo}
               {id === 'conversas' && naoLidas > 0 && (
-                <span className="rounded-full bg-caneta px-1.5 text-[12px] font-bold leading-[18px] text-white tabular" aria-label={`${naoLidas} conversas com mensagens novas`}>{naoLidas}</span>
+                <span className="rounded-full bg-caneta px-1.5 text-[12px] font-bold leading-[18px] text-sobre tabular" aria-label={`${naoLidas} conversas com mensagens novas`}>{naoLidas}</span>
               )}
             </a>
           ))}

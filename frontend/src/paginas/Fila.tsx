@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { ClipboardPlus, Inbox, Languages, Search, UserRoundCheck, X } from 'lucide-react';
+import { ClipboardPlus, Inbox, Languages, Paperclip, Search, UserRoundCheck, X } from 'lucide-react';
 import { sessaoSalva } from '../api';
 import { FichaCaso } from '../components/FichaCaso';
 import { RegistrarAtendimento } from '../components/RegistrarAtendimento';
@@ -123,7 +123,7 @@ export function Fila({ fila, filtroEstado }: { fila: ReturnType<typeof useAtuali
               : 'border-linha-forte bg-superficie text-texto hover:border-texto-3 hover:bg-elevada'}`}>
             <UserRoundCheck className="size-4" aria-hidden />
             Meus casos
-            {quantosMeus > 0 && <span className="rounded-full bg-caneta px-1.5 text-[12px] font-bold leading-[18px] text-white tabular">{quantosMeus}</span>}
+            {quantosMeus > 0 && <span className="rounded-full bg-caneta px-1.5 text-[12px] font-bold leading-[18px] text-sobre tabular">{quantosMeus}</span>}
           </button>
           <Botao variante="primario" icone={ClipboardPlus} onClick={() => setRegistrando(true)}>Registrar atendimento</Botao>
         </div>
@@ -264,6 +264,11 @@ function Guia({ caso, novo, grande, onAbrir }: { caso: Triagem; novo: boolean; g
           ) : novo ? (
             <span className="shrink-0 text-[13px] font-semibold text-caneta">Novo</span>
           ) : null}
+          {(caso.documentos_enviados ?? 0) > 0 && !(urgente && aberto) && (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-caneta/30 bg-caneta-fundo px-2 py-0.5 text-[12.5px] font-semibold text-caneta">
+              <Paperclip className="size-3.5" aria-hidden />{caso.documentos_enviados} documento{caso.documentos_enviados === 1 ? '' : 's'}
+            </span>
+          )}
         </span>
         <span className={`${grande ? 'line-clamp-3 text-[16.5px]' : 'line-clamp-2 text-[15px]'} leading-snug text-texto`}>
           {caso.relato_traducao && (

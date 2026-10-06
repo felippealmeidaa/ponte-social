@@ -22,14 +22,15 @@ router = APIRouter()
 
 
 async def process_whatsapp_message_background(phone: str, text: Optional[str], canal: str = "evolution", is_audio: bool = False,
-                                              localizacao: Optional[Tuple[float, float]] = None, de_audio: bool = False):
+                                              localizacao: Optional[Tuple[float, float]] = None, de_audio: bool = False,
+                                              anexo: Optional[Tuple[bytes, str]] = None):
     """Adaptador de canal → fluxo da conversa (grava o histórico) → envio da resposta pelo mesmo canal.
     Se um atendente assumiu a conversa, o fluxo não devolve respostas e o painel mostra a mensagem."""
     await init_db()
     saida: dict = {}
     async with abrir_sessao() as session:
         respostas = await processar_mensagem(session, phone, text, canal=canal, is_audio=is_audio,
-                                             localizacao=localizacao, de_audio=de_audio, saida=saida)
+                                             localizacao=localizacao, de_audio=de_audio, saida=saida, anexo=anexo)
     await enviar(canal, phone, respostas)
     # Áudio só quando a pessoa pede ("manda em áudio" ou "não entendi" → 1): economiza créditos
     if saida.get("audio"):
@@ -37,13 +38,14 @@ async def process_whatsapp_message_background(phone: str, text: Optional[str], c
     await live_chat_manager.broadcast_to_tenant(TENANT_PADRAO, {"event": "NOVA_MENSAGEM", "conversa_id": hash_telefone(phone)})
 
 
-async def _baixar_audio(canal: str, ref: Dict[str, Any]) -> Tuple[Optional[bytes], str]:
-    """Bytes e tipo do áudio recebido. Evolution: vem no webhook (opção base64) ou é baixado; Meta: pelo id da mídia."""
+async def _baixar_audio(canal: str, ref: Dict[str, Any], chave: str = "audioMessage") -> Tuple[Optional[bytes], str]:
+    """Bytes e tipo da mídia recebida (áudio, foto ou PDF). Evolution: vem no webhook (opção base64) ou é baixada;
+    Meta: pelo id da mídia."""
     if canal == "meta":
         baixado = await meta_adapter.download_media(ref.get("id", ""))
         return (baixado[0], baixado[1]) if baixado else (None, "")
     mensagem = ref.get("message", {}) or {}
-    mime = (mensagem.get("audioMessage") or {}).get("mimetype") or "audio/ogg"
+    mime = (mensagem.get(chave) or {}).get("mimetype") or ("audio/ogg" if chave == "audioMessage" else "image/jpeg")
     conteudo = mensagem.get("base64") or ref.get("base64")
     if not conteudo:
         midia = await evolution_adapter.get_media_base64(settings.EVOLUTION_INSTANCE_NAME, ref)
@@ -52,6 +54,15 @@ async def _baixar_audio(canal: str, ref: Dict[str, Any]) -> Tuple[Optional[bytes
         return (base64.b64decode(conteudo), mime) if conteudo else (None, mime)
     except Exception:
         return None, mime
+
+
+async def process_anexo_background(phone: str, canal: str, ref: Dict[str, Any], chave: str, legenda: str = ""):
+    """Foto ou PDF (documentos). O fluxo decide se guarda: só na etapa de documentos."""
+    conteudo, mime = await _baixar_audio(canal, ref, chave)
+    if not conteudo:
+        await process_whatsapp_message_background(phone, legenda or None, canal)
+        return
+    await process_whatsapp_message_background(phone, legenda or None, canal, anexo=(conteudo, mime))
 
 
 async def process_audio_background(phone: str, canal: str, ref: Dict[str, Any], segundos: Optional[int] = None):
@@ -106,6 +117,14 @@ async def webhook_evolution_api(request: Request, background_tasks: BackgroundTa
         background_tasks.add_task(process_audio_background, phone, "evolution", data, segundos)
         return {"status": "received"}
 
+    for chave in ("imageMessage", "documentMessage", "documentWithCaptionMessage"):
+        if chave in message_data:
+            interno = message_data[chave].get("message", {}).get("documentMessage") if chave == "documentWithCaptionMessage" else None
+            legenda = (interno or message_data[chave] or {}).get("caption", "") or ""
+            background_tasks.add_task(process_anexo_background, phone, "evolution", data,
+                                      "documentMessage" if interno else chave, legenda)
+            return {"status": "received"}
+
     local = message_data.get("locationMessage") or message_data.get("liveLocationMessage")
     if local and local.get("degreesLatitude") is not None and local.get("degreesLongitude") is not None:
         ponto = (float(local["degreesLatitude"]), float(local["degreesLongitude"]))
@@ -150,6 +169,10 @@ async def webhook_meta_cloud(request: Request, background_tasks: BackgroundTasks
                 from_phone, msg_type = msg.get("from"), msg.get("type")
                 if msg_type == "audio" and from_phone:
                     background_tasks.add_task(process_audio_background, from_phone, "meta", msg.get("audio", {}))
+                    continue
+                if msg_type in ("image", "document") and from_phone:
+                    midia = msg.get(msg_type, {})
+                    background_tasks.add_task(process_anexo_background, from_phone, "meta", midia, msg_type, midia.get("caption", ""))
                     continue
                 if msg_type == "location" and from_phone:
                     loc = msg.get("location", {})
@@ -200,3 +223,13 @@ async def simular_audio(telefone: str = Form(default="5562900000000"), audio: Up
     saida: dict = {}
     respostas = await processar_mensagem(session, telefone, texto, canal="simulador", is_audio=not texto, de_audio=bool(texto), saida=saida)
     return {"respostas": respostas, "transcricao": texto, "conversa_id": hash_telefone(telefone), "audio_resposta": _data_url(saida)}
+
+
+@router.post("/simular-anexo", dependencies=[Depends(usuario_logado)])
+async def simular_anexo(telefone: str = Form(default="5562900000000"), arquivo: UploadFile = File(...),
+                        session: AsyncSession = Depends(get_session)):
+    """Foto ou PDF mandado no simulador, como uma foto no WhatsApp."""
+    conteudo = await arquivo.read()
+    respostas = await processar_mensagem(session, telefone, "", canal="simulador",
+                                         anexo=(conteudo, arquivo.content_type or "image/jpeg"))
+    return {"respostas": respostas, "conversa_id": hash_telefone(telefone)}

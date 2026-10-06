@@ -51,6 +51,7 @@ def para_dict(t: Triagem) -> Dict[str, Any]:
         "responsavel_nome": t.responsavel_nome,
         "atendido_em": iso(t.atendido_em),
         "avaliacao": t.avaliacao,
+        "documentos_enviados": t.documentos_enviados or 0,
     }
 
 

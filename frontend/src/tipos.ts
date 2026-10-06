@@ -29,6 +29,8 @@ export interface Triagem {
   responsavel_nome?: string | null;
   atendido_em?: string | null;
   avaliacao?: number | null;
+  /** Fotos de documentos que a pessoa mandou pelo WhatsApp. */
+  documentos_enviados?: number;
 }
 
 export interface ResumoConversa {

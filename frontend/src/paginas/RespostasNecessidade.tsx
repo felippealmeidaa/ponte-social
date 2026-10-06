@@ -97,7 +97,7 @@ export function Respostas({ ctx }: { ctx: ContextoRespostas }) {
                     : 'border-transparent hover:border-linha hover:bg-elevada'}`}>
                   <span className={`flex size-9 shrink-0 items-center justify-center rounded-[7px] ${s.urgencia
                     ? 'bg-urgente-fundo text-urgente'
-                    : ativa ? 'bg-caneta text-white' : 'bg-elevada text-texto-2 group-hover:bg-superficie'}`}>
+                    : ativa ? 'bg-caneta text-sobre' : 'bg-elevada text-texto-2 group-hover:bg-superficie'}`}>
                     <Icone className="size-[18px]" strokeWidth={1.9} aria-hidden />
                   </span>
                   <span className="flex min-w-0 flex-col">
@@ -183,7 +183,7 @@ function EditorServico({ servico, ctx, onSalvo }: { servico: Servico; ctx: Conte
       <div className="flex min-w-0 flex-col" onMouseLeave={() => setParte(null)}>
         <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-linha pb-5">
           <div className="flex items-start gap-3.5">
-            <span className={`mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-[9px] ${servico.urgencia ? 'bg-urgente-fundo text-urgente' : 'bg-texto text-white'}`}>
+            <span className={`mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-[9px] ${servico.urgencia ? 'bg-urgente-fundo text-urgente' : 'bg-texto text-sobre'}`}>
               <Icone className="size-[22px]" strokeWidth={1.9} aria-hidden />
             </span>
             <div>
@@ -305,7 +305,7 @@ function EditorServico({ servico, ctx, onSalvo }: { servico: Servico; ctx: Conte
               <p><span className="font-semibold">Onde ir:</span> {local}</p>
               <p><span className="font-semibold">Contato:</span> {contato}</p>
             </Trecho>
-            <p className="px-1.5 pt-2 text-[12.5px] text-[#54656f]">📍 Depois vêm os lugares mais perto da pessoa e o aviso de que é só uma orientação.</p>
+            <p className="px-1.5 pt-2 text-[12.5px] text-whats-2">📍 Depois vêm os lugares mais perto da pessoa e o aviso de que é só uma orientação.</p>
           </div>
         </div>
       </aside>

@@ -82,7 +82,7 @@ export function AlertaUrgente({ triagens }: { triagens: Triagem[] }) {
   const espera = maisAntigo >= 60 ? `${Math.floor(maisAntigo / 60)} h ${maisAntigo % 60} min` : `${maisAntigo} min`;
 
   return (
-    <div role="alert" className="mb-3 mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 bg-urgente px-4 py-3 text-white md:rounded-[6px] md:px-5">
+    <div role="alert" className="mb-3 mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 bg-alerta px-4 py-3 text-sobre-alerta md:rounded-[6px] md:px-5">
       <p className="flex min-w-0 grow basis-[26rem] items-center gap-3 text-[15px] leading-snug">
         <ShieldAlert className="size-5 shrink-0" aria-hidden />
         <span>
@@ -94,11 +94,11 @@ export function AlertaUrgente({ triagens }: { triagens: Triagem[] }) {
       </p>
       <div className="flex items-center gap-2">
         <button type="button" onClick={alternarSom} aria-pressed={som}
-          className="inline-flex h-9 items-center gap-1.5 rounded-[5px] px-3 text-[13.5px] text-white/90 transition-colors duration-150 hover:bg-white/15 hover:text-white">
+          className="inline-flex h-9 items-center gap-1.5 rounded-[5px] px-3 text-[13.5px] text-sobre-alerta/90 transition-colors duration-150 hover:bg-sobre-alerta/15 hover:text-sobre-alerta">
           {som ? <BellRing className="size-4" aria-hidden /> : <BellOff className="size-4" aria-hidden />}
           {som ? 'Som ligado' : 'Ligar som'}
         </button>
-        <a href="#/fila" className="inline-flex h-9 items-center rounded-[5px] bg-white px-3.5 text-[14px] font-semibold text-urgente transition-colors duration-150 hover:bg-urgente-fundo">
+        <a href="#/fila" className="inline-flex h-9 items-center rounded-[5px] bg-superficie px-3.5 text-[14px] font-semibold text-urgente transition-colors duration-150 hover:bg-urgente-fundo">
           Ver na fila
         </a>
       </div>

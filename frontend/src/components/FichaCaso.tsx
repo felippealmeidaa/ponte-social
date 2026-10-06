@@ -4,6 +4,7 @@ import { api, atualizar, enviar, ErroApi, sessaoSalva } from '../api';
 import { irPara } from '../navegacao';
 import type { Triagem } from '../tipos';
 import { CANAIS, dataHora, ESTADOS, nomeCategoria, PRIORIDADES, tempoDesde } from '../vocabulario';
+import { DocumentosDoCaso } from './DocumentosDoCaso';
 import { Aviso, Botao, classeEntrada, PainelLateral, Selo } from './ui';
 
 const ACOES_STATUS = ['PENDENTE', 'EM_ATENDIMENTO', 'ENCAMINHADO_CREAS', 'CONCLUIDO', 'ARQUIVADO'];
@@ -147,6 +148,8 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
             CPF, telefone e e-mail digitados são removidos antes de gravar.
           </p>
         </section>
+
+        <DocumentosDoCaso casoId={caso.id} quantidade={caso.documentos_enviados ?? 0} />
 
         {(historico.length > 0 || caso.avaliacao) && (
           <section aria-labelledby="t-historico" className="grid gap-4 sm:grid-cols-2">

@@ -341,9 +341,9 @@ function EditorExtra({ extra, antesDe, desenho, ctx, onSalvar, onRemover }: {
           <h3 className="text-[13.5px] font-semibold text-texto-2">O que a pessoa vê no WhatsApp</h3>
           <div className="conversa-whats flex flex-col gap-3 rounded-[6px] border border-linha px-4 py-5 sm:px-6">
             <div className="balao-whats ml-2 max-w-[560px] whitespace-pre-wrap px-3 py-2 text-[14.5px] leading-[1.45]">
-              {texto.trim() ? whatsapp(texto) : <span className="text-[#54656f]">A mensagem aparece aqui enquanto você escreve.</span>}
+              {texto.trim() ? whatsapp(texto) : <span className="text-whats-2">A mensagem aparece aqui enquanto você escreve.</span>}
             </div>
-            <p className="pl-2 text-[12.5px] text-[#54656f]">Logo depois vem a mensagem de “{POR_ID[ancora]?.titulo}”.</p>
+            <p className="pl-2 text-[12.5px] text-whats-2">Logo depois vem a mensagem de “{POR_ID[ancora]?.titulo}”.</p>
           </div>
         </div>
         <aside className="flex flex-col gap-4 rounded-[6px] border border-linha p-4">
@@ -390,7 +390,7 @@ function CabecalhoEtapa({ etapa, contagem }: { etapa: Etapa; contagem: number })
   return (
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div className="flex items-start gap-3.5">
-        <span className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full border-2 ${urgente ? 'border-urgente bg-urgente-fundo text-urgente' : 'border-texto bg-texto text-white'}`}>
+        <span className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full border-2 ${urgente ? 'border-urgente bg-urgente-fundo text-urgente' : 'border-texto bg-texto text-sobre'}`}>
           {numero >= 0 && etapa.tipo !== 'fim'
             ? <span className="titulo text-[17px] leading-none tabular">{numero + 1}</span>
             : <Icone className="size-[18px]" aria-hidden />}
@@ -424,12 +424,12 @@ function MensagensEtapa({ etapa, textos, ctx }: {
       })}
       {etapa.exemplo && (
         <div className="flex flex-col gap-1.5">
-          <p className="pl-2 text-[12.5px] text-[#54656f]">Texto automático, montado pelo sistema a cada conversa</p>
+          <p className="pl-2 text-[12.5px] text-whats-2">Texto automático, montado pelo sistema a cada conversa</p>
           <div className="balao-whats ml-2 max-w-[560px] whitespace-pre-wrap px-3 py-2 text-[14.5px] leading-[1.45]">{whatsapp(etapa.exemplo)}</div>
         </div>
       )}
       {etapa.textos.length === 0 && !etapa.exemplo && (
-        <p className="text-[14px] text-[#54656f]">
+        <p className="text-[14px] text-whats-2">
           {etapa.tipo === 'fim' ? 'Aqui a conversa chega ao fim: esta etapa não manda mensagem própria.' : 'Esta etapa não manda mensagem própria.'}
         </p>
       )}
@@ -581,7 +581,7 @@ function BalaoTexto({ texto, ctx, onSalvo }: { texto: TextoBot; ctx: Contexto; o
   const id = `texto-${texto.chave}`;
   return (
     <div className="flex flex-col gap-1.5">
-      <p className="flex flex-wrap items-baseline gap-x-2 pl-2 text-[12.5px] text-[#54656f]">
+      <p className="flex flex-wrap items-baseline gap-x-2 pl-2 text-[12.5px] text-whats-2">
         <label htmlFor={editando ? id : undefined}>{texto.descricao}</label>
         {ctx.unidade && texto.personalizado && <span className="font-semibold text-caneta">personalizado neste CRAS</span>}
       </p>
@@ -589,7 +589,7 @@ function BalaoTexto({ texto, ctx, onSalvo }: { texto: TextoBot; ctx: Contexto; o
         <div className="balao-whats ml-2 max-w-[560px] p-1.5 ring-2 ring-caneta/45">
           <textarea id={id} ref={crescer} autoFocus value={valor} rows={3}
             onChange={(e) => { setValor(e.target.value); crescer(e.target); }}
-            className="w-full resize-none overflow-hidden rounded-[4px] bg-transparent px-1.5 py-1 text-[14.5px] leading-[1.45] text-[#111b21] focus:outline-none" />
+            className="w-full resize-none overflow-hidden rounded-[4px] bg-transparent px-1.5 py-1 text-[14.5px] leading-[1.45] text-whats-texto focus:outline-none" />
         </div>
       ) : (
         <div className="balao-whats ml-2 max-w-[560px] whitespace-pre-wrap px-3 py-2 text-[14.5px] leading-[1.45]">{whatsapp(texto.texto)}</div>
@@ -604,7 +604,7 @@ function BalaoTexto({ texto, ctx, onSalvo }: { texto: TextoBot; ctx: Contexto; o
                 {ctx.unidade ? 'Salvar para este CRAS' : 'Salvar'}
               </Botao>
               <Botao tamanho="sm" variante="fantasma" onClick={() => { setEditando(false); setValor(texto.texto); setErro(null); }}>Cancelar</Botao>
-              <span className="text-[12.5px] text-[#54656f]">Use *asteriscos* para negrito.</span>
+              <span className="text-[12.5px] text-whats-2">Use *asteriscos* para negrito.</span>
             </>
           ) : (
             <>
@@ -617,7 +617,7 @@ function BalaoTexto({ texto, ctx, onSalvo }: { texto: TextoBot; ctx: Contexto; o
               )}
               {salvo && <span role="status" className="text-[12.5px] font-semibold text-ok">Salvo. Já vale nas próximas conversas.</span>}
               {!salvo && texto.atualizado_em && (
-                <span className="text-[12.5px] text-[#54656f]">Alterado em {dataHora(texto.atualizado_em)}{texto.atualizado_por ? ` por ${texto.atualizado_por}` : ''}</span>
+                <span className="text-[12.5px] text-whats-2">Alterado em {dataHora(texto.atualizado_em)}{texto.atualizado_por ? ` por ${texto.atualizado_por}` : ''}</span>
               )}
             </>
           )}

@@ -1,7 +1,7 @@
 from datetime import date, datetime, timezone
 from typing import Optional
 
-from sqlalchemy import JSON, Date, DateTime, Float, Integer, String, Text
+from sqlalchemy import JSON, Date, DateTime, Float, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -65,6 +65,29 @@ class Triagem(Base):
     avaliacao: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     # Resumo da conversa feito pela IA para a ficha (gerado na primeira vez que alguém abre)
     resumo_ia: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Fotos de documentos que a pessoa mandou pelo WhatsApp para adiantar a análise (ver DocumentoAnexo)
+    documentos_enviados: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+
+class DocumentoAnexo(Base):
+    """Foto (ou PDF) de documento mandada pela pessoa para a equipe do CRAS analisar antes do atendimento.
+    Dado pessoal sensível: o arquivo fica cifrado (Fernet), nunca vai para a IA, só a equipe do caso abre
+    (cada abertura fica registrada) e é apagado DOCUMENTOS_RETENCAO_DIAS depois de o caso ser fechado."""
+    __tablename__ = "documentos_anexos"
+
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    triagem_id: Mapped[str] = mapped_column(String(16), index=True)
+    conversa_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=agora)
+    mime: Mapped[str] = mapped_column(String(60))
+    tamanho: Mapped[int] = mapped_column(Integer)
+    largura: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    altura: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    conteudo_cifrado: Mapped[bytes] = mapped_column(LargeBinary)
+    # Revisão da equipe: None (a ver) | "legivel" | "refazer"
+    situacao: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    motivo: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    revisado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
 
 
 class Conversa(Base):
@@ -104,6 +127,8 @@ class Conversa(Base):
     ultima_resposta: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     # "Não entendi": a etapa em que a conversa estava, para voltar a ela depois da ajuda
     ajuda: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    # Pedido que está recebendo as fotos dos documentos
+    documentos_triagem: Mapped[Optional[str]] = mapped_column(String(16), nullable=True)
     nao_lidas: Mapped[int] = mapped_column(Integer, default=0)
 
 

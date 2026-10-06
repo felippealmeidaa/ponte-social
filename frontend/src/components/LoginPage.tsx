@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { LogIn } from 'lucide-react';
 import { api, enviar, ErroApi, salvarSessao, type Usuario } from '../api';
+import { BotaoTema } from './Tema';
 import { Aviso, Botao, Campo, classeEntrada } from './ui';
 
 export function LoginPage({ onEntrar }: { onEntrar: (u: Usuario) => void }) {
@@ -25,6 +26,8 @@ export function LoginPage({ onEntrar }: { onEntrar: (u: Usuario) => void }) {
   };
 
   return (
+    <>
+    <div className="fixed right-4 top-4 z-10"><BotaoTema /></div>
     <main className="mx-auto grid min-h-dvh max-w-[1180px] content-center gap-12 px-5 py-12 lg:grid-cols-[1fr_520px] lg:items-center lg:gap-16 lg:px-10">
       <section>
         <h1 className="titulo text-[44px] sm:text-[64px] lg:text-[76px]">Ponte Social</h1>
@@ -55,5 +58,6 @@ export function LoginPage({ onEntrar }: { onEntrar: (u: Usuario) => void }) {
         </div>
       </form>
     </main>
+    </>
   );
 }

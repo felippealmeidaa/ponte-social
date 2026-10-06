@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { Bot, MapPin, Mic, QrCode, RefreshCw, Send, Smartphone, Square, Trash2, UserRound, Wifi, WifiOff } from 'lucide-react';
+import { Bot, Camera, MapPin, Mic, QrCode, RefreshCw, Send, Smartphone, Square, Trash2, UserRound, Wifi, WifiOff } from 'lucide-react';
 import { api, enviar, ErroApi } from '../api';
 import { Aviso, Botao, Esqueleto, Selo } from '../components/ui';
 import { irPara } from '../navegacao';
@@ -169,6 +169,28 @@ function TestarBot() {
     rec.start();
   };
 
+  // Como uma foto no WhatsApp: imagem ou PDF deste computador (para testar o envio de documentos)
+  const arquivo = useRef<HTMLInputElement>(null);
+  const mandarFoto = async (f: File | undefined) => {
+    if (!f) return;
+    setErro(null);
+    setConversa((c) => [...c, { de: 'pessoa', texto: `📎 ${f.type === 'application/pdf' ? 'PDF' : 'Foto'}: ${f.name}` }]);
+    setEnviando(true);
+    try {
+      const dados = new FormData();
+      dados.append('telefone', telefone);
+      dados.append('arquivo', f, f.name);
+      const r = await api<{ respostas: string[]; conversa_id: string }>('/webhooks/simular-anexo', { method: 'POST', body: dados });
+      setConversaId(r.conversa_id);
+      setConversa((c) => [...c, ...r.respostas.map((x) => ({ de: 'bot' as const, texto: x }))]);
+    } catch (err) {
+      setErro(err instanceof ErroApi ? err.message : 'Não foi possível mandar a foto.');
+    } finally {
+      setEnviando(false);
+      if (arquivo.current) arquivo.current.value = '';
+    }
+  };
+
   const mandarAudio = async (audio: Blob, segundos: number) => {
     setConversa((c) => [...c, { de: 'pessoa', texto: `🎤 Áudio de ${segundos} s` }]);
     setEnviando(true);
@@ -219,7 +241,7 @@ function TestarBot() {
                 {m.audio ? (
                   <audio controls src={m.audio} className="h-10 max-w-full" aria-label="Resposta falada do bot" />
                 ) : (
-                  <p className={`whitespace-pre-wrap rounded-[6px] px-3.5 py-2.5 text-sm leading-relaxed ${m.de === 'pessoa' ? 'bg-[#d9fdd3] text-[#111b21] rounded-br-[2px]' : 'bg-elevada text-texto rounded-bl-[2px]'}`}>
+                  <p className={`whitespace-pre-wrap rounded-[6px] px-3.5 py-2.5 text-sm leading-relaxed ${m.de === 'pessoa' ? 'bg-whats-enviada text-whats-texto rounded-br-[2px]' : 'bg-elevada text-texto rounded-bl-[2px]'}`}>
                     <ComLinks texto={m.texto.replace(/\*/g, '')} />
                   </p>
                 )}
@@ -238,6 +260,10 @@ function TestarBot() {
             title="Grava pelo microfone, como um áudio do WhatsApp">
             {gravando !== null ? `Parar e enviar (${gravando} s)` : 'Áudio'}
           </Botao>
+          <input ref={arquivo} type="file" accept="image/*,application/pdf" className="sr-only" tabIndex={-1}
+            aria-hidden onChange={(e) => mandarFoto(e.target.files?.[0])} />
+          <Botao type="button" icone={Camera} disabled={enviando || gravando !== null} onClick={() => arquivo.current?.click()}
+            title="Manda uma foto ou PDF, como uma foto de documento no WhatsApp">Foto</Botao>
           <Botao type="submit" variante="primario" icone={Send} carregando={enviando} disabled={!texto.trim()}>Enviar</Botao>
         </form>
       </section>

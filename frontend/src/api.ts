@@ -92,5 +92,14 @@ export async function api<T>(caminho: string, opcoes: RequestInit = {}): Promise
   return resposta.json() as Promise<T>;
 }
 
+/** Arquivo protegido (foto de documento): baixa com o login e devolve um endereço local para mostrar na tela. */
+export async function arquivoProtegido(caminho: string): Promise<string> {
+  const cabecalhos = new Headers();
+  if (tokenEmMemoria) cabecalhos.set('Authorization', `Bearer ${tokenEmMemoria}`);
+  const resposta = await fetch(`${API_URL}${caminho}`, { headers: cabecalhos });
+  if (!resposta.ok) throw new ErroApi(resposta.status, 'Não foi possível abrir o documento.');
+  return URL.createObjectURL(await resposta.blob());
+}
+
 export const enviar = (corpo: unknown) => ({ method: 'POST', body: JSON.stringify(corpo) });
 export const atualizar = (corpo: unknown, metodo = 'PATCH') => ({ method: metodo, body: JSON.stringify(corpo) });

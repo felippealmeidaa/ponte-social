@@ -6,7 +6,7 @@ type Variante = 'primario' | 'secundario' | 'fantasma' | 'perigo';
 
 // Ação principal em tinta cheia; o resto não compete com ela
 const VARIANTES: Record<Variante, string> = {
-  primario: 'bg-texto text-white hover:bg-[#0f1d38] font-semibold shadow-[0_1px_0_rgb(23_40_74/0.25)]',
+  primario: 'bg-texto text-sobre hover:bg-tinta-hover font-semibold shadow-[0_1px_0_rgb(23_40_74/0.25)]',
   secundario: 'bg-superficie text-texto border border-linha-forte hover:border-texto-3 hover:bg-elevada',
   fantasma: 'bg-transparent text-texto-2 hover:text-texto hover:bg-elevada',
   perigo: 'bg-superficie text-urgente border border-urgente/45 hover:bg-urgente-fundo',
@@ -77,9 +77,9 @@ export function TituloPagina({ titulo, descricao, acoes }: { titulo: string; des
 
 export function Aviso({ tom = 'urgente', children }: { tom?: 'urgente' | 'info' | 'ok'; children: ReactNode }) {
   const estilo = {
-    urgente: 'border-urgente/35 bg-urgente-fundo text-[#8f211b]',
-    info: 'border-info/25 bg-info-fundo text-[#1a438f]',
-    ok: 'border-ok/25 bg-ok-fundo text-[#14593a]',
+    urgente: 'border-urgente/35 bg-urgente-fundo text-urgente-forte',
+    info: 'border-info/25 bg-info-fundo text-info-forte',
+    ok: 'border-ok/25 bg-ok-fundo text-ok-forte',
   }[tom];
   const Icone = { urgente: AlertTriangle, info: Info, ok: CheckCircle2 }[tom];
   return (
@@ -168,7 +168,7 @@ export function PainelLateral({ aberto, titulo, onFechar, children, largura = 'm
   if (!aberto) return null;
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
-      <div className="absolute inset-0 bg-[#17284a]/35" onClick={onFechar} aria-hidden />
+      <div className="absolute inset-0 bg-veu/45" onClick={onFechar} aria-hidden />
       <aside
         ref={ref}
         tabIndex={-1}

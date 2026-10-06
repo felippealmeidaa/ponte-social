@@ -5,6 +5,17 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ponte Social</title>
+    <script>
+      // Tema antes de a página aparecer: a escolha salva ou, sem ela, o do computador
+      (function () {
+        var t = null;
+        try { t = localStorage.getItem('ponte_tema'); } catch (e) {}
+        if (t !== 'claro' && t !== 'escuro') {
+          t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro';
+        }
+        document.documentElement.dataset.tema = t;
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

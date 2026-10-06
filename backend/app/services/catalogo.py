@@ -68,6 +68,70 @@ TEXTOS_PADRAO: Dict[str, Dict[str, str]] = {
         "descricao": "Áudio que não deu para entender (sem fala clara, longo demais ou transcrição indisponível)",
         "texto": "Não consegui entender seu áudio. 🙏 Pode me contar por escrito ou mandar outro áudio mais curto, falando perto do celular?",
     },
+    "oferecer_documentos": {
+        "descricao": "Depois de o pedido ir ao CRAS: mandar fotos dos documentos agora ou levar pessoalmente (nunca em violência)",
+        "texto": (
+            "Quer adiantar seu atendimento? Você pode mandar agora, por aqui, as *fotos dos documentos* da lista. "
+            "A equipe do CRAS já confere antes, e o atendimento fica mais rápido. Quem decide o benefício é sempre o profissional.\n\n"
+            "🔒 As fotos ficam protegidas: só a equipe do CRAS vê, e elas são apagadas depois do atendimento.\n\n"
+            "*1* - Quero mandar as fotos agora\n*2* - Prefiro levar os documentos pessoalmente"
+        ),
+    },
+    "instrucoes_documentos": {
+        "descricao": "Como tirar as fotos dos documentos ({documentos} é trocado pela lista do caso)",
+        "texto": (
+            "Ótimo! Para a equipe conseguir ler, cada foto precisa:\n"
+            "• mostrar o *documento inteiro*, com as quatro bordas aparecendo\n"
+            "• estar *nítida*: dá para ler todas as letras e números\n"
+            "• ter *boa luz*, sem sombra e sem reflexo do flash\n"
+            "• ser *uma foto por documento* (e do verso também, quando tiver)\n"
+            "• ser do *documento original* (PDF também vale)\n\n"
+            "Apoie o documento numa mesa, segure o celular reto por cima e mande as fotos aqui, uma de cada vez. "
+            "Quando terminar, escreva *pronto*.\n\n*Documentos da lista:*\n{documentos}"
+        ),
+    },
+    "documento_recebido": {
+        "descricao": "Cada foto de documento aceita ({n} é o número do documento)",
+        "texto": "Recebi o documento {n} ✅ Pode mandar o próximo, ou escreva *pronto* quando terminar.",
+    },
+    "documento_problema": {
+        "descricao": "Foto recusada na conferência automática ({problema} explica o que corrigir)",
+        "texto": "Essa foto não ficou boa para leitura: {problema}. 😕 Tire de novo, por favor.",
+    },
+    "documentos_recebidos": {
+        "descricao": "A pessoa terminou de mandar as fotos ({quantidade} vira \"1 documento\" ou \"3 documentos\")",
+        "texto": (
+            "Pronto! ✅ Recebi {quantidade} e anexei ao seu pedido. A equipe do CRAS vai conferir e entrar em contato "
+            "por este número. Guarde os originais: eles podem ser pedidos no atendimento."
+        ),
+    },
+    "documentos_nenhum": {
+        "descricao": "A pessoa escreveu \"pronto\" sem ter mandado nenhuma foto",
+        "texto": "Você ainda não mandou nenhuma foto. Mande as fotos aqui, ou escreva *2* se preferir levar os documentos pessoalmente.",
+    },
+    "documentos_lembrete": {
+        "descricao": "Mensagem de texto enquanto o bot espera as fotos",
+        "texto": "Estou esperando as fotos dos documentos 📷. Mande aqui, uma de cada vez, e escreva *pronto* quando terminar. Se preferir levar pessoalmente, escreva *2*.",
+    },
+    "documentos_presencial": {
+        "descricao": "A pessoa prefere levar os documentos pessoalmente",
+        "texto": "Tudo bem! Leve os documentos originais da lista quando for ao CRAS. A equipe vai entrar em contato por este número.",
+    },
+    "documentos_limite": {
+        "descricao": "A pessoa chegou ao máximo de fotos ({max})",
+        "texto": "Recebi o máximo de {max} documentos ✅ Eles foram anexados ao seu pedido. Se faltou algum, leve no dia do atendimento.",
+    },
+    "documento_refazer": {
+        "descricao": "A equipe pediu uma nova foto pelo painel ({motivo} é trocado)",
+        "texto": "A equipe do CRAS conferiu seus documentos e pediu uma nova foto: {motivo}. Mande a foto aqui e escreva *pronto* quando terminar.",
+    },
+    "imagem_fora_de_hora": {
+        "descricao": "Foto mandada fora da etapa de documentos (não é guardada)",
+        "texto": (
+            "Recebi uma imagem 📷, mas, para proteger seus dados, eu só guardo fotos de documentos depois que o seu pedido "
+            "é enviado ao CRAS. Me conte, por escrito, o que está acontecendo."
+        ),
+    },
     "oferecer_ajuda": {
         "descricao": "Quando a pessoa diz \"não entendi\": oferece áudio ou uma explicação mais simples",
         "texto": "Sem problema! Como fica melhor para você?\n*1* - Ouvir em áudio 🔊\n*2* - Ler uma explicação mais simples e detalhada",
@@ -250,6 +314,10 @@ TEXTOS_ANTIGOS: Dict[str, tuple] = {
     "contato_recusado": ("Tudo bem! Se precisar de novo, é só mandar uma mensagem. Cuide-se. 💚",),
     "fim_sem_contato": ("Procure o CRAS com os documentos da lista. Se precisar, é só mandar uma mensagem. 💚",),
     "audio": ("Por enquanto eu só consigo ler mensagens escritas. Pode me contar por texto? 🙏",),
+    "documentos_recebidos": (
+        "Pronto! ✅ Seus {n} documento(s) foram anexados ao seu pedido. A equipe do CRAS vai conferir e entrar em contato "
+        "por este número. Guarde os originais: eles podem ser pedidos no atendimento.",
+    ),
     "pedir_bairro": (
         "Para eu indicar o CRAS mais perto de você, em qual *bairro* você mora? Se não souber, responda *não sei*.",
         "Para eu indicar os lugares mais perto de você, mande sua *localização* "

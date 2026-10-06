@@ -31,6 +31,8 @@ Regras:
   segurança são em português) e responde traduzido; a equipe vê tudo em português (Mensagem.traducao).
 - Áudio só quando a pessoa pede (economiza créditos): "manda em áudio" fala a última resposta; "não entendi"
   oferece *1* áudio ou *2* explicação mais simples, e depois a conversa volta para a etapa em que estava.
+- Fotos dos documentos: depois de enviar o pedido ao CRAS, a pessoa escolhe mandar as fotos por aqui (a equipe
+  analisa antes) ou levar pessoalmente. Foto fora dessa hora não é guardada (services/documentos.py).
 - "Meu pedido" em qualquer etapa: o bot diz a situação do último pedido (em violência, sem detalhes).
 - Quem não quis contato recebe, dias depois, "conseguiu ir ao CRAS?" (services/acompanhamento.py); quem teve o
   caso concluído pode dar uma nota de 1 a 5 (services/avisos.py). As duas respostas chegam aqui.
@@ -46,7 +48,7 @@ Respostas são texto com opções numeradas (1/2): botões interativos não func
 confiável na Evolution/Baileys.
 """
 from datetime import timedelta
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Tuple
 
 from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -54,7 +56,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.security import encrypt_secret, mask_phone
 from app.models import Conversa, Mensagem, Triagem, UnidadeAtendimento, agora
-from app.services import catalogo, desenho_fluxo, geo, unidades
+from app.services import catalogo, desenho_fluxo, documentos, geo, unidades
 from app.services.anonimizacao import anonimizar_texto, hash_telefone
 from app.services.audio.voz import falar
 from app.services.llm.explicar import explicar
@@ -97,7 +99,19 @@ COMANDO_AUDIO = {"audio", "manda audio", "manda um audio", "mande audio", "mande
 # Canais em que dá para mandar áudio (a API oficial da Meta não aceita o WAV gerado)
 CANAIS_COM_AUDIO = {"evolution", "simulador"}
 # Etapas em que o bot espera uma resposta que pode chegar dias depois: não expiram
-ESPERA_LONGA = {"AGUARDANDO_AVALIACAO", "AGUARDANDO_ACOMPANHAMENTO"}
+ESPERA_LONGA = {"AGUARDANDO_AVALIACAO", "AGUARDANDO_ACOMPANHAMENTO", "AGUARDANDO_OPCAO_DOCUMENTOS", "AGUARDANDO_DOCUMENTOS"}
+ESTADOS_DE_DOCUMENTOS = {"AGUARDANDO_OPCAO_DOCUMENTOS", "AGUARDANDO_DOCUMENTOS"}
+COMANDO_PRONTO = {"pronto", "terminei", "acabei", "so isso", "e isso", "finalizar", "finalizei", "ja mandei", "ja enviei",
+                  "mandei tudo", "enviei tudo", "acabou", "fim", "ok pronto", "pronto ja"}
+COMANDO_PRESENCIAL = {"presencial", "pessoalmente", "vou levar", "prefiro levar", "levo pessoalmente", "vou pessoalmente"}
+PROBLEMA_FOTO = {
+    "pequena": "ficou pequena demais. Chegue mais perto do documento",
+    "escura": "ficou escura. Procure um lugar com mais luz, sem sombra",
+    "tremida": "ficou tremida ou fora de foco. Segure o celular firme e espere a câmera focar",
+    "tipo": "esse tipo de arquivo não dá para abrir. Mande uma foto ou um PDF",
+    "grande": "o arquivo é grande demais. Mande uma foto comum (não vídeo)",
+    "ilegivel": "não consegui abrir o arquivo. Tente mandar de novo",
+}
 SITUACAO_PEDIDO = {"PENDENTE": "aguardando a equipe", "EM_ATENDIMENTO": "em atendimento", "CONCLUIDO": "concluído",
                    "ARQUIVADO": "encerrado"}
 
@@ -188,11 +202,12 @@ async def obter_conversa(session: AsyncSession, telefone: str, canal: str) -> Co
 async def processar_mensagem(session: AsyncSession, telefone: str, texto: Optional[str],
                              canal: str = "evolution", is_audio: bool = False,
                              localizacao: Optional[geo.Ponto] = None, de_audio: bool = False,
-                             saida: Optional[dict] = None) -> List[str]:
+                             saida: Optional[dict] = None, anexo: Optional[Tuple[bytes, str]] = None) -> List[str]:
     """Recebe uma mensagem do cidadão e devolve as mensagens que o bot deve enviar.
     localizacao: pino de localização do WhatsApp (latitude, longitude). Persiste estado e histórico.
     is_audio: áudio que não deu para transcrever. de_audio: texto que veio da transcrição de um áudio.
-    saida: se a pessoa pediu áudio, recebe {"audio": bytes WAV} para quem chamou enviar junto."""
+    saida: se a pessoa pediu áudio, recebe {"audio": bytes WAV} para quem chamou enviar junto.
+    anexo: foto ou PDF que a pessoa mandou (bytes, tipo). Só é guardado na etapa de documentos."""
     conversa = await obter_conversa(session, telefone, canal)
     texto = (texto or "").strip()
     localizacao = localizacao or geo.coordenadas_no_texto(texto)
@@ -207,7 +222,8 @@ async def processar_mensagem(session: AsyncSession, telefone: str, texto: Option
     conversa._original = original if original != texto else None
     registrar(session, conversa, "cidadao",
               "[áudio]" if is_audio else "[localização enviada]" if localizacao
-              else ("🎤 " if de_audio else "") + anonimizar_texto(original),
+              else ("[📎 foto ou arquivo enviado]" if anexo else "")
+              + (" " if anexo and original else "") + ("🎤 " if de_audio else "") + anonimizar_texto(original),
               traducao=anonimizar_texto(texto) if conversa._original else None)
     conversa.nao_lidas = (conversa.nao_lidas or 0) + 1
 
@@ -230,8 +246,11 @@ async def processar_mensagem(session: AsyncSession, telefone: str, texto: Option
                     conversa.unidade_id = unidade.id if unidade else None
             if localizacao and conversa.consentiu_em and conversa.estado != "AGUARDANDO_BAIRRO":
                 respostas = await _localizacao_avulsa(session, conversa, localizacao)
+            elif anexo and conversa.estado not in ESTADOS_DE_DOCUMENTOS:
+                # Por segurança, foto de documento só é guardada depois de a pessoa escolher mandá-las
+                respostas = [catalogo.texto("imagem_fora_de_hora", conversa.unidade_id)]
             else:
-                respostas = await _passo(session, conversa, telefone, texto, localizacao)
+                respostas = await _passo(session, conversa, telefone, texto, localizacao, anexo)
         apagada = getattr(conversa, "_apagada", False)
         # Guarda a resposta para "não entendi" / "manda em áudio" (a ajuda em si não substitui a resposta guardada)
         if respostas and not apagada and not getattr(conversa, "_ajuda", False):
@@ -263,6 +282,7 @@ async def _apagar_dados(session: AsyncSession, conversa: Conversa) -> bool:
     )
     mantidos = (await session.execute(select(func.count()).select_from(Triagem).where(Triagem.conversa_id == chave))).scalar_one()
     await session.execute(delete(Mensagem).where(Mensagem.conversa_id == chave))
+    await documentos.apagar_da_conversa(session, chave, [])
     await session.delete(conversa)
     conversa._apagada = True  # marcador em memória: nada mais é gravado para esta conversa
     return mantidos > 0
@@ -278,16 +298,42 @@ async def _relato_e_traducao(conversa: Conversa, relato_pt: str, original: Optio
     return relato_pt, traduzido if traduzido != relato_pt else None
 
 
-async def _registrar_triagem(session: AsyncSession, conversa: Conversa, telefone: str) -> None:
+async def _registrar_triagem(session: AsyncSession, conversa: Conversa, telefone: str) -> Triagem:
     classificacao = conversa.classificacao or {}
     relato, traducao = await _relato_e_traducao(conversa, conversa.relato, classificacao.get("original"))
-    await criar_triagem(
+    return await criar_triagem(
         session, relato, classificacao, canal="whatsapp", telefone=telefone,
         nome="Contato via WhatsApp", categoria_final=conversa.categoria_escolhida, bairro=conversa.bairro,
         confirmada=bool(classificacao.get("confirmada")), consentiu_treino=True,
         conversa_id=conversa.telefone_hash, unidade_id=conversa.unidade_id,
         idioma=conversa.idioma, relato_traducao=traducao,
     )
+
+
+def _oferecer_documentos(conversa: Conversa, triagem: Triagem) -> List[str]:
+    """Depois de o pedido ir para o CRAS: mandar as fotos agora (a equipe analisa antes) ou levar pessoalmente.
+    Nunca em violência."""
+    if triagem.categoria == VIOLENCIA or triagem.prioridade == "URGENTE_VIOLENCIA":
+        return []
+    conversa.estado, conversa.documentos_triagem = "AGUARDANDO_OPCAO_DOCUMENTOS", triagem.id
+    return [catalogo.texto("oferecer_documentos", conversa.unidade_id)]
+
+
+def _encerrar_documentos(conversa: Conversa) -> None:
+    conversa.estado, conversa.documentos_triagem = "FINALIZADA", None
+
+
+async def _receber_documento(session: AsyncSession, conversa: Conversa, triagem: Triagem,
+                             anexo: Tuple[bytes, str]) -> List[str]:
+    t = lambda chave: catalogo.texto(chave, conversa.unidade_id)  # noqa: E731
+    problema, largura, altura = documentos.verificar(*anexo)
+    if problema:
+        return [t("documento_problema").replace("{problema}", PROBLEMA_FOTO[problema])]
+    total = await documentos.guardar(session, triagem, anexo[0], anexo[1], largura, altura)
+    if total >= settings.DOCUMENTOS_MAX:
+        _encerrar_documentos(conversa)
+        return [t("documentos_limite").replace("{max}", str(settings.DOCUMENTOS_MAX))]
+    return [t("documento_recebido").replace("{n}", str(total))]
 
 
 def _agendar_acompanhamento(conversa: Conversa) -> None:
@@ -428,16 +474,17 @@ async def _mostrar_caminho(session: AsyncSession, conversa: Conversa, telefone: 
         return await _antes(session, conversa, "caminho", [caminho])
     conversa.estado = "FINALIZADA"
     if modo == "sempre":  # este CRAS quer todo caso na fila, sem perguntar
-        await _registrar_triagem(session, conversa, telefone)
+        triagem = await _registrar_triagem(session, conversa, telefone)
         return (await _antes(session, conversa, "caminho", [caminho])
-                + await _antes(session, conversa, "fila", [catalogo.texto("contato_confirmado", u)]))
+                + await _antes(session, conversa, "fila", [catalogo.texto("contato_confirmado", u)])
+                + _oferecer_documentos(conversa, triagem))
     _agendar_acompanhamento(conversa)
     return await _antes(session, conversa, "caminho", [caminho]) + \
         await _antes(session, conversa, "encerrado", [catalogo.texto("fim_sem_contato", u)])
 
 
 async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto: str,
-                localizacao: Optional[geo.Ponto] = None) -> List[str]:
+                localizacao: Optional[geo.Ponto] = None, anexo: Optional[Tuple[bytes, str]] = None) -> List[str]:
     estado = conversa.estado
     texto_norm = normalizar(texto).strip(" .!?")
 
@@ -506,6 +553,39 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
             return [t("apagar_cancelado")]
         return ["Responda *1* para apagar seus dados ou *2* para manter."]
 
+    if estado == "AGUARDANDO_OPCAO_DOCUMENTOS":
+        if anexo or texto.strip() == "1":
+            conversa.estado = estado = "AGUARDANDO_DOCUMENTOS"
+            if not anexo:
+                triagem = await session.get(Triagem, conversa.documentos_triagem) if conversa.documentos_triagem else None
+                lista = "\n".join(f"• {d}" for d in (triagem.documentos_necessarios if triagem else []))
+                return [t("instrucoes_documentos").replace("{documentos}", lista or "• os documentos da lista acima")]
+        elif texto.strip() == "2" or texto_norm in COMANDO_PRESENCIAL:
+            _encerrar_documentos(conversa)
+            return [t("documentos_presencial")]
+        else:
+            conversa.documentos_triagem = None
+            conversa.estado = estado = "RETORNO"  # respondeu outra coisa: segue como conversa nova
+
+    if estado == "AGUARDANDO_DOCUMENTOS":
+        triagem = await session.get(Triagem, conversa.documentos_triagem) if conversa.documentos_triagem else None
+        if triagem is None:
+            conversa.estado = estado = "RETORNO"
+        elif anexo:
+            return await _receber_documento(session, conversa, triagem, anexo)
+        elif texto_norm in COMANDO_PRONTO:
+            total = await documentos.quantos(session, triagem.id)
+            if not total:
+                return [t("documentos_nenhum")]
+            _encerrar_documentos(conversa)
+            quantidade = "1 documento" if total == 1 else f"{total} documentos"
+            return [t("documentos_recebidos").replace("{quantidade}", quantidade)]
+        elif texto.strip() == "2" or texto_norm in COMANDO_PRESENCIAL:
+            _encerrar_documentos(conversa)
+            return [t("documentos_presencial")]
+        else:
+            return [t("documentos_lembrete")]
+
     if estado == "AGUARDANDO_AVALIACAO":
         triagem = await session.get(Triagem, conversa.avaliando_triagem) if conversa.avaliando_triagem else None
         conversa.avaliando_triagem = None
@@ -526,8 +606,8 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
                 return [t("acompanhamento_nao_precisa")]
             conversa.relato, conversa.classificacao = acomp.get("relato"), acomp.get("classificacao")
             conversa.categoria_escolhida = acomp.get("categoria")
-            await _registrar_triagem(session, conversa, telefone)
-            return [t("contato_confirmado")]
+            triagem = await _registrar_triagem(session, conversa, telefone)
+            return [t("contato_confirmado")] + _oferecer_documentos(conversa, triagem)
         conversa.estado = estado = "RETORNO"
 
     if estado == "NOVA":
@@ -663,8 +743,8 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
         if resposta is False:
             _agendar_acompanhamento(conversa)
             return await _antes(session, conversa, "encerrado", [t("contato_recusado")])
-        await _registrar_triagem(session, conversa, telefone)
-        return await _antes(session, conversa, "fila", [t("contato_confirmado")])
+        triagem = await _registrar_triagem(session, conversa, telefone)
+        return await _antes(session, conversa, "fila", [t("contato_confirmado")]) + _oferecer_documentos(conversa, triagem)
 
     conversa.estado = "AGUARDANDO_CONSENTIMENTO"
     return [t("boas_vindas")]

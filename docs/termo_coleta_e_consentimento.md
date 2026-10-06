@@ -79,6 +79,8 @@ O que falta definir **[validar]**:
 
    Validar se as boas-vindas devem citar o Google, por exemplo: "Para entender sua mensagem, ela é lida por uma inteligência artificial do Google, sem seu nome, CPF ou telefone." (O texto do bot não foi mudado; isso depende do orientador.)
 
+7. **Fotos de documentos.** Depois de enviar o pedido ao CRAS, a pessoa pode mandar fotos dos documentos (RG, CPF, comprovantes) pelo WhatsApp para a equipe conferir antes. São dados pessoais (e podem ser sensíveis), então o sistema: só guarda depois de a pessoa escolher mandar (a mensagem diz para que servem e que serão apagadas); confere a foto só localmente (tamanho, luz, nitidez), sem IA; guarda o arquivo cifrado; só a equipe que vê o caso abre, e cada abertura fica registrada nas observações; apaga 30 dias depois de o caso ser concluído ou arquivado (`DOCUMENTOS_RETENCAO_DIAS`) e no "apagar" da pessoa; nunca pede fotos em caso de violência. **[validar]** Base legal (consentimento específico para esta finalidade), prazo de guarda com o CRAS e se a análise antecipada pode ser feita por foto.
+
 ## 5. Checklist antes de usar qualquer relato
 
 - [ ] Origem registrada (`cras_real`, `profissional_descaracterizado`, `simulado`, `correcao_cidadao`).

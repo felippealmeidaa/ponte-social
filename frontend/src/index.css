@@ -32,10 +32,71 @@
   --color-info: #2457c5;
   --color-info-fundo: #e6eefc;
 
+  /* Texto forte sobre os fundos de aviso, e texto sobre os preenchimentos de cor (botão, selo, faixa) */
+  --color-urgente-forte: #8f211b;
+  --color-info-forte: #1a438f;
+  --color-ok-forte: #14593a;
+  --color-sobre: #ffffff;
+  --color-tinta-hover: #0f1d38;
+  --color-veu: #17284a;
+  /* Faixa de caso urgente parado: preenchimento forte com texto claro */
+  --color-alerta: #c0322b;
+  --color-sobre-alerta: #ffffff;
+
+  /* Prévia do WhatsApp, nas cores do próprio WhatsApp */
+  --color-whats-fundo: #efeae2;
+  --color-whats-balao: #ffffff;
+  --color-whats-texto: #111b21;
+  --color-whats-2: #54656f;
+  --color-whats-enviada: #d9fdd3;
+
   --ease-saida: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Títulos: Archivo largo e pesado, como cabeçalho de formulário impresso */
+/* Modo escuro: a mesma guia, à noite. A mesa fica quase preta azulada, o papel um pouco mais claro,
+   a tinta clara; a caneta e o carimbo clareiam para manter o contraste (AA) sobre o fundo escuro. */
+:root[data-tema="escuro"] {
+  color-scheme: dark;
+  --color-fundo: #0d1219;
+  --color-superficie: #151c26;
+  --color-elevada: #1b2431;
+  --color-realce: #233042;
+  --color-linha: #263142;
+  --color-linha-forte: #3a4759;
+
+  --color-texto: #e7ecf3;
+  --color-texto-2: #aeb8c8;
+  --color-texto-3: #8e9aae;
+
+  --color-caneta: #82a8ff;
+  --color-caneta-fundo: #1a2742;
+  --color-urgente: #f2675c;
+  --color-urgente-fundo: #2c1517;
+  --color-alta: #f0a35e;
+  --color-alta-fundo: #2c1f12;
+  --color-media: #d9c25a;
+  --color-ok: #5fcf8f;
+  --color-ok-fundo: #12261b;
+  --color-info: #82a8ff;
+  --color-info-fundo: #1a2742;
+
+  --color-urgente-forte: #ffa59d;
+  --color-info-forte: #b6ccff;
+  --color-ok-forte: #93e2b4;
+  --color-sobre: #0b1018;
+  --color-tinta-hover: #ffffff;
+  --color-veu: #000000;
+  --color-alerta: #9e2f28;
+  --color-sobre-alerta: #ffffff;
+
+  --color-whats-fundo: #0b141a;
+  --color-whats-balao: #202c33;
+  --color-whats-texto: #e9edef;
+  --color-whats-2: #8696a0;
+  --color-whats-enviada: #005c4b;
+}
+
 @utility titulo {
   font-family: var(--font-display);
   font-stretch: 118%;
@@ -48,6 +109,9 @@
   html {
     color-scheme: light;
     background: var(--color-fundo);
+  }
+  html[data-tema="escuro"] {
+    color-scheme: dark;
   }
 
   body {
@@ -123,6 +187,9 @@
   border-radius: 6px;
   box-shadow: 0 1px 0 rgb(23 40 74 / 0.04), 0 10px 28px -18px rgb(23 40 74 / 0.35);
 }
+:root[data-tema="escuro"] .folha {
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.3), 0 12px 30px -16px rgb(0 0 0 / 0.7);
+}
 
 /* Guia de encaminhamento: canhoto à esquerda, separado por picote com recortes */
 .guia {
@@ -184,6 +251,10 @@
   mix-blend-mode: multiply;
   opacity: 0.92;
   animation: carimbar 260ms var(--ease-saida) both;
+}
+/* "multiply" some com o vermelho no escuro: o carimbo fica por cima, sem mistura */
+:root[data-tema="escuro"] .carimbo {
+  mix-blend-mode: normal;
 }
 @keyframes carimbar {
   from {
@@ -264,12 +335,12 @@
 
 /* Balão do WhatsApp como a pessoa vê (mensagem recebida, com a pontinha) */
 .conversa-whats {
-  background-color: #efeae2;
+  background-color: var(--color-whats-fundo);
 }
 .balao-whats {
   position: relative;
-  background: #fff;
-  color: #111b21;
+  background: var(--color-whats-balao);
+  color: var(--color-whats-texto);
   border-radius: 0 7.5px 7.5px 7.5px;
   box-shadow: 0 1px 0.5px rgb(11 20 26 / 0.13);
 }
@@ -280,6 +351,6 @@
   left: -8px;
   width: 8px;
   height: 13px;
-  background: #fff;
+  background: var(--color-whats-balao);
   clip-path: polygon(0 0, 100% 0, 100% 100%);
 }

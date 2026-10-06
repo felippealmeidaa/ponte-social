@@ -68,6 +68,8 @@ async def rodar_periodicamente() -> None:
             await init_db()
             async with abrir_sessao() as session:
                 n = await enviar_pendentes(session)
+                from app.services import documentos  # fotos de casos fechados há tempo também saem nesta rodada
+                await documentos.aplicar_retencao(session)
             if n:
                 log.info("Retornos enviados: %s", n)
         except Exception as e:  # nunca derruba o servidor

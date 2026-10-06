@@ -94,6 +94,10 @@ class Settings(BaseSettings):
     # Quem não quis contato do CRAS recebe, depois destes dias, a pergunta "conseguiu ir?"
     RETORNO_DIAS: int = 3
     ACOMPANHAMENTO_AUTOMATICO: bool = True
+    # Fotos de documentos pelo WhatsApp: limites e prazo para apagar depois de o caso ser fechado
+    DOCUMENTOS_MAX: int = 10
+    DOCUMENTO_MAX_MB: int = 8
+    DOCUMENTOS_RETENCAO_DIAS: int = 30
 
     @model_validator(mode="after")
     def check_required_secrets(self) -> "Settings":

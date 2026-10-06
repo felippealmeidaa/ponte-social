@@ -37,7 +37,7 @@ function FaixaViolencia(estado: EstadoTrilho) {
   return (
     <section aria-labelledby="t-seguranca"
       className="flex flex-wrap items-center gap-x-4 gap-y-2.5 rounded-[5px] border border-urgente/30 bg-urgente-fundo px-3.5 py-3">
-      <h3 id="t-seguranca" className="flex items-center gap-2 text-[14px] font-semibold text-[#8f211b]">
+      <h3 id="t-seguranca" className="flex items-center gap-2 text-[14px] font-semibold text-urgente-forte">
         <ShieldAlert className="size-4 shrink-0" aria-hidden />
         Violência, em qualquer etapa e em todos os CRAS
       </h3>
@@ -63,7 +63,7 @@ function Estacao({ etapa, indice, ...estado }: EstadoTrilho & { etapa: Etapa; in
   const cadeias = DESVIOS[etapa.id] ?? [];
 
   const circulo = ativa
-    ? 'border-texto bg-texto text-white ring-4 ring-caneta/20'
+    ? 'border-texto bg-texto text-sobre ring-4 ring-caneta/20'
     : pulada
       ? 'border-dashed border-linha-forte bg-elevada text-texto-3'
       : 'border-texto bg-superficie text-texto group-hover:bg-realce';
@@ -131,7 +131,7 @@ function ChipEtapa({ etapa, cheio, selecionada, contagem, puladas, personalizada
   const estilo = ativa
     ? 'border-caneta bg-caneta-fundo font-semibold text-texto'
     : urgente
-      ? 'border-urgente/40 bg-superficie text-[#8f211b] hover:border-urgente'
+      ? 'border-urgente/40 bg-superficie text-urgente-forte hover:border-urgente'
       : pulada
         ? 'border-dashed border-linha-forte bg-transparent text-texto-3 hover:border-texto-3'
         : 'border-linha-forte bg-superficie text-texto hover:border-texto-3';

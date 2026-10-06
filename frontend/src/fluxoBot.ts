@@ -5,7 +5,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   Ban, BookOpenCheck, Hand, HeartHandshake, Inbox, ListChecks, MapPin, MessageCircleQuestion, MessageSquareText,
-  MessageSquarePlus, Mic, Phone, Volume2, RotateCcw, ShieldAlert, Siren, ThumbsUp, Trash2, Undo2, UserRound,
+  Camera, MessageSquarePlus, Mic, Phone, Volume2, RotateCcw, ShieldAlert, Siren, ThumbsUp, Trash2, Undo2, UserRound,
 } from 'lucide-react';
 
 export type TipoEtapa = 'normal' | 'urgente' | 'fim' | 'automatico';
@@ -185,6 +185,15 @@ export const ETAPAS: Etapa[] = [
     quando: 'A pessoa manda áudio: o bot transcreve, diz o que ouviu (“🎤 Ouvi seu áudio assim…”) e segue a conversa como se ela tivesse escrito; a resposta vai por escrito (áudio só se ela pedir). Se não der para entender, manda o texto abaixo.', textos: ['audio'],
   },
   {
+    id: 'documentos', titulo: 'Fotos dos documentos', icone: Camera, tipo: 'normal',
+    quando: 'Depois de o pedido ir para o CRAS, a pessoa escolhe mandar as fotos dos documentos por aqui (a equipe confere antes e o atendimento fica mais rápido) ou levar pessoalmente. Cada foto passa por uma conferência de tamanho, luz e nitidez; a equipe vê tudo na ficha do caso e pode pedir outra foto.',
+    depois: 'Quando a pessoa escreve “pronto”, as fotos ficam anexadas ao caso. Quem decide o benefício é o profissional.',
+    textos: ['oferecer_documentos', 'instrucoes_documentos', 'documento_recebido', 'documento_problema', 'documentos_recebidos',
+      'documentos_nenhum', 'documentos_lembrete', 'documentos_presencial', 'documentos_limite', 'documento_refazer', 'imagem_fora_de_hora'],
+    estados: ['AGUARDANDO_OPCAO_DOCUMENTOS', 'AGUARDANDO_DOCUMENTOS'],
+    travada: 'Proteção de dados: as fotos ficam cifradas, não vão para a IA, só a equipe do caso vê (com registro) e são apagadas 30 dias depois de o caso ser fechado. Nunca em violência.',
+  },
+  {
     id: 'ajuda', titulo: '“não entendi” e áudio', icone: Volume2, tipo: 'normal',
     quando: 'A qualquer momento. Se a pessoa disser “não entendi”, o bot oferece ouvir a última resposta em áudio ou ler uma explicação mais simples, e depois volta para a etapa em que estava. Se pedir “manda em áudio”, vai direto o áudio. Fora isso, o bot não manda áudio (economiza créditos).',
     textos: ['oferecer_ajuda', 'audio_enviando', 'audio_indisponivel', 'repetir_com_calma'], estados: ['AGUARDANDO_AJUDA'],
@@ -213,6 +222,7 @@ export const LIGACOES: Ligacao[] = [
   { de: 'menu', para: 'disque121', rotulo: 'nenhum desses' },
   { de: 'caminho', para: 'fila', rotulo: 'quis contato' },
   { de: 'caminho', para: 'encerrado', rotulo: 'não quis contato' },
+  { de: 'fila', para: 'documentos', rotulo: 'quer adiantar' },
 ];
 
 /** Caminho principal, na ordem da conversa. */
@@ -228,6 +238,7 @@ export const DESVIOS: Record<string, { rotulo: string; etapa: string }[][]> = {
   ]],
   confirmacao: [[{ rotulo: 'não está certo', etapa: 'menu' }]],
   caminho: [[{ rotulo: 'não quis contato', etapa: 'encerrado' }]],
+  fila: [[{ rotulo: 'quer adiantar', etapa: 'documentos' }]],
 };
 
 /** Vale em qualquer etapa, para todos os CRAS. */

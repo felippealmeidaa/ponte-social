@@ -248,7 +248,7 @@ export function CanvasFluxo(estado: EstadoCanvas) {
                   : d.lado === 'direita'
                     ? { left: d.meio.x + 18, top: d.meio.y, transform: 'translateY(-50%)' }
                     : { left: d.meio.x - 18, top: d.meio.y, transform: 'translate(-100%, -50%)' }}
-                  className={`absolute whitespace-nowrap rounded-[4px] px-1.5 py-px text-[12px] leading-tight ${d.reta ? '' : 'bg-elevada'} ${ativa ? 'font-semibold text-caneta' : l.urgente ? 'text-[#8f211b]' : 'text-texto-3'}`}>
+                  className={`absolute whitespace-nowrap rounded-[4px] px-1.5 py-px text-[12px] leading-tight ${d.reta ? '' : 'bg-elevada'} ${ativa ? 'font-semibold text-caneta' : l.urgente ? 'text-urgente-forte' : 'text-texto-3'}`}>
                   {l.rotulo}
                 </span>
               )}
@@ -266,7 +266,7 @@ export function CanvasFluxo(estado: EstadoCanvas) {
       </div>
 
       <section aria-labelledby="c-seguranca" className="sticky left-0 mb-8 flex flex-wrap items-center gap-x-8 gap-y-3 rounded-[6px] border border-urgente/30 bg-urgente-fundo/80 px-4 py-3.5" style={{ maxWidth: largura || undefined }}>
-        <h3 id="c-seguranca" className="flex max-w-[15rem] items-start gap-2 text-[14px] font-semibold leading-snug text-[#8f211b]">
+        <h3 id="c-seguranca" className="flex max-w-[15rem] items-start gap-2 text-[14px] font-semibold leading-snug text-urgente-forte">
           <ShieldAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
           Violência, em qualquer etapa e em todos os CRAS
         </h3>
@@ -397,7 +397,7 @@ function Bloco({ id, etapa, tamanho, ref, extra, fixo, selecionada, contagem, pu
         className={`relative flex items-center justify-center border transition-[border-color,background-color,box-shadow,scale] duration-150 group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-caneta ${t.bloco} ${fim ? 'rounded-l-[10px] rounded-r-full' : 'rounded-[10px]'} ${moldura} ${emArraste ? 'scale-[1.06] shadow-[0_16px_28px_-12px_rgb(23_40_74/0.55)]' : ''}`}>
         <Icone className={t.icone} strokeWidth={1.75} aria-hidden />
         {n > 0 && (
-          <span className="absolute -right-2 -top-2 min-w-5 rounded-full border-2 border-superficie bg-info px-1 text-[11.5px] font-semibold leading-4 tabular text-white">{n}</span>
+          <span className="absolute -right-2 -top-2 min-w-5 rounded-full border-2 border-superficie bg-info px-1 text-[11.5px] font-semibold leading-4 tabular text-sobre">{n}</span>
         )}
         {etapa.travada && !ativa && (
           <span className="absolute -bottom-1.5 -right-1.5 flex size-[18px] items-center justify-center rounded-full border border-linha-forte bg-superficie text-texto-3">
@@ -406,7 +406,7 @@ function Bloco({ id, etapa, tamanho, ref, extra, fixo, selecionada, contagem, pu
         )}
         {tamanho === 'pequeno' && personalizadas.has(id) && <span className="absolute -left-1 -top-1 size-2.5 rounded-full border-2 border-superficie bg-caneta" />}
       </span>
-      <span className={`line-clamp-2 leading-tight ${tamanho === 'pequeno' ? 'text-[13px] font-medium' : 'text-[13.5px] font-semibold'} ${ativa || extra ? 'text-caneta' : pulada ? 'text-texto-2' : urgente ? 'text-[#8f211b]' : 'text-texto'} ${ativa ? '' : 'group-hover:underline group-hover:decoration-linha-forte group-hover:underline-offset-4'}`}>
+      <span className={`line-clamp-2 leading-tight ${tamanho === 'pequeno' ? 'text-[13px] font-medium' : 'text-[13.5px] font-semibold'} ${ativa || extra ? 'text-caneta' : pulada ? 'text-texto-2' : urgente ? 'text-urgente-forte' : 'text-texto'} ${ativa ? '' : 'group-hover:underline group-hover:decoration-linha-forte group-hover:underline-offset-4'}`}>
         {etapa.titulo}
       </span>
       {tamanho !== 'pequeno' && !extra && <Situacao etapa={etapa} selecionada={selecionada} contagem={{}} puladas={puladas} personalizadas={personalizadas} onAbrir={onAbrir} />}

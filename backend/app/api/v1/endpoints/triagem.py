@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from statistics import median
 from typing import Any, Dict, List, Literal, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,9 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import escopo, pode_ver, usuario_logado
 from app.core.security import decrypt_secret
 from app.db import get_session
-from app.models import Mensagem, Triagem, UnidadeAtendimento, iso
+from app.models import Conversa, DocumentoAnexo, Mensagem, Triagem, UnidadeAtendimento, iso
 from app.services import unidades
+from app.services import catalogo, documentos
 from app.services.avisos import avisar_andamento
+from app.services.channels.envio import enviar_pelo_canal
+from app.services.llm.traducao import traduzir
 from app.services.llm.resumo import resumir
 from app.services.live_chat.manager import live_chat_manager
 from app.services.ml.classifier_service import SocialClassifierService
@@ -175,6 +178,62 @@ async def resumo_do_caso(triagem_id: str, usuario: Dict[str, Any] = Depends(usua
         triagem.resumo_ia = resumo
         await session.commit()
     return {"resumo": resumo}
+
+
+@router.get("/{triagem_id}/documentos")
+async def documentos_do_caso(triagem_id: str, usuario: Dict[str, Any] = Depends(usuario_logado),
+                             session: AsyncSession = Depends(get_session)):
+    """Lista das fotos que a pessoa mandou (sem o conteúdo)."""
+    await _triagem_ou_404(session, triagem_id, usuario)
+    return [documentos.para_dict(d) for d in await documentos.listar(session, triagem_id)]
+
+
+@router.get("/{triagem_id}/documentos/{documento_id}/arquivo")
+async def arquivo_do_documento(triagem_id: str, documento_id: str, usuario: Dict[str, Any] = Depends(usuario_logado),
+                               session: AsyncSession = Depends(get_session)):
+    """A foto em si, decifrada só para quem vê o caso. Quem abriu fica registrado nas observações (uma vez por dia)."""
+    triagem = await _triagem_ou_404(session, triagem_id, usuario)
+    doc = await session.get(DocumentoAnexo, documento_id)
+    if doc is None or doc.triagem_id != triagem.id:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+    registro = f"[{datetime.now(timezone.utc).strftime('%d/%m/%Y')}] Documentos vistos por {usuario.get('nome') or usuario.get('sub')}."
+    if registro not in (triagem.observacoes or ""):
+        triagem.observacoes = f"{triagem.observacoes}\n{registro}" if triagem.observacoes else registro
+        await session.commit()
+    return Response(content=documentos.abrir(doc), media_type=doc.mime,
+                    headers={"Cache-Control": "no-store", "Content-Disposition": "inline"})
+
+
+class RevisaoRequest(BaseModel):
+    situacao: Literal["legivel", "refazer"]
+    motivo: Optional[str] = Field(default=None, max_length=200)
+
+
+@router.post("/{triagem_id}/documentos/{documento_id}/revisao")
+async def revisar_documento(triagem_id: str, documento_id: str, payload: RevisaoRequest,
+                            usuario: Dict[str, Any] = Depends(usuario_logado), session: AsyncSession = Depends(get_session)):
+    """A equipe marca a foto como legível ou pede outra pelo WhatsApp (com o motivo)."""
+    triagem = await _triagem_ou_404(session, triagem_id, usuario)
+    doc = await session.get(DocumentoAnexo, documento_id)
+    if doc is None or doc.triagem_id != triagem.id:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+    if payload.situacao == "refazer" and not (payload.motivo or "").strip():
+        raise HTTPException(status_code=422, detail="Diga o que precisa ser corrigido na foto.")
+    doc.situacao, doc.motivo, doc.revisado_por = payload.situacao, (payload.motivo or "").strip() or None, usuario.get("nome")
+    pedido_enviado = None
+    if payload.situacao == "refazer":
+        conversa = await session.get(Conversa, triagem.conversa_id) if triagem.conversa_id else None
+        pedido_enviado = False
+        if conversa is not None:
+            texto = catalogo.texto("documento_refazer", triagem.unidade_id).replace("{motivo}", doc.motivo)
+            enviado = (await traduzir([texto], "es"))[0] if conversa.idioma == "es" else texto
+            if await enviar_pelo_canal(conversa, enviado):
+                session.add(Mensagem(conversa_id=conversa.telefone_hash, autor="bot", texto=enviado,
+                                     traducao=texto if texto != enviado else None))
+                conversa.estado, conversa.documentos_triagem = "AGUARDANDO_DOCUMENTOS", triagem.id
+                pedido_enviado = True
+    await session.commit()
+    return {"documento": documentos.para_dict(doc), "pedido_enviado": pedido_enviado}
 
 
 @router.get("/exemplos-rotulados")
