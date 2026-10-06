@@ -254,7 +254,7 @@ function Fluxo({ ctx, unidades, irPara }: { ctx: Contexto; unidades: UnidadeResu
             posicoes={dadosDesenho?.posicoes ?? {}} extras={extras} ancoras={dadosDesenho?.ancoras ?? []}
             podeEditar={ctx.podeEditar && Boolean(dadosDesenho)} onMover={(posicoes) => { void salvarDesenho({ posicoes }); }}
             onAdicionar={adicionar} onOrelha={setOrelha} />
-        : <TrilhoFluxo selecionada={selecionada} contagem={contagem} puladas={puladas} personalizadas={personalizadas} onAbrir={abrir} />}
+        : <TrilhoFluxo selecionada={selecionada} contagem={contagem} puladas={puladas} personalizadas={personalizadas} onAbrir={abrir} extras={extras} />}
 
       <section ref={editor} aria-labelledby="t-etapa" data-sem-orelha={orelha === null || novaAntesDe ? '' : undefined}
         style={orelha === null ? undefined : { '--orelha': `${orelha}px` } as CSSProperties}

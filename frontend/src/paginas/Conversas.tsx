@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowLeft, Bot, Hand, Languages, MessagesSquare, Send, UserRound } from 'lucide-react';
 import { api, enviar, ErroApi } from '../api';
+import { RespostasProntas } from '../components/RespostasProntas';
 import { Aviso, Botao, Esqueleto, Selo, Vazio } from '../components/ui';
 import { irPara } from '../navegacao';
 import type { Mensagem, ResumoConversa } from '../tipos';
@@ -230,6 +231,7 @@ function Conversa({ id, resumo, onMudou }: { id: string; resumo?: ResumoConversa
             placeholder={idioma === 'es' ? 'Escreva em português: vai traduzido para o espanhol (Enter envia)' : humano ? 'Escreva para a pessoa (Enter envia, Shift+Enter quebra linha)' : 'Responder assume a conversa e pausa o bot'}
             className="min-h-11 flex-1 resize-none rounded-[5px] border border-linha-forte bg-fundo px-3 py-2.5 text-sm hover:border-texto-3 focus:border-caneta focus:outline-none"
           />
+          <RespostasProntas onEscolher={(t) => setTexto((atual) => (atual.trim() ? `${atual.trimEnd()}\n${t}` : t))} />
           <Botao type="submit" variante="primario" icone={Send} carregando={ocupado} disabled={!texto.trim()}>Enviar</Botao>
         </div>
       </form>

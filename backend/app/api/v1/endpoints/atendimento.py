@@ -1,4 +1,5 @@
 """Conversas do WhatsApp para o atendimento humano (tela "Conversas" do painel)."""
+import uuid
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -6,9 +7,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import escopo, pode_ver, usuario_logado
+from app.core.deps import apenas_coordenacao, escopo, pode_ver, usuario_logado
 from app.db import get_session
-from app.models import Conversa, Mensagem, Triagem, agora, iso
+from app.models import Conversa, Mensagem, RespostaPronta, Triagem, agora, iso
 from app.services import catalogo
 from app.services.channels.envio import enviar_pelo_canal
 from app.services.llm.traducao import traduzir
@@ -133,3 +134,81 @@ async def responder(conversa_id: str, req: RespostaRequest, usuario: Dict[str, A
     enviada = await enviar_pelo_canal(conversa, saida)
     return {"id": mensagem.id, "enviada": enviada, "traduzida": saida != texto,
             "aviso": None if enviada else "Mensagem salva, mas o WhatsApp não confirmou o envio. Verifique a conexão em Configurações."}
+
+
+# ------------------------------------------------------------------------------
+# Respostas prontas: modelos de mensagem que o atendente usa com um clique
+# ------------------------------------------------------------------------------
+PADROES_PRONTAS = [
+    ("Pode vir ao CRAS", "Olá! Pode vir ao CRAS de segunda a sexta, das 8h às 17h, com os documentos da lista. Se precisar, é só responder aqui."),
+    ("Faltam documentos", "Para continuar o atendimento, ainda falta um documento da lista. Pode mandar a foto aqui ou trazer no dia do atendimento."),
+    ("Vamos ligar", "Vamos te ligar neste número nos próximos dias para combinar o atendimento. Fique atento(a) ao telefone."),
+    ("Encaminhado ao CREAS", "Seu caso foi encaminhado ao CREAS, que vai entrar em contato. Se estiver em perigo agora, ligue 190."),
+    ("Atendimento concluído", "Seu atendimento foi concluído. Se precisar de novo, é só mandar uma mensagem aqui. Cuide-se!"),
+]
+
+
+class RespostaProntaRequest(BaseModel):
+    titulo: str = Field(min_length=2, max_length=80)
+    texto: str = Field(min_length=2, max_length=2000)
+    ordem: int = 0
+
+
+def _pronta_dict(r: RespostaPronta) -> Dict[str, Any]:
+    return {"id": r.id, "titulo": r.titulo, "texto": r.texto, "ordem": r.ordem, "unidade_id": r.unidade_id,
+            "da_secretaria": r.unidade_id is None, "atualizado_por": r.atualizado_por}
+
+
+async def _garantir_padroes(session: AsyncSession) -> None:
+    if (await session.execute(select(func.count()).select_from(RespostaPronta))).scalar_one():
+        return
+    for i, (titulo, texto) in enumerate(PADROES_PRONTAS):
+        session.add(RespostaPronta(id=f"rp-{uuid.uuid4().hex[:8]}", titulo=titulo, texto=texto, ordem=i))
+    await session.commit()
+
+
+@router.get("/respostas-prontas")
+async def listar_respostas_prontas(usuario: Dict[str, Any] = Depends(usuario_logado), session: AsyncSession = Depends(get_session)):
+    """As da secretaria (todos) e as do CRAS da conta. A coordenação geral vê todas."""
+    await _garantir_padroes(session)
+    q = select(RespostaPronta).order_by(RespostaPronta.ordem, RespostaPronta.titulo)
+    if escopo(usuario):
+        q = q.where((RespostaPronta.unidade_id.is_(None)) | (RespostaPronta.unidade_id == escopo(usuario)))
+    return [_pronta_dict(r) for r in (await session.execute(q)).scalars()]
+
+
+@router.post("/respostas-prontas")
+async def criar_resposta_pronta(req: RespostaProntaRequest, usuario: Dict[str, Any] = Depends(apenas_coordenacao),
+                                session: AsyncSession = Depends(get_session)):
+    """Coordenação de um CRAS cria para o seu CRAS; a coordenação geral cria para todos."""
+    r = RespostaPronta(id=f"rp-{uuid.uuid4().hex[:8]}", unidade_id=escopo(usuario), titulo=req.titulo.strip(),
+                       texto=req.texto.strip(), ordem=req.ordem, atualizado_em=agora(), atualizado_por=usuario.get("nome"))
+    session.add(r)
+    await session.commit()
+    return _pronta_dict(r)
+
+
+async def _pronta_editavel(session: AsyncSession, pronta_id: str, usuario: Dict[str, Any]) -> RespostaPronta:
+    r = await session.get(RespostaPronta, pronta_id)
+    if r is None or (escopo(usuario) and r.unidade_id != escopo(usuario)):
+        raise HTTPException(status_code=404, detail="Resposta pronta não encontrada (as da secretaria só a coordenação geral muda).")
+    return r
+
+
+@router.put("/respostas-prontas/{pronta_id}")
+async def editar_resposta_pronta(pronta_id: str, req: RespostaProntaRequest, usuario: Dict[str, Any] = Depends(apenas_coordenacao),
+                                 session: AsyncSession = Depends(get_session)):
+    r = await _pronta_editavel(session, pronta_id, usuario)
+    r.titulo, r.texto, r.ordem = req.titulo.strip(), req.texto.strip(), req.ordem
+    r.atualizado_em, r.atualizado_por = agora(), usuario.get("nome")
+    await session.commit()
+    return _pronta_dict(r)
+
+
+@router.delete("/respostas-prontas/{pronta_id}")
+async def apagar_resposta_pronta(pronta_id: str, usuario: Dict[str, Any] = Depends(apenas_coordenacao),
+                                 session: AsyncSession = Depends(get_session)):
+    r = await _pronta_editavel(session, pronta_id, usuario)
+    await session.delete(r)
+    await session.commit()
+    return {"ok": True}

@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import { ArrowDown, ArrowRight, Lock, ShieldAlert } from 'lucide-react';
-import { COMANDOS, DESVIOS, ETAPAS, SEGURANCA, TRILHO, type Etapa, type Pulada } from '../fluxoBot';
+import { COMANDOS, DESVIOS, ETAPAS, etapaDaExtra, SEGURANCA, TRILHO, type Etapa, type MensagemExtra, type Pulada } from '../fluxoBot';
 
 export interface EstadoTrilho {
   selecionada: string | null;
@@ -11,6 +11,8 @@ export interface EstadoTrilho {
   /** Etapas com texto ou opção diferente do padrão da secretaria (só ao ver um CRAS). */
   personalizadas: Set<string>;
   onAbrir: (id: string) => void;
+  /** Mensagens extras do CRAS: aparecem logo antes da etapa em que entram. */
+  extras?: MensagemExtra[];
 }
 
 const POR_ID: Record<string, Etapa> = Object.fromEntries(ETAPAS.map((e) => [e.id, e]));
@@ -77,6 +79,8 @@ function Estacao({ etapa, indice, ...estado }: EstadoTrilho & { etapa: Etapa; in
         ultima ? 'max-lg:h-5 lg:right-1/2' : 'max-lg:bottom-0 lg:-right-1.5',
       ].join(' ')} />
 
+      <Extras antesDe={etapa.id} className="mb-3 max-lg:pl-[54px] lg:max-w-[210px]" {...estado} />
+
       <button type="button" onClick={() => onAbrir(etapa.id)} aria-pressed={ativa}
         className="group relative flex items-start gap-3.5 rounded-[6px] text-left focus-visible:outline-none lg:flex-col lg:items-center lg:gap-2 lg:text-center">
         <span className={`flex size-10 shrink-0 items-center justify-center rounded-full border-2 transition-[background-color,border-color,box-shadow] duration-150 group-focus-visible:ring-2 group-focus-visible:ring-caneta group-focus-visible:ring-offset-2 ${circulo}`}>
@@ -100,12 +104,30 @@ function Estacao({ etapa, indice, ...estado }: EstadoTrilho & { etapa: Etapa; in
                 <ArrowDown className="size-3 shrink-0" aria-hidden />
                 {passo.rotulo}
               </span>
+              <Extras antesDe={passo.etapa} {...estado} />
               <ChipEtapa etapa={POR_ID[passo.etapa]} cheio {...estado} />
             </Fragment>
           ))}
         </div>
       ))}
     </li>
+  );
+}
+
+/** Mensagens extras que o CRAS pôs antes desta etapa (a pessoa recebe nesta ordem). */
+function Extras({ antesDe, className = '', ...estado }: EstadoTrilho & { antesDe: string; className?: string }) {
+  const lista = (estado.extras ?? []).filter((e) => e.antes_de === antesDe);
+  if (!lista.length) return null;
+  return (
+    <div className={`flex w-full flex-col gap-1.5 ${className}`}>
+      <span className="flex items-center gap-1 text-[12.5px] text-caneta lg:justify-center">
+        <ArrowDown className="size-3 shrink-0" aria-hidden />
+        {lista.length === 1 ? 'mensagem extra antes desta etapa' : 'mensagens extras antes desta etapa'}
+      </span>
+      <ul className="flex flex-col gap-1.5">
+        {lista.map((e) => <li key={e.id}><ChipEtapa etapa={etapaDaExtra(e)} cheio {...estado} /></li>)}
+      </ul>
+    </div>
   );
 }
 

@@ -68,6 +68,25 @@ TEXTOS_PADRAO: Dict[str, Dict[str, str]] = {
         "descricao": "Áudio que não deu para entender (sem fala clara, longo demais ou transcrição indisponível)",
         "texto": "Não consegui entender seu áudio. 🙏 Pode me contar por escrito ou mandar outro áudio mais curto, falando perto do celular?",
     },
+    "agendamento_confirmado": {
+        "descricao": "Quando a equipe marca o atendimento ({quando}, {local} e {cras} são trocados)",
+        "texto": (
+            "📅 Seu atendimento foi marcado para *{quando}*, no *{local}*. Leve os documentos da lista. "
+            "Se não puder ir, responda aqui para remarcar."
+        ),
+    },
+    "agenda_salvar": {
+        "descricao": "Logo depois da confirmação do atendimento: link para salvar na agenda do celular ({link} é trocado)",
+        "texto": "📲 Quer salvar na agenda do celular? Toque no link e confirme:\n{link}",
+    },
+    "agendamento_lembrete": {
+        "descricao": "Lembrete enviado na véspera do atendimento marcado ({quando} e {local} são trocados)",
+        "texto": "🔔 Lembrete: seu atendimento é *{quando}*, no *{local}*. Leve os documentos da lista. Se não puder ir, responda aqui.",
+    },
+    "agendamento_cancelado": {
+        "descricao": "Quando a equipe desmarca o atendimento",
+        "texto": "Seu atendimento marcado para *{quando}* foi desmarcado. A equipe vai entrar em contato para combinar outro horário.",
+    },
     "oferecer_documentos": {
         "descricao": "Depois de o pedido ir ao CRAS: mandar fotos dos documentos agora ou levar pessoalmente (nunca em violência)",
         "texto": (
@@ -341,7 +360,9 @@ OPCOES_PADRAO: Dict[str, object] = {
     "mostrar_outras_necessidades": True,
     "contato": "perguntar",              # perguntar | sempre | nunca
     "perguntar_depois": True,            # quem não quis contato recebe "conseguiu ir ao CRAS?" dias depois
+    "alerta_urgente_min": 10,            # painel: caso de violência sem atendimento há mais que isso acende o alerta
 }
+LIMITES_NUMERICOS = {"alerta_urgente_min": (1, 240)}
 VALORES_CONTATO = ("perguntar", "sempre", "nunca")
 SO_SECRETARIA = {"perguntar_bairro"}
 
@@ -382,6 +403,10 @@ def validar_opcoes(opcoes: dict, unidade: Optional[str]) -> Optional[str]:
         if chave == "contato":
             if valor not in VALORES_CONTATO:
                 return "Contato deve ser: perguntar, sempre ou nunca."
+        elif chave in LIMITES_NUMERICOS:
+            minimo, maximo = LIMITES_NUMERICOS[chave]
+            if isinstance(valor, bool) or not isinstance(valor, int) or not minimo <= valor <= maximo:
+                return f"O tempo do alerta deve ser um número de {minimo} a {maximo} minutos."
         elif not isinstance(valor, bool):
             return f"A opção {chave} deve ser ligada ou desligada."
     return None

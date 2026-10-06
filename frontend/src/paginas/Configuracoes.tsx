@@ -6,11 +6,13 @@ import { irPara } from '../navegacao';
 import { useAtualizacao } from '../useAtualizacao';
 import { EquipeEAcesso } from './Equipe';
 import { ModeloIA } from './ModeloIA';
+import { Alertas } from './Alertas';
 
 const ABAS = [
   { id: 'whatsapp', rotulo: 'WhatsApp' },
   { id: 'testar', rotulo: 'Testar o bot' },
   { id: 'modelo', rotulo: 'Modelo de IA' },
+  { id: 'alertas', rotulo: 'Alertas' },
   { id: 'equipe', rotulo: 'Equipe e acesso' },
 ] as const;
 
@@ -34,6 +36,7 @@ export function Configuracoes({ aba }: { aba?: string }) {
       {atual === 'whatsapp' && <ConexaoWhatsApp />}
       {atual === 'testar' && <TestarBot />}
       {atual === 'modelo' && <ModeloIA />}
+      {atual === 'alertas' && <Alertas />}
       {atual === 'equipe' && <EquipeEAcesso />}
     </>
   );

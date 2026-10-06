@@ -97,6 +97,9 @@ class Settings(BaseSettings):
     DOCUMENTOS_MAX: int = 10
     DOCUMENTO_MAX_MB: int = 8
     DOCUMENTOS_RETENCAO_DIAS: int = 30
+    # Endereço público da API (ex.: https://ponte.exemplo.gov.br/api/v1). Com ele, a confirmação do atendimento
+    # leva também o arquivo de agenda (.ics) para iPhone; sem ele, só o link do Google Agenda.
+    PUBLICO_URL: str = ""
 
     @model_validator(mode="after")
     def check_required_secrets(self) -> "Settings":

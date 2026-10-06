@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy import JSON, Date, DateTime, Float, Integer, LargeBinary, String, Text
@@ -9,6 +9,16 @@ from app.db import Base
 
 def agora() -> datetime:
     return datetime.now(timezone.utc)
+
+
+# Horário de Brasília (Anápolis): o banco guarda em UTC; dias e horas mostrados às pessoas usam este fuso
+FUSO_LOCAL = timezone(timedelta(hours=-3), "Brasília")
+
+
+def local(dt: Optional[datetime] = None) -> datetime:
+    """Data e hora no horário de Brasília (agora, se não vier nenhuma)."""
+    dt = dt or agora()
+    return (dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt).astimezone(FUSO_LOCAL)
 
 
 def iso(dt: Optional[datetime]) -> Optional[str]:
@@ -68,6 +78,12 @@ class Triagem(Base):
     # Correção da necessidade pela equipe (vira exemplo de treino; a sugestão original fica em categoria_modelo)
     corrigida_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     corrigida_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    # Atendimento marcado pela equipe: a pessoa recebe a confirmação e um lembrete na véspera (services/agenda.py)
+    agendado_para: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    agendado_local: Mapped[Optional[str]] = mapped_column(String(160), nullable=True)
+    agendado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    agendado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    lembrete_enviado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     # Fotos de documentos que a pessoa mandou pelo WhatsApp para adiantar a análise (ver DocumentoAnexo)
     documentos_enviados: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
@@ -228,6 +244,20 @@ class ServicoUnidade(Base):
     contato_util: Mapped[str] = mapped_column(Text)
     fonte: Mapped[str] = mapped_column(Text, default="")
     verificado_em: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    atualizado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    atualizado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+
+
+class RespostaPronta(Base):
+    """Modelo de mensagem que o atendente usa com um clique em Conversas. unidade_id None = da secretaria
+    (todos veem); com unidade, só aquele CRAS vê. A coordenação edita."""
+    __tablename__ = "respostas_prontas"
+
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    unidade_id: Mapped[Optional[str]] = mapped_column(String(16), nullable=True, index=True)
+    titulo: Mapped[str] = mapped_column(String(80))
+    texto: Mapped[str] = mapped_column(Text)
+    ordem: Mapped[int] = mapped_column(Integer, default=0)
     atualizado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     atualizado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
 

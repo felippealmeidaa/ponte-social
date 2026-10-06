@@ -233,3 +233,15 @@ async def simular_anexo(telefone: str = Form(default="5562900000000"), arquivo: 
     respostas = await processar_mensagem(session, telefone, "", canal="simulador",
                                          anexo=(conteudo, arquivo.content_type or "image/jpeg"))
     return {"respostas": respostas, "conversa_id": hash_telefone(telefone)}
+
+
+@router.get("/agenda/{triagem_id}/{token}.ics")
+async def agenda_ics(triagem_id: str, token: str, session: AsyncSession = Depends(get_session)):
+    """Arquivo de agenda do atendimento marcado (link mandado no WhatsApp). Sem login: protegido pelo código do link."""
+    from app.models import Triagem
+    from app.services import agenda
+    triagem = await session.get(Triagem, triagem_id)
+    if triagem is None or not triagem.agendado_para or not hmac.compare_digest(token, agenda.token_agenda(triagem_id)):
+        raise HTTPException(status_code=404, detail="Agendamento não encontrado.")
+    return Response(content=agenda.arquivo_ics(triagem), media_type="text/calendar; charset=utf-8",
+                    headers={"Content-Disposition": 'inline; filename="atendimento-cras.ics"', "Cache-Control": "no-store"})

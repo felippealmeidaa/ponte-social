@@ -34,6 +34,11 @@ export interface Triagem {
   /** Quem da equipe corrigiu a necessidade (vira exemplo de treino). */
   corrigida_por?: string | null;
   corrigida_em?: string | null;
+  /** Atendimento marcado pela equipe (a pessoa recebe confirmação e lembrete na véspera). */
+  agendado_para?: string | null;
+  agendado_local?: string | null;
+  agendado_por?: string | null;
+  lembrete_enviado_em?: string | null;
 }
 
 export interface ResumoConversa {

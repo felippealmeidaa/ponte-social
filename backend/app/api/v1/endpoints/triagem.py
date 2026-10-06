@@ -11,9 +11,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.deps import escopo, pode_ver, usuario_logado
 from app.core.security import decrypt_secret
 from app.db import get_session
-from app.models import Conversa, DocumentoAnexo, Mensagem, Triagem, UnidadeAtendimento, iso
+from app.models import Conversa, DocumentoAnexo, Mensagem, Triagem, UnidadeAtendimento, iso, local
 from app.services import unidades
-from app.services import catalogo, documentos
+from app.models import FUSO_LOCAL
+from app.services import agenda, catalogo, documentos
 from app.services.avisos import avisar_andamento
 from app.services.channels.envio import enviar_pelo_canal
 from app.services.llm.traducao import traduzir
@@ -143,6 +144,33 @@ async def assumir_caso(triagem_id: str, payload: AssumirRequest, usuario: Dict[s
     return {"triagem": para_dict(triagem), "aviso": aviso}
 
 
+class AgendamentoRequest(BaseModel):
+    quando: datetime = Field(description="Dia e hora; sem fuso, vale o horário de Brasília")
+    local: Optional[str] = Field(default=None, max_length=160)
+    avisar: bool = True
+
+
+@router.post("/{triagem_id}/agendamento")
+async def marcar_atendimento(triagem_id: str, payload: AgendamentoRequest, usuario: Dict[str, Any] = Depends(usuario_logado),
+                             session: AsyncSession = Depends(get_session)):
+    """Marca (ou remarca) o atendimento. A pessoa recebe a confirmação e, se for com antecedência, o lembrete na véspera."""
+    triagem = await _triagem_ou_404(session, triagem_id, usuario)
+    quando = payload.quando if payload.quando.tzinfo else payload.quando.replace(tzinfo=FUSO_LOCAL)
+    if quando < datetime.now(timezone.utc) - timedelta(minutes=5):
+        raise HTTPException(status_code=422, detail="Escolha um dia e hora que ainda não passaram.")
+    r = await agenda.marcar(session, triagem, quando.astimezone(timezone.utc), payload.local,
+                            usuario.get("nome") or usuario.get("sub", ""), payload.avisar)
+    return {"triagem": para_dict(triagem), **r}
+
+
+@router.delete("/{triagem_id}/agendamento")
+async def desmarcar_atendimento(triagem_id: str, avisar: bool = True, usuario: Dict[str, Any] = Depends(usuario_logado),
+                                session: AsyncSession = Depends(get_session)):
+    triagem = await _triagem_ou_404(session, triagem_id, usuario)
+    r = await agenda.desmarcar(session, triagem, avisar)
+    return {"triagem": para_dict(triagem), **r}
+
+
 class CategoriaRequest(BaseModel):
     categoria: str
 
@@ -227,7 +255,7 @@ async def arquivo_do_documento(triagem_id: str, documento_id: str, usuario: Dict
     doc = await session.get(DocumentoAnexo, documento_id)
     if doc is None or doc.triagem_id != triagem.id:
         raise HTTPException(status_code=404, detail="Documento não encontrado")
-    registro = f"[{datetime.now(timezone.utc).strftime('%d/%m/%Y')}] Documentos vistos por {usuario.get('nome') or usuario.get('sub')}."
+    registro = f"[{local():%d/%m/%Y}] Documentos vistos por {usuario.get('nome') or usuario.get('sub')}."
     if registro not in (triagem.observacoes or ""):
         triagem.observacoes = f"{triagem.observacoes}\n{registro}" if triagem.observacoes else registro
         await session.commit()
@@ -292,7 +320,7 @@ async def ver_contato(triagem_id: str, usuario: Dict[str, Any] = Depends(usuario
     telefone = decrypt_secret(triagem.telefone_cifrado)
     if not telefone:
         raise HTTPException(status_code=404, detail="Esta triagem não tem telefone de contato")
-    registro = f"[{datetime.now(timezone.utc):%d/%m/%Y %H:%M} UTC] telefone consultado por {usuario.get('sub')}"
+    registro = f"[{local():%d/%m/%Y %H:%M}] telefone consultado por {usuario.get('sub')}"
     triagem.observacoes = f"{triagem.observacoes}\n{registro}" if triagem.observacoes else registro
     await session.commit()
     return {"telefone": telefone}
@@ -306,12 +334,14 @@ async def indicadores(dias: int = 30, usuario: Dict[str, Any] = Depends(usuario_
     if escopo(usuario):
         consulta = consulta.where(Triagem.unidade_id == escopo(usuario))
     itens = (await session.execute(consulta)).scalars().all()
-    por_dia = Counter(t.criado_em.date().isoformat() for t in itens)
+    # Dia no horário de Brasília: um caso das 22h conta no dia em que chegou, não no seguinte (UTC)
+    por_dia = Counter(local(t.criado_em).date().isoformat() for t in itens)
     confirmadas = [t for t in itens if t.categoria_confirmada_pelo_cidadao]
     atendidas = [t for t in itens if t.atualizado_em and t.status in {"EM_ATENDIMENTO", "CONCLUIDO", "ENCAMINHADO_CREAS"}]
     horas = [(t.atualizado_em.replace(tzinfo=timezone.utc) - t.criado_em.replace(tzinfo=timezone.utc)).total_seconds() / 3600
              for t in atendidas]
-    dias_lista = [(desde + timedelta(days=i + 1)).date().isoformat() for i in range(dias)]
+    hoje = local().date()
+    dias_lista = [(hoje - timedelta(days=dias - 1 - i)).isoformat() for i in range(dias)]
     return {
         "periodo_dias": dias,
         "total": len(itens),

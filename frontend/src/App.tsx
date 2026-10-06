@@ -9,6 +9,8 @@ import { ServicosMensagens } from './paginas/ServicosMensagens';
 import { Configuracoes } from './paginas/Configuracoes';
 import type { ResumoConversa, Triagem } from './tipos';
 import { AlertaUrgente } from './components/AlertaUrgente';
+import { useAvisosLigados, useAvisosUrgentes } from './avisosUrgentes';
+import { BotaoAvisos } from './components/AvisosNavegador';
 import { BotaoTema } from './components/Tema';
 import { useAtualizacao } from './useAtualizacao';
 import { nomeUnidade, useUnidades } from './unidades';
@@ -66,6 +68,11 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
   const conversas = useAtualizacao(useCallback(() => api<ResumoConversa[]>('/atendimento/conversas'), []), 4000);
 
   const triagens = fila.dados ?? [];
+  // Tempo do alerta de urgência (Configurações → Alertas) e avisos no computador
+  const opcoesPainel = useAtualizacao(useCallback(() => api<{ opcoes: { alerta_urgente_min?: number } }>('/configuracao/fluxo/opcoes'), []), 60000);
+  const minutosAlerta = opcoesPainel.dados?.opcoes.alerta_urgente_min ?? 10;
+  const [avisosLigados, setAvisosLigados] = useAvisosLigados();
+  useAvisosUrgentes(triagens, minutosAlerta, avisosLigados);
   const urgentes = triagens.filter((t) => t.status === 'URGENTE_CREAS').length;
   const aguardando = triagens.filter((t) => t.status === 'PENDENTE').length;
   const naoLidas = (conversas.dados ?? []).filter((c) => c.atendimento_humano && c.nao_lidas > 0).length;
@@ -81,7 +88,7 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
             <p className="text-[13.5px] text-sobre-topo-2">Encaminhamento da assistência social</p>
           </div>
 
-          <dl className="hidden flex-1 grid-cols-[repeat(3,minmax(0,auto))_auto_auto] items-end justify-end gap-x-8 md:grid">
+          <dl className="hidden flex-1 grid-cols-[repeat(3,minmax(0,auto))_auto_auto_auto] items-end justify-end gap-x-8 md:grid">
             <CampoCabecalho rotulo="Unidade">{usuario.unidade_id ? nomeUnidade(unidades.dados, usuario.unidade_id) : 'Todas as unidades'}</CampoCabecalho>
             <CampoCabecalho rotulo={papel}>{usuario.name}</CampoCabecalho>
             <CampoCabecalho rotulo="Na fila agora">
@@ -92,6 +99,7 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
                 </a>
               ) : '–'}
             </CampoCabecalho>
+            <BotaoAvisos ligado={avisosLigados} onMudar={setAvisosLigados} />
             <BotaoTema naFaixa className="mb-1" />
             <button onClick={onSair} className="mb-1 inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1.5 text-[13.5px] text-sobre-topo-2 hover:bg-sobre-topo/10 hover:text-sobre-topo">
               <LogOut className="size-4" aria-hidden />Sair
@@ -123,7 +131,7 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
 
       <main className="mx-auto max-w-[1440px] md:px-8">
         <div className="folha -mt-px min-h-[70vh] rounded-none px-4 py-6 md:rounded-[6px] md:rounded-t-none md:px-9 md:py-8">
-          <AlertaUrgente triagens={triagens} />
+          <AlertaUrgente triagens={triagens} minutos={minutosAlerta} />
           {rota === 'fila' && <Fila fila={fila} filtroEstado={parametro} />}
           {rota === 'conversas' && <Conversas conversas={conversas} selecionada={parametro} />}
           {rota === 'indicadores' && <Indicadores />}

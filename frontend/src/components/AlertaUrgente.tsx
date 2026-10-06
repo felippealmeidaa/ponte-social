@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { BellOff, BellRing, ShieldAlert } from 'lucide-react';
 import type { Triagem } from '../tipos';
 
-// Caso de violência sem ninguém atendendo há mais que isto: o painel inteiro avisa (princípio 1: urgência primeiro)
-export const ALERTA_URGENTE_MIN = 10;
+// Caso de violência sem ninguém atendendo há mais que o tempo do alerta (configurável pela coordenação, padrão 10 min):
+// o painel inteiro avisa (princípio 1: urgência primeiro)
 const REPETIR_SOM_MIN = 3;
 const CHAVE_SOM = 'alerta_urgente_som';
 
@@ -33,7 +33,7 @@ function tocar() {
 }
 
 /** Faixa no topo de todas as telas quando um caso de violência espera demais, com som opcional. */
-export function AlertaUrgente({ triagens }: { triagens: Triagem[] }) {
+export function AlertaUrgente({ triagens, minutos = 10 }: { triagens: Triagem[]; minutos?: number }) {
   const [agora, setAgora] = useState(() => Date.now());
   const [som, setSom] = useState(lerSom);
   const ultimoSom = useRef(0);
@@ -47,7 +47,7 @@ export function AlertaUrgente({ triagens }: { triagens: Triagem[] }) {
   const parados = triagens
     .filter((t) => t.status === 'URGENTE_CREAS')
     .map((t) => ({ t, minutos: Math.floor((agora - new Date(t.criado_em).getTime()) / 60_000) }))
-    .filter((p) => p.minutos >= ALERTA_URGENTE_MIN)
+    .filter((p) => p.minutos >= minutos)
     .sort((a, b) => b.minutos - a.minutos);
   const n = parados.length;
 

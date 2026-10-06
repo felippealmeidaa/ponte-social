@@ -55,7 +55,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.security import encrypt_secret, mask_phone
-from app.models import Conversa, Mensagem, Triagem, UnidadeAtendimento, agora
+from app.models import Conversa, Mensagem, Triagem, UnidadeAtendimento, agora, local
 from app.services import catalogo, desenho_fluxo, documentos, geo, unidades
 from app.services.anonimizacao import anonimizar_texto, hash_telefone
 from app.services.audio.voz import falar
@@ -358,12 +358,16 @@ async def _situacao_pedido(session: AsyncSession, conversa: Conversa) -> str:
     if triagem.categoria == VIOLENCIA or triagem.prioridade == "URGENTE_VIOLENCIA" or triagem.status not in SITUACAO_PEDIDO:
         return catalogo.texto("situacao_protegida", u)
     unidade = await session.get(UnidadeAtendimento, triagem.unidade_id) if triagem.unidade_id else None
-    criado = triagem.criado_em.replace(tzinfo=agora().tzinfo).astimezone(agora().tzinfo)
-    return (catalogo.texto("situacao_pedido", triagem.unidade_id)
-            .replace("{situacao}", SITUACAO_PEDIDO[triagem.status])
-            .replace("{assunto}", NOME_ASSUNTO.get(triagem.categoria, "seu pedido"))
-            .replace("{cras}", unidade.nome if unidade else "CRAS")
-            .replace("{data}", criado.strftime("%d/%m")))
+    from app.services.agenda import descrever
+    criado = local(triagem.criado_em)
+    texto = (catalogo.texto("situacao_pedido", triagem.unidade_id)
+             .replace("{situacao}", SITUACAO_PEDIDO[triagem.status])
+             .replace("{assunto}", NOME_ASSUNTO.get(triagem.categoria, "seu pedido"))
+             .replace("{cras}", unidade.nome if unidade else "CRAS")
+             .replace("{data}", criado.strftime("%d/%m")))
+    if triagem.agendado_para and local(triagem.agendado_para) > local():
+        texto += f"\n\n📅 Seu atendimento está marcado para *{descrever(triagem.agendado_para)}*, no *{triagem.agendado_local or 'CRAS'}*."
+    return texto
 
 
 async def _emergencia(session: AsyncSession, conversa: Conversa, telefone: str, texto: str) -> List[str]:
@@ -443,6 +447,14 @@ async def _explicar_melhor(conversa: Conversa) -> List[str]:
     ultima = conversa.ultima_resposta or ""
     explicado = await explicar(ultima)
     return [explicado] if explicado else [catalogo.texto("repetir_com_calma", conversa.unidade_id), ultima]
+
+
+async def _parece_relato(session: AsyncSession, texto: str, classificacao: Optional[dict]) -> bool:
+    """Na pergunta do local: é um relato (e não um bairro) se o modelo reconhece uma necessidade, tem pelo menos
+    3 palavras e não é o nome de um bairro atendido por algum CRAS."""
+    if len(texto.split()) < 3 or not classificacao or classificacao.get("categoria") in (None, NAO_IDENTIFICADO):
+        return False
+    return await unidades.cras_do_bairro(session, texto) is None
 
 
 def _so_cumprimento(texto: str, classificacao: Optional[dict]) -> bool:
@@ -657,6 +669,10 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
             prefixo = f"Pelo CEP, seu bairro é *{bairro}*.\n"
         elif localizacao or texto_norm == "4" or texto_norm in unidades.NAO_SEI:
             bairro = None
+        elif await _parece_relato(session, texto, classificacao):
+            # A pessoa já contou a situação em vez de dizer onde mora: segue sem o local, com o relato
+            conversa.estado = "AGUARDANDO_RELATO"
+            return await _passo(session, conversa, telefone, texto)
         else:
             bairro = texto.strip()[:80]
         unidade = await _definir_local(session, conversa, bairro, localizacao, endereco)

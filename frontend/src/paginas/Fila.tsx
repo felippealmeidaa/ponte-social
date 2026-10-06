@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
-import { ClipboardPlus, Inbox, Languages, Paperclip, Search, UserRoundCheck, X } from 'lucide-react';
+import { CalendarClock, ClipboardPlus, Inbox, Languages, Paperclip, Search, UserRoundCheck, X } from 'lucide-react';
 import { sessaoSalva } from '../api';
 import { FichaCaso } from '../components/FichaCaso';
 import { RegistrarAtendimento } from '../components/RegistrarAtendimento';
@@ -292,6 +292,12 @@ function Guia({ caso, novo, grande, onAbrir }: { caso: Triagem; novo: boolean; g
           <span>
             <span className="block text-[11.5px] text-texto-3">Situação</span><Selo tom={estado.tom} semIcone>{estado.rotulo}</Selo>
             {caso.responsavel_nome && <span className="mt-0.5 block truncate text-[12px] text-texto-2">com {caso.responsavel_nome}</span>}
+            {caso.agendado_para && (
+              <span className="mt-0.5 flex items-center gap-1 text-[12px] font-semibold text-caneta">
+                <CalendarClock className="size-3.5 shrink-0" aria-hidden />
+                {new Date(caso.agendado_para).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
           </span>
         </span>
       </span>

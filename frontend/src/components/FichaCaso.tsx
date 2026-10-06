@@ -4,6 +4,7 @@ import { api, atualizar, enviar, ErroApi, sessaoSalva } from '../api';
 import { irPara } from '../navegacao';
 import type { Triagem } from '../tipos';
 import { CANAIS, CATEGORIAS, dataHora, ESTADOS, nomeCategoria, PRIORIDADES, tempoDesde } from '../vocabulario';
+import { AgendamentoCaso } from './AgendamentoCaso';
 import { DocumentosDoCaso } from './DocumentosDoCaso';
 import { Aviso, Botao, classeEntrada, PainelLateral, Selo } from './ui';
 
@@ -314,6 +315,11 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
             <p className="mt-2 text-[13px] text-texto-3">A pessoa apagou a conversa: não há como avisar pelo WhatsApp.</p>
           )}
         </section>
+
+        {!fechado && (
+          <AgendamentoCaso key={caso.id} caso={caso} podeAvisar={temWhatsApp && !violencia}
+            violencia={violencia} onAlterado={onAlterado} />
+        )}
 
         <section>
           <label htmlFor="observacoes" className="text-[13px] font-medium text-texto-2">Observações da equipe</label>
