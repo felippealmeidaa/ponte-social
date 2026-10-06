@@ -49,13 +49,15 @@ function useTema() {
   return { tema, alternar };
 }
 
-export function BotaoTema({ className = '', compacto = false }: { className?: string; compacto?: boolean }) {
+export function BotaoTema({ className = '', compacto = false, naFaixa = false }: { className?: string; compacto?: boolean; naFaixa?: boolean }) {
   const { tema, alternar } = useTema();
   const escuro = tema === 'escuro';
   return (
     <button type="button" onClick={alternar} aria-pressed={escuro}
       title={escuro ? 'Voltar para o modo claro' : 'Usar o modo escuro'}
-      className={`inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1.5 text-[13.5px] text-texto-2 transition-colors duration-150 hover:bg-superficie hover:text-texto ${className}`}>
+      className={`inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1.5 text-[13.5px] transition-colors duration-150 ${naFaixa
+        ? 'text-sobre-topo-2 hover:bg-sobre-topo/10 hover:text-sobre-topo'
+        : 'text-texto-2 hover:bg-superficie hover:text-texto'} ${className}`}>
       {escuro ? <Sun className={compacto ? 'size-5' : 'size-4'} aria-hidden /> : <Moon className={compacto ? 'size-5' : 'size-4'} aria-hidden />}
       <span className={compacto ? 'sr-only' : ''}>{escuro ? 'Modo claro' : 'Modo escuro'}</span>
     </button>

@@ -1,4 +1,7 @@
 // Vocabulário único do sistema: os mesmos nomes e cores de estado em todas as telas.
+import {
+  Accessibility, Briefcase, CircleHelp, ClipboardList, FileText, HandCoins, House, ShieldAlert, Utensils, type LucideIcon,
+} from 'lucide-react';
 
 export const CATEGORIAS: Record<string, string> = {
   violencia_protecao: 'Violência ou ameaça',
@@ -64,3 +67,31 @@ export function dataHora(iso: string | null | undefined): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 }
+
+/** Ícone de cada necessidade (o mesmo na Fila, nas Respostas e nos Indicadores). */
+export const ICONE_CATEGORIA: Record<string, LucideIcon> = {
+  renda_beneficio: HandCoins,
+  cadastro_atualizacao: ClipboardList,
+  moradia: House,
+  documentacao: FileText,
+  alimentacao: Utensils,
+  pessoa_idosa_pcd: Accessibility,
+  trabalho_renda: Briefcase,
+  violencia_protecao: ShieldAlert,
+  nao_identificado: CircleHelp,
+};
+
+/** Cor de cada necessidade (variável do tema; muda sozinha no modo escuro). */
+export const COR_CATEGORIA: Record<string, string> = {
+  renda_beneficio: 'var(--color-cat-renda)',
+  cadastro_atualizacao: 'var(--color-cat-cadastro)',
+  moradia: 'var(--color-cat-moradia)',
+  documentacao: 'var(--color-cat-documentos)',
+  alimentacao: 'var(--color-cat-alimentacao)',
+  pessoa_idosa_pcd: 'var(--color-cat-idosa)',
+  trabalho_renda: 'var(--color-cat-trabalho)',
+  violencia_protecao: 'var(--color-cat-violencia)',
+  nao_identificado: 'var(--color-cat-outro)',
+};
+
+export const corCategoria = (c: string) => COR_CATEGORIA[c] ?? 'var(--color-cat-outro)';

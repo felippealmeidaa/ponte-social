@@ -9,38 +9,65 @@
   --font-sans: "Atkinson Hyperlegible Next Variable", "Segoe UI", system-ui, sans-serif;
   --font-display: "Archivo Variable", "Atkinson Hyperlegible Next Variable", sans-serif;
 
-  --color-fundo: #e6ebf0;        /* mesa */
+  /* Base neutra e fria; um único acento (azul-petróleo). Cores fortes só nos status. */
+  --color-fundo: #eef1f4;        /* mesa */
   --color-superficie: #ffffff;   /* papel */
-  --color-elevada: #f2f5f8;      /* papel sob a mão: hover, campo em destaque */
-  --color-realce: #e3e9f0;
-  --color-linha: #d3dae3;        /* pauta */
-  --color-linha-forte: #aab6c5;
+  --color-elevada: #f6f8fa;      /* papel sob a mão: hover, campo em destaque */
+  --color-realce: #e9edf1;
+  --color-linha: #dde3e9;        /* pauta */
+  --color-linha-forte: #b3bdc8;
 
-  --color-texto: #17284a;        /* tinta */
-  --color-texto-2: #45526e;
-  --color-texto-3: #59647e;
+  --color-texto: #1b2733;        /* tinta ardósia */
+  --color-texto-2: #4a5868;
+  --color-texto-3: #5d6a79;
 
-  --color-caneta: #2457c5;
-  --color-caneta-fundo: #e6eefc;
-  --color-urgente: #c0322b;      /* carimbo */
-  --color-urgente-fundo: #fbeceb;
-  --color-alta: #a14f0c;
-  --color-alta-fundo: #fcf0e4;
+  --color-caneta: #0e6b67;       /* acento: foco, seleção e ação */
+  --color-caneta-fundo: #e7f2f1;
+  --color-urgente: #c4352e;      /* carimbo: só urgência */
+  --color-urgente-fundo: #fcedec;
+  --color-alta: #a85410;
+  --color-alta-fundo: #fcf1e6;
   --color-media: #6d5a00;
-  --color-ok: #1b7546;
-  --color-ok-fundo: #e4f3ea;
-  --color-info: #2457c5;
-  --color-info-fundo: #e6eefc;
+  --color-ok: #17733f;
+  --color-ok-fundo: #e6f4ec;
+  --color-info: #2559b8;
+  --color-info-fundo: #e9effb;
 
-  /* Texto forte sobre os fundos de aviso, e texto sobre os preenchimentos de cor (botão, selo, faixa) */
-  --color-urgente-forte: #8f211b;
-  --color-info-forte: #1a438f;
-  --color-ok-forte: #14593a;
+  /* Faixa do topo na cor da marca: cabeçalho e abas */
+  --color-topo: #0d4a47;
+  --color-sobre-topo: #ffffff;
+  --color-sobre-topo-2: #b8d6d2;
+  --color-urgente-topo: #ffb8b0;
+
+  /* Uma cor por necessidade (ícones, barras): sóbrias, legíveis sobre o papel */
+  --color-cat-renda: #1f7a4d;
+  --color-cat-cadastro: #2459a8;
+  --color-cat-moradia: #a3561c;
+  --color-cat-documentos: #5b4bb5;
+  --color-cat-alimentacao: #8f6400;
+  --color-cat-idosa: #8a3f86;
+  --color-cat-trabalho: #0e6b67;
+  --color-cat-violencia: #c4352e;
+  --color-cat-outro: #5d6a79;
+
+  /* Caso ainda não aberto: um toque discreto no canhoto da guia */
+  --color-marca: #d99a00;
+  --color-marca-fundo: #fff7e0;
+
+  /* Ação principal (botão, marcas de etapa) */
+  --color-acao: #0e6b67;
+  --color-acao-hover: #0a5551;
+  --color-sobre-acao: #ffffff;
+
+  /* Texto forte sobre os fundos de aviso, e texto sobre os preenchimentos de cor (selo, contador) */
+  --color-urgente-forte: #8e231d;
+  --color-info-forte: #1c4489;
+  --color-ok-forte: #135a33;
   --color-sobre: #ffffff;
-  --color-tinta-hover: #0f1d38;
-  --color-veu: #17284a;
+  --color-tinta-hover: #0a5551;
+  --color-veu: #1b2733;
   /* Faixa de caso urgente parado: preenchimento forte com texto claro */
-  --color-alerta: #c0322b;
+  --color-alerta: #c4352e;
   --color-sobre-alerta: #ffffff;
 
   /* Prévia do WhatsApp, nas cores do próprio WhatsApp */
@@ -58,36 +85,59 @@
    a tinta clara; a caneta e o carimbo clareiam para manter o contraste (AA) sobre o fundo escuro. */
 :root[data-tema="escuro"] {
   color-scheme: dark;
-  --color-fundo: #0d1219;
-  --color-superficie: #151c26;
-  --color-elevada: #1b2431;
-  --color-realce: #233042;
-  --color-linha: #263142;
-  --color-linha-forte: #3a4759;
+  /* À noite: ardósia, não preto; o acento clareia para manter o contraste */
+  --color-fundo: #111821;
+  --color-superficie: #18212c;
+  --color-elevada: #1e2935;
+  --color-realce: #253242;
+  --color-linha: #2a3746;
+  --color-linha-forte: #435367;
 
-  --color-texto: #e7ecf3;
-  --color-texto-2: #aeb8c8;
-  --color-texto-3: #8e9aae;
+  --color-texto: #e6ebf0;
+  --color-texto-2: #a9b5c2;
+  --color-texto-3: #8e9bab;
 
-  --color-caneta: #82a8ff;
-  --color-caneta-fundo: #1a2742;
-  --color-urgente: #f2675c;
-  --color-urgente-fundo: #2c1517;
-  --color-alta: #f0a35e;
-  --color-alta-fundo: #2c1f12;
-  --color-media: #d9c25a;
-  --color-ok: #5fcf8f;
-  --color-ok-fundo: #12261b;
-  --color-info: #82a8ff;
-  --color-info-fundo: #1a2742;
+  --color-caneta: #4fbfb5;
+  --color-caneta-fundo: #17302f;
+  --color-urgente: #f2786d;
+  --color-urgente-fundo: #36201f;
+  --color-alta: #e9a35c;
+  --color-alta-fundo: #33281c;
+  --color-media: #dcc463;
+  --color-ok: #5fcb8d;
+  --color-ok-fundo: #173126;
+  --color-info: #85b4f2;
+  --color-info-fundo: #1b2b44;
 
-  --color-urgente-forte: #ffa59d;
-  --color-info-forte: #b6ccff;
-  --color-ok-forte: #93e2b4;
-  --color-sobre: #0b1018;
-  --color-tinta-hover: #ffffff;
-  --color-veu: #000000;
-  --color-alerta: #9e2f28;
+  --color-marca: #e2b33f;
+  --color-marca-fundo: #2a2a21;
+
+  --color-topo: #0f3236;
+  --color-sobre-topo: #e8f3f1;
+  --color-sobre-topo-2: #9fc3be;
+  --color-urgente-topo: #ff9d93;
+
+  --color-cat-renda: #6fcf9a;
+  --color-cat-cadastro: #86b2f0;
+  --color-cat-moradia: #eba366;
+  --color-cat-documentos: #aea1f2;
+  --color-cat-alimentacao: #e1b44e;
+  --color-cat-idosa: #d993d3;
+  --color-cat-trabalho: #4fbfb5;
+  --color-cat-violencia: #f2786d;
+  --color-cat-outro: #9aa7b5;
+
+  --color-acao: #4fbfb5;
+  --color-acao-hover: #77d0c8;
+  --color-sobre-acao: #0a1c1b;
+
+  --color-urgente-forte: #ffb0a8;
+  --color-info-forte: #bad5fb;
+  --color-ok-forte: #9be2b8;
+  --color-sobre: #0a1c1b;
+  --color-tinta-hover: #77d0c8;
+  --color-veu: #05080c;
+  --color-alerta: #a8342d;
   --color-sobre-alerta: #ffffff;
 
   --color-whats-fundo: #0b141a;
@@ -185,7 +235,7 @@
   background: var(--color-superficie);
   border: 1px solid var(--color-linha);
   border-radius: 6px;
-  box-shadow: 0 1px 0 rgb(23 40 74 / 0.04), 0 10px 28px -18px rgb(23 40 74 / 0.35);
+  box-shadow: 0 1px 0 rgb(27 39 51 / 0.04), 0 8px 24px -16px rgb(27 39 51 / 0.28);
 }
 :root[data-tema="escuro"] .folha {
   box-shadow: 0 1px 0 rgb(0 0 0 / 0.3), 0 12px 30px -16px rgb(0 0 0 / 0.7);
@@ -267,9 +317,20 @@
   }
 }
 
-/* Caso que chegou e ainda não foi aberto */
-.caso-novo {
-  box-shadow: inset 4px 0 0 var(--color-caneta);
+/* Caso que chegou e ainda não foi aberto: o canhoto da guia fica levemente destacado (o rótulo "Novo" diz o resto) */
+.caso-novo .guia-canhoto {
+  background: var(--color-marca-fundo);
+}
+
+/* Faixa do topo: a marca em cor cheia; as abas ficam na borda de baixo e a ativa encaixa na folha */
+.topo {
+  background: var(--color-topo);
+}
+
+/* Chip de necessidade: ícone na cor da categoria sobre um fundo bem claro dela */
+.chip-cat {
+  color: var(--cat);
+  background: color-mix(in oklab, var(--cat) 13%, var(--color-superficie));
 }
 
 /* Abas de pasta: a aba ativa se funde com a folha logo abaixo */
@@ -280,7 +341,7 @@
 }
 .aba-pasta[aria-current="page"] {
   background: var(--color-superficie);
-  border-color: var(--color-linha);
+  border-color: var(--color-superficie);
   box-shadow: 0 1px 0 var(--color-superficie);
 }
 

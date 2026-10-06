@@ -258,7 +258,7 @@ function Fluxo({ ctx, unidades, irPara }: { ctx: Contexto; unidades: UnidadeResu
 
       <section ref={editor} aria-labelledby="t-etapa" data-sem-orelha={orelha === null || novaAntesDe ? '' : undefined}
         style={orelha === null ? undefined : { '--orelha': `${orelha}px` } as CSSProperties}
-        className="editor-etapa mt-2 scroll-mt-4 rounded-[6px] border border-linha-forte bg-superficie shadow-[0_10px_28px_-20px_rgb(23_40_74/0.45)]">
+        className="editor-etapa mt-2 scroll-mt-4 rounded-[6px] border border-linha-forte bg-superficie shadow-[0_10px_28px_-20px_rgb(27_39_51/0.45)]">
         {(extraEscolhida || novaAntesDe) && dadosDesenho ? (
           <EditorExtra key={selecionada} extra={extraEscolhida} antesDe={extraEscolhida?.antes_de ?? novaAntesDe!} desenho={dadosDesenho} ctx={ctx}
             onSalvar={async (lista, id) => { if (await salvarDesenho({ extras: lista })) setSelecionada(id); }}
@@ -390,7 +390,7 @@ function CabecalhoEtapa({ etapa, contagem }: { etapa: Etapa; contagem: number })
   return (
     <header className="flex flex-wrap items-start justify-between gap-4">
       <div className="flex items-start gap-3.5">
-        <span className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full border-2 ${urgente ? 'border-urgente bg-urgente-fundo text-urgente' : 'border-texto bg-texto text-sobre'}`}>
+        <span className={`mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-full border-2 ${urgente ? 'border-urgente bg-urgente-fundo text-urgente' : 'border-acao bg-acao text-sobre-acao'}`}>
           {numero >= 0 && etapa.tipo !== 'fim'
             ? <span className="titulo text-[17px] leading-none tabular">{numero + 1}</span>
             : <Icone className="size-[18px]" aria-hidden />}

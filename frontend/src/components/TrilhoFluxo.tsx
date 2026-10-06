@@ -63,7 +63,7 @@ function Estacao({ etapa, indice, ...estado }: EstadoTrilho & { etapa: Etapa; in
   const cadeias = DESVIOS[etapa.id] ?? [];
 
   const circulo = ativa
-    ? 'border-texto bg-texto text-sobre ring-4 ring-caneta/20'
+    ? 'border-acao bg-acao text-sobre-acao ring-4 ring-caneta/20'
     : pulada
       ? 'border-dashed border-linha-forte bg-elevada text-texto-3'
       : 'border-texto bg-superficie text-texto group-hover:bg-realce';

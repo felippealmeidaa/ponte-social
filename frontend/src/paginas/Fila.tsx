@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useCallback, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { ClipboardPlus, Inbox, Languages, Paperclip, Search, UserRoundCheck, X } from 'lucide-react';
 import { sessaoSalva } from '../api';
 import { FichaCaso } from '../components/FichaCaso';
@@ -7,7 +7,7 @@ import { Aviso, Botao, Esqueleto, Selo, TituloFileira, Vazio } from '../componen
 import { irPara } from '../navegacao';
 import type { Triagem } from '../tipos';
 import type { useAtualizacao } from '../useAtualizacao';
-import { CANAIS, ESTADOS, nomeCategoria, PRIORIDADES, tempoDesde } from '../vocabulario';
+import { CANAIS, corCategoria, ESTADOS, ICONE_CATEGORIA, nomeCategoria, PRIORIDADES, tempoDesde } from '../vocabulario';
 
 const ABERTOS = new Set(['PENDENTE', 'URGENTE_CREAS']);
 const EM_CURSO = new Set(['EM_ATENDIMENTO', 'ENCAMINHADO_CREAS']);
@@ -242,6 +242,7 @@ function Guia({ caso, novo, grande, onAbrir }: { caso: Triagem; novo: boolean; g
   const urgente = caso.prioridade === 'URGENTE_VIOLENCIA';
   const espera = tempoDesde(caso.criado_em);
   const aberto = caso.status === 'PENDENTE' || caso.status === 'URGENTE_CREAS';
+  const IconeCat = ICONE_CATEGORIA[caso.categoria] ?? ICONE_CATEGORIA.nao_identificado;
   return (
     <button
       data-caso
@@ -258,7 +259,13 @@ function Guia({ caso, novo, grande, onAbrir }: { caso: Triagem; novo: boolean; g
       </span>
       <span className={`relative flex min-w-0 flex-col gap-2.5 px-5 ${grande ? 'py-5' : 'py-4'}`}>
         <span className="flex items-start justify-between gap-4">
-          <span className={`titulo ${grande ? 'text-[24px]' : 'text-[19px]'}`}>{nomeCategoria(caso.categoria)}</span>
+          <span className="flex min-w-0 items-center gap-2.5">
+            <span style={{ '--cat': corCategoria(caso.categoria) } as CSSProperties}
+              className={`chip-cat flex shrink-0 items-center justify-center rounded-[7px] ${grande ? 'size-9' : 'size-8'}`} aria-hidden>
+              <IconeCat className={grande ? 'size-5' : 'size-[18px]'} strokeWidth={1.9} />
+            </span>
+            <span className={`titulo ${grande ? 'text-[24px]' : 'text-[19px]'}`}>{nomeCategoria(caso.categoria)}</span>
+          </span>
           {urgente && aberto ? (
             <span className={`carimbo shrink-0 ${grande ? 'text-[22px]' : 'text-[15px]'}`} aria-hidden>Urgente</span>
           ) : novo ? (

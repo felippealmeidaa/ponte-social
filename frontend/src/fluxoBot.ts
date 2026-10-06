@@ -222,7 +222,7 @@ export const LIGACOES: Ligacao[] = [
   { de: 'menu', para: 'disque121', rotulo: 'nenhum desses' },
   { de: 'caminho', para: 'fila', rotulo: 'quis contato' },
   { de: 'caminho', para: 'encerrado', rotulo: 'não quis contato' },
-  { de: 'fila', para: 'documentos', rotulo: 'quer adiantar' },
+  { de: 'fila', para: 'documentos', rotulo: 'adiantar' },
 ];
 
 /** Caminho principal, na ordem da conversa. */
@@ -238,7 +238,7 @@ export const DESVIOS: Record<string, { rotulo: string; etapa: string }[][]> = {
   ]],
   confirmacao: [[{ rotulo: 'não está certo', etapa: 'menu' }]],
   caminho: [[{ rotulo: 'não quis contato', etapa: 'encerrado' }]],
-  fila: [[{ rotulo: 'quer adiantar', etapa: 'documentos' }]],
+  fila: [[{ rotulo: 'adiantar', etapa: 'documentos' }]],
 };
 
 /** Vale em qualquer etapa, para todos os CRAS. */

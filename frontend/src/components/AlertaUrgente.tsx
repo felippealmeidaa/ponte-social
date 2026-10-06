@@ -82,7 +82,7 @@ export function AlertaUrgente({ triagens }: { triagens: Triagem[] }) {
   const espera = maisAntigo >= 60 ? `${Math.floor(maisAntigo / 60)} h ${maisAntigo % 60} min` : `${maisAntigo} min`;
 
   return (
-    <div role="alert" className="mb-3 mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 bg-alerta px-4 py-3 text-sobre-alerta md:rounded-[6px] md:px-5">
+    <div role="alert" className="mb-7 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-[6px] bg-alerta px-4 py-3 text-sobre-alerta md:px-5">
       <p className="flex min-w-0 grow basis-[26rem] items-center gap-3 text-[15px] leading-snug">
         <ShieldAlert className="size-5 shrink-0" aria-hidden />
         <span>

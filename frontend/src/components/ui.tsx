@@ -6,7 +6,7 @@ type Variante = 'primario' | 'secundario' | 'fantasma' | 'perigo';
 
 // Ação principal em tinta cheia; o resto não compete com ela
 const VARIANTES: Record<Variante, string> = {
-  primario: 'bg-texto text-sobre hover:bg-tinta-hover font-semibold shadow-[0_1px_0_rgb(23_40_74/0.25)]',
+  primario: 'bg-acao text-sobre-acao hover:bg-acao-hover font-semibold shadow-[0_1px_0_rgb(27_39_51/0.25)]',
   secundario: 'bg-superficie text-texto border border-linha-forte hover:border-texto-3 hover:bg-elevada',
   fantasma: 'bg-transparent text-texto-2 hover:text-texto hover:bg-elevada',
   perigo: 'bg-superficie text-urgente border border-urgente/45 hover:bg-urgente-fundo',
@@ -122,8 +122,8 @@ export function Chave({ id, ligada, onMudar, disabled, rotuloId }: {
   return (
     <button id={id} type="button" role="switch" aria-checked={ligada} aria-labelledby={rotuloId} disabled={disabled}
       onClick={() => onMudar(!ligada)}
-      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 ${ligada ? 'border-texto bg-texto' : 'border-linha-forte bg-realce hover:border-texto-3'}`}>
-      <span aria-hidden className={`absolute left-0.5 size-[18px] rounded-full bg-white shadow-[0_1px_2px_rgb(23_40_74/0.35)] transition-transform duration-200 ease-[var(--ease-saida)] ${ligada ? 'translate-x-5' : ''}`} />
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 ${ligada ? 'border-acao bg-acao' : 'border-linha-forte bg-realce hover:border-texto-3'}`}>
+      <span aria-hidden className={`absolute left-0.5 size-[18px] rounded-full bg-white shadow-[0_1px_2px_rgb(27_39_51/0.35)] transition-transform duration-200 ease-[var(--ease-saida)] ${ligada ? 'translate-x-5' : ''}`} />
     </button>
   );
 }
@@ -137,7 +137,7 @@ export function Segmentado<T extends string>({ valor, opcoes, onMudar, disabled,
       {opcoes.map((o) => (
         <button key={o.valor} type="button" role="radio" aria-checked={valor === o.valor} disabled={disabled}
           onClick={() => onMudar(o.valor)}
-          className={`rounded-[4px] px-2 py-1.5 text-[13.5px] leading-tight transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 ${valor === o.valor ? 'bg-superficie font-semibold text-texto shadow-[0_1px_2px_rgb(23_40_74/0.18)]' : 'text-texto-2 hover:text-texto'}`}>
+          className={`rounded-[4px] px-2 py-1.5 text-[13.5px] leading-tight transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 ${valor === o.valor ? 'bg-superficie font-semibold text-texto shadow-[0_1px_2px_rgb(27_39_51/0.18)]' : 'text-texto-2 hover:text-texto'}`}>
           {o.rotulo}
         </button>
       ))}
@@ -175,7 +175,7 @@ export function PainelLateral({ aberto, titulo, onFechar, children, largura = 'm
         role="dialog"
         aria-modal="true"
         aria-label={titulo}
-        className={`relative h-full w-full ${largura} overflow-y-auto border-l border-linha bg-superficie shadow-[-20px_0_40px_-20px_rgb(23_40_74/0.45)] focus:outline-none animate-[entrar_220ms_var(--ease-saida)]`}
+        className={`relative h-full w-full ${largura} overflow-y-auto border-l border-linha bg-superficie shadow-[-20px_0_40px_-20px_rgb(27_39_51/0.45)] focus:outline-none animate-[entrar_220ms_var(--ease-saida)]`}
       >
         <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b-2 border-texto bg-superficie px-6 py-4">
           <h2 className="titulo text-[22px]">{titulo}</h2>

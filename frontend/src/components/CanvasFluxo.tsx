@@ -168,7 +168,7 @@ export function CanvasFluxo(estado: EstadoCanvas) {
     return { ...saida, ...arrastando };
   }, [largura, posicoes, extras, arrastando]);
   const altura = Math.max(...Object.values(lugar).map((p) => p.y)) + 150;
-  const larguraArea = Math.max(largura, Math.max(...Object.values(lugar).map((p) => p.x)) + 80);
+  const larguraArea = Math.max(largura, Math.max(...Object.values(lugar).map((p) => p.x)) + LARGURA_BLOCO.grande / 2);
 
   useLayoutEffect(() => {
     const el = canvas.current;
@@ -245,7 +245,8 @@ export function CanvasFluxo(estado: EstadoCanvas) {
               {l.rotulo && (
                 <span aria-hidden style={d.reta
                   ? { left: d.meio.x, top: d.meio.y - 15, transform: 'translate(-50%, -100%)' }
-                  : d.lado === 'direita'
+                  // à direita, mas sem passar da borda do canvas
+                  : d.lado === 'direita' && d.meio.x + 18 + l.rotulo.length * 6.6 < larguraArea + 24
                     ? { left: d.meio.x + 18, top: d.meio.y, transform: 'translateY(-50%)' }
                     : { left: d.meio.x - 18, top: d.meio.y, transform: 'translate(-100%, -50%)' }}
                   className={`absolute whitespace-nowrap rounded-[4px] px-1.5 py-px text-[12px] leading-tight ${d.reta ? '' : 'bg-elevada'} ${ativa ? 'font-semibold text-caneta' : l.urgente ? 'text-urgente-forte' : 'text-texto-3'}`}>
@@ -256,7 +257,7 @@ export function CanvasFluxo(estado: EstadoCanvas) {
                 <button type="button" onClick={() => onAdicionar(l.mais!)} title={`Pôr uma mensagem antes de “${destino}”`}
                   aria-label={`Adicionar mensagem extra antes de ${destino}`}
                   style={{ left: d.meio.x, top: d.meio.y }}
-                  className="pointer-events-auto absolute z-10 flex size-[22px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-linha-forte bg-superficie text-texto-2 shadow-[0_2px_6px_-2px_rgb(23_40_74/0.35)] transition-[color,border-color,scale] duration-150 hover:scale-110 hover:border-caneta hover:text-caneta">
+                  className="pointer-events-auto absolute z-10 flex size-[22px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-linha-forte bg-superficie text-texto-2 shadow-[0_2px_6px_-2px_rgb(27_39_51/0.35)] transition-[color,border-color,scale] duration-150 hover:scale-110 hover:border-caneta hover:text-caneta">
                   <Plus className="size-3.5" strokeWidth={2.25} aria-hidden />
                 </button>
               )}
@@ -374,14 +375,14 @@ function Bloco({ id, etapa, tamanho, ref, extra, fixo, selecionada, contagem, pu
   };
 
   const moldura = ativa
-    ? 'border-caneta border-2 bg-caneta-fundo text-caneta shadow-[0_0_0_4px_rgb(36_87_197/0.14),0_8px_18px_-10px_rgb(23_40_74/0.5)]'
+    ? 'border-caneta border-2 bg-caneta-fundo text-caneta shadow-[0_0_0_4px_rgb(36_87_197/0.14),0_8px_18px_-10px_rgb(27_39_51/0.5)]'
     : pulada
       ? 'border-dashed border-linha-forte bg-elevada text-texto-3'
       : urgente
         ? 'border-urgente/50 bg-superficie text-urgente shadow-[0_6px_14px_-10px_rgb(192_50_43/0.55)] group-hover:border-urgente'
         : extra
-          ? 'border-caneta/45 bg-superficie text-caneta shadow-[0_6px_14px_-10px_rgb(23_40_74/0.55)] group-hover:border-caneta'
-          : 'border-linha-forte bg-superficie text-texto shadow-[0_6px_14px_-10px_rgb(23_40_74/0.55)] group-hover:border-texto-3';
+          ? 'border-caneta/45 bg-superficie text-caneta shadow-[0_6px_14px_-10px_rgb(27_39_51/0.55)] group-hover:border-caneta'
+          : 'border-linha-forte bg-superficie text-texto shadow-[0_6px_14px_-10px_rgb(27_39_51/0.55)] group-hover:border-texto-3';
 
   return (
     <button type="button" aria-pressed={ativa} title={pulada?.motivo}
@@ -394,7 +395,7 @@ function Bloco({ id, etapa, tamanho, ref, extra, fixo, selecionada, contagem, pu
       aria-label={`${etapa.titulo}${extra ? ', mensagem extra' : ''}${pulada ? `, ${pulada.curto}` : ''}${n ? `, ${n} conversa(s) aqui agora` : ''}. Ver e editar.${arrastavel ? ' Alt e setas movem.' : ''}`}
       className={`group flex select-none flex-col items-center gap-2 rounded-[8px] text-center focus-visible:outline-none ${t.largura} ${arrastavel ? `touch-none ${emArraste ? 'cursor-grabbing' : 'cursor-grab'}` : ''}`}>
       <span ref={ref}
-        className={`relative flex items-center justify-center border transition-[border-color,background-color,box-shadow,scale] duration-150 group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-caneta ${t.bloco} ${fim ? 'rounded-l-[10px] rounded-r-full' : 'rounded-[10px]'} ${moldura} ${emArraste ? 'scale-[1.06] shadow-[0_16px_28px_-12px_rgb(23_40_74/0.55)]' : ''}`}>
+        className={`relative flex items-center justify-center border transition-[border-color,background-color,box-shadow,scale] duration-150 group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-caneta ${t.bloco} ${fim ? 'rounded-l-[10px] rounded-r-full' : 'rounded-[10px]'} ${moldura} ${emArraste ? 'scale-[1.06] shadow-[0_16px_28px_-12px_rgb(27_39_51/0.55)]' : ''}`}>
         <Icone className={t.icone} strokeWidth={1.75} aria-hidden />
         {n > 0 && (
           <span className="absolute -right-2 -top-2 min-w-5 rounded-full border-2 border-superficie bg-info px-1 text-[11.5px] font-semibold leading-4 tabular text-sobre">{n}</span>

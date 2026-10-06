@@ -46,9 +46,9 @@ export default function App() {
 /** Campo do cabeçalho, como num formulário: rótulo pequeno e o valor sobre a linha. */
 function CampoCabecalho({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
   return (
-    <div className="min-w-0 border-b border-linha-forte pb-1">
-      <dt className="text-[12px] text-texto-3">{rotulo}</dt>
-      <dd className="truncate text-[14.5px] font-semibold text-texto">{children}</dd>
+    <div className="min-w-0 border-b border-sobre-topo/25 pb-1">
+      <dt className="text-[12px] text-sobre-topo-2">{rotulo}</dt>
+      <dd className="truncate text-[14.5px] font-semibold text-sobre-topo">{children}</dd>
     </div>
   );
 }
@@ -73,11 +73,12 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
 
   return (
     <div className="min-h-dvh pb-20 md:pb-10">
+      <div className="topo pb-4 md:pb-0">
       <header className="mx-auto max-w-[1440px] px-4 pt-4 md:px-8 md:pt-6">
         <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
           <div>
-            <p className="titulo text-[26px] md:text-[30px]">{NOME_PRODUTO}</p>
-            <p className="text-[13.5px] text-texto-2">Encaminhamento da assistência social</p>
+            <p className="titulo text-[26px] text-sobre-topo md:text-[30px]">{NOME_PRODUTO}</p>
+            <p className="text-[13.5px] text-sobre-topo-2">Encaminhamento da assistência social</p>
           </div>
 
           <dl className="hidden flex-1 grid-cols-[repeat(3,minmax(0,auto))_auto_auto] items-end justify-end gap-x-8 md:grid">
@@ -86,20 +87,20 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
             <CampoCabecalho rotulo="Na fila agora">
               {fila.dados ? (
                 <a href="#/fila" className="hover:underline">
-                  {urgentes > 0 && <span className="text-urgente">{urgentes} urgente{urgentes > 1 ? 's' : ''}, </span>}
+                  {urgentes > 0 && <span className="text-urgente-topo">{urgentes} urgente{urgentes > 1 ? 's' : ''}, </span>}
                   <span className="tabular">{aguardando}</span> aguardando
                 </a>
               ) : '–'}
             </CampoCabecalho>
-            <BotaoTema className="mb-1" />
-            <button onClick={onSair} className="mb-1 inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1.5 text-[13.5px] text-texto-2 hover:bg-superficie hover:text-texto">
+            <BotaoTema naFaixa className="mb-1" />
+            <button onClick={onSair} className="mb-1 inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1.5 text-[13.5px] text-sobre-topo-2 hover:bg-sobre-topo/10 hover:text-sobre-topo">
               <LogOut className="size-4" aria-hidden />Sair
             </button>
           </dl>
 
           <div className="flex items-center md:hidden">
-            <BotaoTema compacto className="p-2" />
-            <button onClick={onSair} className="rounded-[5px] p-2 text-texto-2 hover:bg-superficie" aria-label="Sair do sistema">
+            <BotaoTema compacto naFaixa className="p-2" />
+            <button onClick={onSair} className="rounded-[5px] p-2 text-sobre-topo-2 hover:bg-sobre-topo/10 hover:text-sobre-topo" aria-label="Sair do sistema">
               <LogOut className="size-5" aria-hidden />
             </button>
           </div>
@@ -108,23 +109,21 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
         <nav aria-label="Principal" className="mt-5 hidden gap-0.5 md:flex">
           {NAVEGACAO.map(({ id, rotulo, icone: Icone }) => (
             <a key={id} href={`#/${id}`} aria-current={rota === id ? 'page' : undefined}
-              className={`aba-pasta relative flex items-center gap-2 px-4 py-2.5 text-[14.5px] ${rota === id ? 'z-10 font-semibold text-texto' : 'text-texto-2 hover:text-texto'}`}>
+              className={`aba-pasta relative flex items-center gap-2 px-4 py-2.5 text-[14.5px] transition-colors duration-150 ${rota === id ? 'z-10 font-semibold text-texto' : 'text-sobre-topo-2 hover:bg-sobre-topo/10 hover:text-sobre-topo'}`}>
               <Icone className="size-[17px] shrink-0" aria-hidden />
               {rotulo}
               {id === 'conversas' && naoLidas > 0 && (
-                <span className="rounded-full bg-caneta px-1.5 text-[12px] font-bold leading-[18px] text-sobre tabular" aria-label={`${naoLidas} conversas com mensagens novas`}>{naoLidas}</span>
+                <span className={`rounded-full px-1.5 text-[12px] font-bold leading-[18px] tabular ${rota === id ? 'bg-caneta text-sobre' : 'bg-sobre-topo text-topo'}`} aria-label={`${naoLidas} conversas com mensagens novas`}>{naoLidas}</span>
               )}
             </a>
           ))}
         </nav>
       </header>
-
-      <div className="mx-auto max-w-[1440px] md:px-8">
-        <AlertaUrgente triagens={triagens} />
       </div>
 
       <main className="mx-auto max-w-[1440px] md:px-8">
-        <div className="folha -mt-px min-h-[70vh] rounded-none px-4 py-6 md:rounded-[6px] md:rounded-tl-none md:px-9 md:py-8">
+        <div className="folha -mt-px min-h-[70vh] rounded-none px-4 py-6 md:rounded-[6px] md:rounded-t-none md:px-9 md:py-8">
+          <AlertaUrgente triagens={triagens} />
           {rota === 'fila' && <Fila fila={fila} filtroEstado={parametro} />}
           {rota === 'conversas' && <Conversas conversas={conversas} selecionada={parametro} />}
           {rota === 'indicadores' && <Indicadores />}
@@ -137,7 +136,7 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
         {NAVEGACAO.map(({ id, rotulo, curto, icone: Icone }) => (
           <a key={id} href={`#/${id}`} aria-label={rotulo} aria-current={rota === id ? 'page' : undefined}
             className={`relative flex flex-col items-center gap-1 py-2.5 text-[11px] ${rota === id ? 'font-semibold text-texto' : 'text-texto-3'}`}>
-            {rota === id && <span className="absolute inset-x-4 top-0 h-[3px] rounded-b bg-texto" aria-hidden />}
+            {rota === id && <span className="absolute inset-x-4 top-0 h-[3px] rounded-b bg-acao" aria-hidden />}
             <Icone className="size-5" aria-hidden />
             <span className="max-w-full px-0.5 text-center leading-tight">{curto}</span>
             {id === 'conversas' && naoLidas > 0 && <span className="absolute right-[22%] top-1.5 size-2 rounded-full bg-caneta" aria-hidden />}

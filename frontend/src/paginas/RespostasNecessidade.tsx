@@ -1,13 +1,12 @@
-import { useCallback, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react';
 import {
-  Accessibility, BadgeCheck, Briefcase, CircleAlert, CircleHelp, ClipboardList, FileText, HandCoins, Heading, House,
-  ListChecks, MapPin, Plus, RotateCcw, Save, ShieldAlert, Utensils, X, type LucideIcon,
+  BadgeCheck, CircleAlert, FileText, Heading, ListChecks, MapPin, Plus, RotateCcw, Save, X, type LucideIcon,
 } from 'lucide-react';
 import { api, atualizar, ErroApi } from '../api';
 import { Aviso, Botao, classeEntrada, Esqueleto } from '../components/ui';
 import { comUnidade } from '../unidades';
 import { useAtualizacao } from '../useAtualizacao';
-import { dataHora, nomeCategoria } from '../vocabulario';
+import { corCategoria, dataHora, ICONE_CATEGORIA, nomeCategoria } from '../vocabulario';
 
 // Aba "Respostas por necessidade": o que o bot manda quando entende a necessidade da pessoa.
 // Cada resposta é montada em partes (título, o que procurar, documentos, onde ir) e a prévia do WhatsApp
@@ -50,17 +49,6 @@ const SITUACAO: Record<Situacao, { rotulo: string; ponto: string; texto: string 
   revisar: { rotulo: 'Revisar', ponto: 'bg-alta', texto: 'text-alta' },
 };
 
-const ICONES: Record<string, LucideIcon> = {
-  renda_beneficio: HandCoins,
-  cadastro_atualizacao: ClipboardList,
-  moradia: House,
-  documentacao: FileText,
-  alimentacao: Utensils,
-  pessoa_idosa_pcd: Accessibility,
-  trabalho_renda: Briefcase,
-  violencia_protecao: ShieldAlert,
-  nao_identificado: CircleHelp,
-};
 
 const limpar = (itens: string[]) => itens.map((i) => i.trim()).filter(Boolean);
 const iguais = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
@@ -86,7 +74,7 @@ export function Respostas({ ctx }: { ctx: ContextoRespostas }) {
         </div>
         <ul className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 lg:mx-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:px-0">
           {dados.map((s) => {
-            const Icone = ICONES[s.categoria] ?? CircleHelp;
+            const Icone = ICONE_CATEGORIA[s.categoria] ?? ICONE_CATEGORIA.nao_identificado;
             const ativa = selecionada === s.categoria;
             const sit = SITUACAO[situacaoFonte(s)];
             return (
@@ -95,9 +83,8 @@ export function Respostas({ ctx }: { ctx: ContextoRespostas }) {
                   className={`group flex w-full items-center gap-3 rounded-[6px] border px-2.5 py-2 text-left transition-colors duration-150 max-lg:min-w-[200px] ${ativa
                     ? 'border-caneta/35 bg-caneta-fundo'
                     : 'border-transparent hover:border-linha hover:bg-elevada'}`}>
-                  <span className={`flex size-9 shrink-0 items-center justify-center rounded-[7px] ${s.urgencia
-                    ? 'bg-urgente-fundo text-urgente'
-                    : ativa ? 'bg-caneta text-sobre' : 'bg-elevada text-texto-2 group-hover:bg-superficie'}`}>
+                  <span style={{ '--cat': corCategoria(s.categoria) } as CSSProperties}
+                    className={`flex size-9 shrink-0 items-center justify-center rounded-[7px] ${ativa ? 'bg-[var(--cat)] text-sobre' : 'chip-cat'}`}>
                     <Icone className="size-[18px]" strokeWidth={1.9} aria-hidden />
                   </span>
                   <span className="flex min-w-0 flex-col">
@@ -134,7 +121,7 @@ function EditorServico({ servico, ctx, onSalvo }: { servico: Servico; ctx: Conte
   const [parte, setParte] = useState<Parte | null>(null);
   const [hoje] = useState(() => new Date().toLocaleDateString('sv-SE'));
   const somenteLeitura = !ctx.podeEditar;
-  const Icone = ICONES[servico.categoria] ?? CircleHelp;
+  const Icone = ICONE_CATEGORIA[servico.categoria] ?? ICONE_CATEGORIA.nao_identificado;
 
   const alterado = titulo !== servico.titulo || !iguais(limpar(servicos), servico.servicos) || !iguais(limpar(documentos), servico.documentos)
     || local !== servico.local_atendimento || contato !== servico.contato_util
@@ -183,7 +170,8 @@ function EditorServico({ servico, ctx, onSalvo }: { servico: Servico; ctx: Conte
       <div className="flex min-w-0 flex-col" onMouseLeave={() => setParte(null)}>
         <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-linha pb-5">
           <div className="flex items-start gap-3.5">
-            <span className={`mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-[9px] ${servico.urgencia ? 'bg-urgente-fundo text-urgente' : 'bg-texto text-sobre'}`}>
+            <span style={{ '--cat': corCategoria(servico.categoria) } as CSSProperties}
+              className="mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-[9px] bg-[var(--cat)] text-sobre">
               <Icone className="size-[22px]" strokeWidth={1.9} aria-hidden />
             </span>
             <div>
@@ -272,7 +260,7 @@ function EditorServico({ servico, ctx, onSalvo }: { servico: Servico; ctx: Conte
 
         {!somenteLeitura && (alterado || estado === 'salvo' || erro) && (
           <div role="region" aria-label="Salvar alterações"
-            className="sticky bottom-3 z-10 mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-linha-forte bg-superficie px-4 py-3 shadow-[0_12px_28px_-14px_rgb(23_40_74/0.45)]">
+            className="sticky bottom-3 z-10 mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-linha-forte bg-superficie px-4 py-3 shadow-[0_12px_28px_-14px_rgb(27_39_51/0.45)]">
             <p role="status" className={`text-[14px] ${erro ? 'text-urgente' : alterado ? 'text-texto' : 'text-ok font-semibold'}`}>
               {erro ?? (alterado ? (incompleto ? 'Preencha título, ao menos um serviço, um documento, onde ir e contato.' : 'Alterações ainda não salvas.') : 'Salvo. Já vale para as próximas conversas.')}
             </p>

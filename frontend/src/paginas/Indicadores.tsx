@@ -3,11 +3,11 @@ import { BarChart3, ShieldAlert, Table2 } from 'lucide-react';
 import { api } from '../api';
 import { Aviso, Esqueleto, Vazio } from '../components/ui';
 import { useAtualizacao } from '../useAtualizacao';
-import { CANAIS, ESTADOS, nomeCategoria, ORDEM_ESTADOS } from '../vocabulario';
+import { CANAIS, corCategoria, ESTADOS, nomeCategoria, ORDEM_ESTADOS } from '../vocabulario';
 
-// Série única em tinta; a barra em foco ganha a cor da caneta (foco)
-const COR_SERIE = 'var(--color-texto)';
-const COR_FOCO = 'var(--color-caneta)';
+// Série única na cor da marca; a barra em foco ganha a cor do texto
+const COR_SERIE = 'var(--color-acao)';
+const COR_FOCO = 'var(--color-texto)';
 
 interface Resumo {
   periodo_dias: number;
@@ -92,7 +92,7 @@ export function Indicadores() {
           <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr]">
             <section aria-labelledby="t-categoria">
               <h2 id="t-categoria" className="titulo text-[22px] leading-[1.05] mb-4">Por necessidade</h2>
-              <Barras itens={Object.entries(dados.por_categoria).map(([k, v]) => ({ chave: k, rotulo: nomeCategoria(k), valor: v }))} total={dados.total} />
+              <Barras itens={Object.entries(dados.por_categoria).map(([k, v]) => ({ chave: k, rotulo: nomeCategoria(k), valor: v }))} total={dados.total} porCategoria />
             </section>
 
             <div className="flex flex-col gap-8">
@@ -180,7 +180,7 @@ function TempoResposta({ linhas }: { linhas: TempoCras[] }) {
   );
 }
 
-function Barras({ itens, total }: { itens: { chave: string; rotulo: string; valor: number }[]; total: number }) {
+function Barras({ itens, total, porCategoria = false }: { itens: { chave: string; rotulo: string; valor: number }[]; total: number; porCategoria?: boolean }) {
   const maximo = Math.max(...itens.map((i) => i.valor), 1);
   return (
     <ul className="flex flex-col gap-3">
@@ -191,7 +191,7 @@ function Barras({ itens, total }: { itens: { chave: string; rotulo: string; valo
             {i.rotulo}
           </span>
           <span className="h-3 rounded-r-[4px] bg-transparent" aria-hidden>
-            <span className="block h-full rounded-r-[4px]" style={{ width: `${(100 * i.valor) / maximo}%`, background: COR_SERIE, minWidth: 4 }} />
+            <span className="block h-full rounded-r-[4px]" style={{ width: `${(100 * i.valor) / maximo}%`, background: porCategoria ? corCategoria(i.chave) : COR_SERIE, minWidth: 4 }} />
           </span>
           <span className="tabular text-texto w-16 text-right">
             {i.valor} <span className="text-texto-3 text-xs">{Math.round((100 * i.valor) / total)}%</span>
@@ -255,7 +255,7 @@ function PorDia({ pontos }: { pontos: { dia: string; total: number }[] }) {
           {foco !== null && (
             <div
               role="tooltip"
-              className="pointer-events-none absolute -top-2 z-10 -translate-x-1/2 -translate-y-full rounded-[5px] border border-linha-forte bg-elevada px-3 py-1.5 text-xs shadow-[0_8px_20px_-12px_rgb(23_40_74/0.45)]"
+              className="pointer-events-none absolute -top-2 z-10 -translate-x-1/2 -translate-y-full rounded-[5px] border border-linha-forte bg-elevada px-3 py-1.5 text-xs shadow-[0_8px_20px_-12px_rgb(27_39_51/0.45)]"
               style={{ left: `${((foco + 0.5) / pontos.length) * 100}%` }}
             >
               <span className="text-texto-2">{diaCurto(pontos[foco].dia)}:</span> <strong className="tabular">{pontos[foco].total}</strong> triagens
