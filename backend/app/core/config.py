@@ -73,7 +73,6 @@ class Settings(BaseSettings):
     CARREGAR_REDE_EXEMPLO: bool = True
 
     # Protótipos da fase 2 (Flow Builder, AI Gateway, API Keys, RAG, Workspaces): desligados por padrão
-    HABILITAR_FASE2: bool = False
 
     # Primeira conta de coordenação, criada só se o banco não tiver nenhum usuário.
     # Em development, sem isso, é criada a conta de demonstração teste/123.

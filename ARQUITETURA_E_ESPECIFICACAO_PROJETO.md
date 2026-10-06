@@ -105,21 +105,7 @@ NOVA → AGUARDANDO_CONSENTIMENTO → AGUARDANDO_RELATO → AGUARDANDO_CONFIRMAC
 
 Diferença entre os modelos não significativa (McNemar p = 0,63). **O recall de violência ainda não atinge um piso aceitável**; o piso será definido com um profissional e os números refeitos com relatos reais. Reprodução passo a passo: `notebooks/analise_e_avaliacao_modelos.ipynb`.
 
-### 5. Protótipos da Fase 2 (desligados por padrão)
-
-Ficaram do protótipo inicial e representam a visão de produto (Fase 2 do plano). Guardam dados só em memória e não fazem parte da avaliação do semestre. Só sobem com `HABILITAR_FASE2=true`, e exigem login.
-
-| Protótipo | Rota | Observação |
-| :--- | :--- | :--- |
-| Flow Builder | `/flows` | Executa grafos de nós; sem tela no painel atual |
-| AI Gateway | `/models` | Roteador entre o classificador e o Gemini (LLM) |
-| API Keys | `/api-keys` | Chaves para consumo externo; guarda só hash |
-| Base RAG | `/knowledge` | Busca TF-IDF sobre unidades CRAS/CREAS; **endereços a conferir** |
-| Workspaces | `/apps` | Vários nichos no mesmo servidor |
-
-Também existem, sem uso no caminho principal: `services/llm/gemini_service.py` (o plano permite LLM só para reescrever respostas, nunca para decidir), `services/audio/whisper_service.py` (o plano deixa transcrição de áudio como evolução) e `services/ml/clustering_service.py`.
-
-### 6. Pendências técnicas
+### 5. Pendências técnicas
 
 1. Relatos reais do CRAS parceiro seguindo `docs/guia_rotulagem.md` e `docs/termo_coleta_e_consentimento.md`; refazer a avaliação com um teste real.
 2. Definir com um profissional o piso de recall de violência.

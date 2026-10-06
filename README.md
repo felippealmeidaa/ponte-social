@@ -8,7 +8,7 @@ Visual do painel: direção "Guia de encaminhamento" (cada caso é uma guia com 
 
 ## 🏛 Arquitetura do Sistema
 
-Detalhes do que está implementado e do que ficou para a fase 2: [`ARQUITETURA_E_ESPECIFICACAO_PROJETO.md`](ARQUITETURA_E_ESPECIFICACAO_PROJETO.md).
+Detalhes do que está implementado: [`ARQUITETURA_E_ESPECIFICACAO_PROJETO.md`](ARQUITETURA_E_ESPECIFICACAO_PROJETO.md).
 
 - **Backend**: Python 3.12, FastAPI (assíncrono), Pydantic v2, SQLAlchemy, WebSockets.
 - **Inteligência Artificial**: scikit-learn (Regressão Logística, Naive Bayes, SVM linear) com TF-IDF; validação cruzada agrupada (StratifiedGroupKFold, $k=5$), bootstrap e McNemar.
@@ -68,9 +68,6 @@ consentimento → relato → "Entendi que você precisa de X. Está certo?" → 
 Sinal de violência em qualquer etapa interrompe tudo e mostra 190 / 180 / 100 / CREAS. Nada identificado → Disque Social 121, sem inventar resposta.
 
 LGPD: relato gravado sem CPF/telefone/e-mail, telefone mascarado + criptografado, conversa identificada por hash, prazo de retenção (`RETENCAO_DIAS`).
-
-### Protótipos da Fase 2 (desligados)
-Flow Builder (`/flows`), AI Gateway (`/models`), API Keys (`/api-keys`), Base RAG (`/knowledge`) e Workspaces (`/apps`) são protótipos da visão de produto: guardam dados só em memória e não fazem parte do escopo do semestre. Ficam fora da API por padrão; para demonstrar, defina `HABILITAR_FASE2=true` no `backend/.env` — mesmo assim exigem login.
 
 ---
 

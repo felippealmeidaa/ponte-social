@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 
 from app.api.v1.endpoints import whatsapp_webhooks
 from app.main import app
-from app.services.audio import transcricao, whisper_service
+from app.services.audio import transcricao
 from conftest import autenticar
 from test_unidades import conversa, telefone
 
@@ -47,16 +47,6 @@ def test_audio_sem_transcricao_pede_para_escrever_e_violencia_vem_sem_eco(monkey
 def test_transcricao_nunca_inventa_texto():
     assert transcricao._limpar("[inaudível]") is None and transcricao._limpar("  ") is None
     assert transcricao._limpar(' "estou sem comida" ') == "estou sem comida"
-    whisper_service.WhisperAudioService._model = None
-    whisper_service.WhisperAudioService.get_whisper_model = classmethod(lambda cls: None)
-    import asyncio, tempfile, os
-    with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as f:
-        f.write(b"x")
-    try:
-        r = asyncio.run(whisper_service.WhisperAudioService.transcribe_audio_file(f.name))
-    finally:
-        os.remove(f.name)
-    assert r["status"] == "error" and r["text"] == ""
 
 
 def _caso_whatsapp(client, relato):
