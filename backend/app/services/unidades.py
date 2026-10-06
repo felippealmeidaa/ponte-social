@@ -39,7 +39,12 @@ CATEGORIAS_POR_TIPO = {
 NAO_SEI = {"nao sei", "nao lembro", "sei la", "n sei", "nao", "nenhum", "pular"}
 # Tolera erros de digitação ("jaiaira" → "Jaiara"), sem confundir bairros diferentes
 SEMELHANCA_MINIMA = 0.82
-LOCAIS_POR_RESPOSTA = 3
+# Até 2 lugares onde se pede o benefício (CRAS, CadÚnico, documentos, SINE, CREAS) e, depois, até 2 de
+# ajuda imediata (comer hoje, pernoitar). Quem procura o benefício quase sempre não tem como pagar: o lugar
+# do benefício vem primeiro, mesmo que um restaurante popular esteja mais perto.
+LOCAIS_POR_RESPOSTA = 2
+LOCAIS_DE_APOIO = 2
+TIPOS_APOIO = {"RESTAURANTE_POPULAR", "CENTRO_POP", "OUTRO"}
 REDE_EXEMPLO = Path(__file__).resolve().parents[2] / "data" / "rede_anapolis.json"
 
 
@@ -125,9 +130,11 @@ async def cras_de_referencia(session: AsyncSession, bairro: Optional[str], ponto
 
 
 async def locais_para(session: AsyncSession, categoria: str, ponto: Optional[geo.Ponto] = None,
-                      bairro: Optional[str] = None, limite: int = LOCAIS_POR_RESPOSTA) -> List[Tuple[UnidadeAtendimento, Optional[float]]]:
-    """Lugares ativos que atendem a necessidade, do mais perto para o mais longe, com a distância em km
-    (None quando não dá para medir). Vêm antes os CRAS que atendem o bairro da pessoa pela lista oficial."""
+                      bairro: Optional[str] = None, limite: int = LOCAIS_POR_RESPOSTA,
+                      cras_id: Optional[str] = None) -> List[Tuple[UnidadeAtendimento, Optional[float]]]:
+    """Lugares ativos que atendem a necessidade, com a distância em km (None quando não dá para medir).
+    Primeiro os lugares onde se pede o benefício: o CRAS de referência da pessoa (cras_id), os CRAS que atendem
+    o bairro dela pela lista oficial e os outros, do mais perto ao mais longe. Depois, os de ajuda imediata."""
     candidatos = [u for u in await listar(session, apenas_ativas=True) if categoria in categorias_da(u)]
     alvo = _alvo(bairro)
     ordenados = []
@@ -135,9 +142,16 @@ async def locais_para(session: AsyncSession, categoria: str, ponto: Optional[geo
         p = ponto_da(u)
         km = geo.distancia_km(ponto, p) if ponto and p else None
         atende_bairro = bool(alvo) and _nota_bairro(u, alvo) >= SEMELHANCA_MINIMA
-        ordenados.append(((not atende_bairro, km is None, km or 0.0, u.nome), u, km))
+        ordenados.append(((u.id != cras_id, not atende_bairro, km is None, km or 0.0, u.nome), u, km))
     ordenados.sort(key=lambda x: x[0])
-    return [(u, km) for _, u, km in ordenados[:limite]]
+    principais = [(u, km) for _, u, km in ordenados if not e_apoio(u)][:limite]
+    apoio = [(u, km) for _, u, km in ordenados if e_apoio(u)][:LOCAIS_DE_APOIO]
+    return principais + apoio
+
+
+def e_apoio(u: UnidadeAtendimento) -> bool:
+    """Ajuda imediata (restaurante popular, Centro POP, outros parceiros): não é onde se pede o benefício."""
+    return u.tipo in TIPOS_APOIO
 
 
 def descricao(u: UnidadeAtendimento, km: Optional[float] = None) -> str:
@@ -153,12 +167,18 @@ def descricao(u: UnidadeAtendimento, km: Optional[float] = None) -> str:
     return "\n".join(linhas)
 
 
-def bloco_locais(locais: Sequence[Tuple[UnidadeAtendimento, Optional[float]]]) -> str:
-    if not locais:
-        return ""
-    perto = any(km is not None for _, km in locais)
-    titulo = "📍 *Lugares mais perto de você:*" if perto else "📍 *Lugares que atendem:*"
-    return titulo + "\n\n" + "\n\n".join(descricao(u, km) for u, km in locais)
+def bloco_locais(locais: Sequence[Tuple[UnidadeAtendimento, Optional[float]]],
+                 titulo: str = "📍 *Onde pedir o benefício:*") -> str:
+    """Primeiro o lugar do benefício, com destaque; a ajuda imediata vem num bloco separado, depois."""
+    principais = [descricao(u, km) for u, km in locais if not e_apoio(u)]
+    apoio = [descricao(u, km) for u, km in locais if e_apoio(u)]
+    partes = []
+    if principais:
+        partes.append(titulo + "\n\n" + "\n\n".join(principais))
+    if apoio:
+        titulo_apoio = "🍽️ *Para ajuda imediata, enquanto isso:*" if principais else "📍 *Lugares que podem ajudar:*"
+        partes.append(titulo_apoio + "\n\n" + "\n\n".join(apoio))
+    return "\n\n".join(partes)
 
 
 async def salvar(session: AsyncSession, dados: dict, usuario: str, unidade_id: Optional[str] = None) -> UnidadeAtendimento:

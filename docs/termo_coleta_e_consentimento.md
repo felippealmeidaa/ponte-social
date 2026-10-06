@@ -57,9 +57,9 @@ Coletar mensagens reais de cidadãos só deve acontecer depois que o bot estiver
 
 O bot já pede consentimento antes de qualquer pergunta (texto `boas_vindas`, editável em *Serviços e mensagens → Textos da conversa*). O texto atual:
 
-> Olá! Sou o assistente de orientação da Assistência Social de Anápolis. 👋
+> Olá! Sou o Ponte Social, um assistente de orientação da assistência social. 👋
 > Eu ajudo a descobrir *qual serviço procurar, quais documentos levar e onde ir*. Sou só uma orientação: *não decido quem tem direito a benefício* — isso é feito pelos profissionais do CRAS.
-> Vou usar o que você me contar para te orientar e, *sem identificar você*, para melhorar este serviço. Não escreva nome, CPF ou endereço.
+> Vou usar o que você me contar para te orientar e, *sem identificar você*, para melhorar este serviço. Não escreva nome, CPF ou endereço. A qualquer momento, envie *apagar* para excluir seus dados.
 > Você concorda? *1* - Sim, concordo *2* - Não
 
 O que já atende ao plano (seção 10): explica a finalidade, avisa que não decide direito, pede para não enviar dado pessoal e permite recusar (quem recusa recebe o Disque Social 121 e o CRAS).
@@ -71,6 +71,11 @@ O que falta definir **[validar]**:
 3. **Direitos do titular.** O bot aceita o comando *apagar* em qualquer etapa (com confirmação) e as boas-vindas avisam disso. Casos urgentes de violência ainda abertos **não** são apagados, para a equipe poder agir; validar essa exceção.
 4. **Responsável.** Informar quem responde pelos dados (o grupo, durante o projeto; o município, numa fase 2).
 5. **Uso para treinar o modelo.** O texto fala em "melhorar este serviço". Se as mensagens forem usadas para treino, deixar isso explícito ("usar sua mensagem, sem identificar você, para ensinar o sistema").
+6. **Serviços de fora que recebem dados.** O termo de hoje não cita nenhum. O que o sistema envia:
+   - **Google (Gemini):** com `GEMINI_API_KEY` preenchida, o relato vai para o Gemini entender a necessidade, já sem CPF, telefone, e-mail e CEP (nomes não são removidos). Sem a chave, quem lê é o modelo local e nada sai do servidor.
+   - **Localização (opcional):** depois do aceite, a pessoa escolhe enviar a localização do WhatsApp, digitar o CEP, digitar o bairro ou não informar nada. O CEP vai para o ViaCEP; o bairro, a rua do CEP (sem número) e o ponto arredondado (~100 m) vão para o OpenStreetMap (Nominatim). O sistema guarda só o bairro e o ponto arredondado; o CEP aparece no histórico como `[cep]`.
+
+   Validar se as boas-vindas devem citar o Google, por exemplo: "Para entender sua mensagem, ela é lida por uma inteligência artificial do Google, sem seu nome, CPF ou telefone." (O texto do bot não foi mudado; isso depende do orientador.)
 
 ## 5. Checklist antes de usar qualquer relato
 

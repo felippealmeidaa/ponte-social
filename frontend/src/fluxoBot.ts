@@ -88,11 +88,11 @@ export const ETAPAS: Etapa[] = [
     travada: 'LGPD: o aceite vem sempre antes de qualquer pergunta. O texto pode mudar; a etapa não.',
   },
   {
-    id: 'bairro', titulo: 'Localização ou bairro', icone: MapPin, tipo: 'normal',
-    quando: 'Logo depois do aceite, o bot pede a localização do WhatsApp ou o bairro. Isso escolhe o CRAS (lista de bairros ou, sem ela, o mais perto) e ordena os lugares do Caminho do mais perto ao mais longe.',
-    depois: 'Segue para o Relato, já com o fluxo do CRAS escolhido. Bairro não encontrado ou “não sei”: padrão da secretaria.',
-    textos: ['pedir_bairro', 'cras_indicado', 'cras_mais_perto', 'bairro_nao_encontrado'], estados: ['AGUARDANDO_BAIRRO'], editarEm: 'unidades',
-    opcoes: [{ chave: 'perguntar_bairro', tipo: 'bool', soSecretaria: true, rotulo: 'Perguntar a localização ou o bairro',
+    id: 'bairro', titulo: 'Localização, CEP ou bairro', icone: MapPin, tipo: 'normal',
+    quando: 'Logo depois do aceite, a pessoa escolhe se e como diz onde mora: localização do WhatsApp, CEP ou bairro (ou prefere não informar). Isso escolhe o CRAS (lista de bairros ou, sem ela, o mais perto) e ordena os lugares do Caminho: primeiro onde pedir o benefício (o CRAS da pessoa no topo), depois a ajuda imediata, como restaurante popular e Centro POP. Do CEP, ficam só o bairro e um ponto aproximado.',
+    depois: 'Segue para o Relato, já com o fluxo do CRAS escolhido. CEP não encontrado: pede de novo. Bairro não encontrado ou “prefiro não informar”: padrão da secretaria.',
+    textos: ['pedir_bairro', 'pedir_localizacao', 'pedir_cep', 'pedir_nome_bairro', 'cep_nao_encontrado', 'cras_indicado', 'cras_mais_perto', 'bairro_nao_encontrado'], estados: ['AGUARDANDO_BAIRRO'], editarEm: 'unidades',
+    opcoes: [{ chave: 'perguntar_bairro', tipo: 'bool', soSecretaria: true, rotulo: 'Perguntar a localização, o CEP ou o bairro',
       ajuda: 'Desligado: ninguém é encaminhado a um CRAS específico e todos seguem o padrão da secretaria.' }],
   },
   {

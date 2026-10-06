@@ -6,9 +6,10 @@ Fluxo da conversa no WhatsApp (plano do projeto, seção 4).
                                                                    ▼               ▼
                                          FINALIZADA ◄─ AGUARDANDO_CONTATO ◄─ AGUARDANDO_CORRECAO
 
-  Com CRAS cadastrado, o bairro vem logo depois do aceite (AGUARDANDO_BAIRRO): a pessoa manda o pino de
-  localização do WhatsApp ou digita o bairro. Isso escolhe o CRAS (lista de bairros da prefeitura ou, sem ela,
-  o mais perto) e, daí em diante, valem os textos, as respostas e as opções de fluxo daquele CRAS.
+  Com CRAS cadastrado, o local vem logo depois do aceite (AGUARDANDO_BAIRRO): a pessoa escolhe se e como
+  informa onde mora (pino de localização do WhatsApp, CEP ou bairro) ou prefere não informar. Isso escolhe o
+  CRAS (lista de bairros da prefeitura ou, sem ela, o mais perto) e, daí em diante, valem os textos, as
+  respostas e as opções de fluxo daquele CRAS. Do CEP, ficam só o bairro e o ponto arredondado.
   O ponto também ordena os lugares do caminho: os que atendem a necessidade, do mais perto ao mais longe.
   Estados auxiliares: RELATO_NOVAMENTE (não entendeu uma vez), RETORNO (quem já consentiu volta
   a escrever) e CONFIRMAR_APAGAR.
@@ -65,6 +66,9 @@ ETAPAS_DE_RELATO = {"AGUARDANDO_RELATO", "RELATO_NOVAMENTE", "RETORNO"}
 
 SIM = {"1", "sim", "s", "ss", "isso", "certo", "concordo", "aceito", "pode", "quero", "claro", "ok", "beleza", "isso mesmo"}
 NAO = {"2", "nao", "n", "nao quero", "errado", "nao e isso", "negativo"}
+
+# Escolha de como informar onde mora (texto pedir_bairro). "4" (prefiro não informar) segue sem local.
+OPCOES_LOCAL = {"1": "pedir_localizacao", "2": "pedir_cep", "3": "pedir_nome_bairro"}
 
 COMANDO_APAGAR = {"apagar", "apagar meus dados", "apagar dados", "excluir meus dados", "excluir dados", "apague meus dados"}
 COMANDO_RECOMECAR = {"recomecar", "reiniciar", "comecar de novo", "menu", "inicio", "voltar ao inicio"}
@@ -226,7 +230,7 @@ async def _emergencia(session: AsyncSession, conversa: Conversa, telefone: str, 
                         conversa_id=conversa.telefone_hash, unidade_id=conversa.unidade_id)
     conversa.estado = "FINALIZADA"
     locais = await unidades.locais_para(session, VIOLENCIA, _ponto(conversa), conversa.bairro, limite=2)
-    bloco = unidades.bloco_locais(locais)
+    bloco = unidades.bloco_locais(locais, titulo="📍 *Onde buscar proteção:*")
     return [catalogo.texto("emergencia", conversa.unidade_id) + (f"\n\n{bloco}" if bloco else "")]
 
 
@@ -237,12 +241,13 @@ def _ponto(conversa: Conversa) -> Optional[geo.Ponto]:
 
 
 async def _definir_local(session: AsyncSession, conversa: Conversa, bairro: Optional[str],
-                         localizacao: Optional[geo.Ponto]) -> Optional[UnidadeAtendimento]:
-    """Guarda o ponto aproximado da pessoa (pino ou centro do bairro) e escolhe o CRAS de referência."""
+                         localizacao: Optional[geo.Ponto], endereco: Optional[str] = None) -> Optional[UnidadeAtendimento]:
+    """Guarda o ponto aproximado da pessoa (pino, rua do CEP ou centro do bairro) e escolhe o CRAS de referência.
+    O CEP e a rua não são guardados: só o bairro e o ponto arredondado."""
     if localizacao:
         conversa.latitude, conversa.longitude = geo.arredondar(*localizacao)
         bairro = await geo.bairro_do_ponto(_ponto(conversa)) or "Localização pelo WhatsApp"
-    elif bairro and (centro := await geo.buscar(bairro)):
+    elif bairro and (centro := (endereco and await geo.buscar(endereco)) or await geo.buscar(bairro)):
         conversa.latitude, conversa.longitude = geo.arredondar(*centro)
     conversa.bairro = bairro
     unidade = await unidades.cras_de_referencia(session, bairro, _ponto(conversa))
@@ -255,7 +260,8 @@ async def _localizacao_avulsa(session: AsyncSession, conversa: Conversa, localiz
     await _definir_local(session, conversa, None, localizacao)
     resposta = "Recebi sua localização. 📍"
     if conversa.categoria_escolhida:
-        bloco = unidades.bloco_locais(await unidades.locais_para(session, conversa.categoria_escolhida, _ponto(conversa)))
+        bloco = unidades.bloco_locais(await unidades.locais_para(session, conversa.categoria_escolhida, _ponto(conversa),
+                                                                  conversa.bairro, cras_id=conversa.unidade_id))
         return [resposta + (f"\n\n{bloco}" if bloco else "")]
     if conversa.estado in ("AGUARDANDO_RELATO", "RELATO_NOVAMENTE", "RETORNO"):
         conversa.estado = "AGUARDANDO_RELATO"
@@ -285,7 +291,8 @@ async def _mostrar_caminho(session: AsyncSession, conversa: Conversa, telefone: 
     opcoes = catalogo.opcoes_fluxo(u)
     if not opcoes["mostrar_outras_necessidades"]:
         secundarias = ()
-    locais = await unidades.locais_para(session, conversa.categoria_escolhida, _ponto(conversa), conversa.bairro)
+    locais = await unidades.locais_para(session, conversa.categoria_escolhida, _ponto(conversa), conversa.bairro,
+                                       cras_id=conversa.unidade_id)
     bloco = unidades.bloco_locais(locais)
     if locais and not _ponto(conversa):
         bloco += "\n\nSe mandar sua *localização* (📎 → Localização), eu indico os lugares mais perto de você."
@@ -380,14 +387,31 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
         return ["Para continuar, responda *1* (Sim, concordo) ou *2* (Não)."]
 
     if estado == "AGUARDANDO_BAIRRO":
-        # Pino ou bairro escolhem o CRAS; "não sei" ou bairro não encontrado seguem com o padrão da secretaria
-        bairro = None if localizacao or texto_norm in unidades.NAO_SEI else texto.strip()[:80]
-        unidade = await _definir_local(session, conversa, bairro, localizacao)
+        # A pessoa escolhe se e como diz onde mora: pino, CEP ou bairro (aceitos a qualquer momento desta etapa).
+        # Pino, CEP ou bairro escolhem o CRAS; "4", "não sei" ou bairro não encontrado seguem com o padrão da secretaria.
+        if not localizacao and texto_norm in OPCOES_LOCAL:
+            return [t(OPCOES_LOCAL[texto_norm])]
+        prefixo, endereco = "", None
+        cep = None if localizacao else geo.cep_no_texto(texto)
+        if cep:
+            achado = await geo.buscar_cep(cep)
+            if not achado or not achado["bairro"] or normalizar(achado["localidade"]) != normalizar(settings.CIDADE):
+                return [t("cep_nao_encontrado")]
+            bairro = achado["bairro"]
+            endereco = f"{achado['logradouro']}, {bairro}" if achado["logradouro"] else None
+            prefixo = f"Pelo CEP, seu bairro é *{bairro}*.\n"
+        elif localizacao or texto_norm == "4" or texto_norm in unidades.NAO_SEI:
+            bairro = None
+        else:
+            bairro = texto.strip()[:80]
+        unidade = await _definir_local(session, conversa, bairro, localizacao, endereco)
         conversa.estado = "AGUARDANDO_RELATO"
         if unidade:
             pela_lista = bool(bairro) and await unidades.cras_do_bairro(session, bairro) is not None
             chave = "cras_indicado" if pela_lista else "cras_mais_perto"
-            return [t(chave).replace("{cras}", unidade.nome) + "\n\n" + t("pedir_relato")]
+            return [prefixo + t(chave).replace("{cras}", unidade.nome) + "\n\n" + t("pedir_relato")]
+        if cep:
+            return [prefixo + "\n" + t("pedir_relato")]
         if bairro:
             return [t("bairro_nao_encontrado") + "\n\n" + t("pedir_relato")]
         return [t("pedir_relato")]

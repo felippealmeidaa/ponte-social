@@ -1,5 +1,5 @@
 """Anonimização de relatos antes de gravar (LGPD). Remove o que dá para detectar com segurança
-por padrão: CPF, telefone e e-mail. Nomes próprios não são detectados — por isso o bot pede
+por padrão: CPF, telefone, e-mail e CEP. Nomes próprios não são detectados — por isso o bot pede
 para a pessoa não escrever nome nem documento no relato."""
 import hashlib
 import re
@@ -9,12 +9,14 @@ from app.core.config import settings
 _CPF = re.compile(r"\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b")
 _TELEFONE = re.compile(r"(?:\+?55\s?)?\(?\b\d{2}\)?\s?9?\d{4}[-\s]?\d{4}\b")
 _EMAIL = re.compile(r"\b[\w.+-]+@[\w-]+\.[\w.]+\b")
+_CEP = re.compile(r"\b\d{2}\.?\d{3}-?\d{3}\b")
 
 
 def anonimizar_texto(texto: str) -> str:
     texto = _EMAIL.sub("[email]", texto)
     texto = _CPF.sub("[cpf]", texto)
     texto = _TELEFONE.sub("[telefone]", texto)
+    texto = _CEP.sub("[cep]", texto)  # junto do bairro, aponta a rua da pessoa
     return texto
 
 

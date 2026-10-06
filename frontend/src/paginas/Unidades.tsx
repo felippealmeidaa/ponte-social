@@ -65,7 +65,7 @@ export function Unidades() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <p className="max-w-[70ch] text-sm text-texto-2">
           {temCras
-            ? 'O bot pede a localização ou o bairro da pessoa e indica os lugares mais perto que atendem a necessidade dela, com endereço, horário e link do mapa.'
+            ? 'O bot pergunta se a pessoa quer informar a localização, o CEP ou o bairro e indica primeiro onde pedir o benefício (o CRAS dela no topo) e depois os lugares de ajuda imediata, como restaurante popular e Centro POP, com endereço, horário e link do mapa.'
             : 'Enquanto não houver CRAS cadastrado, o bot não pergunta a localização e usa o texto “Onde ir” de cada necessidade.'}
           {' '}Use a lista oficial da prefeitura e registre a fonte.
         </p>

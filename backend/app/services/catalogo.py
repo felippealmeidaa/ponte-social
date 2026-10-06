@@ -82,11 +82,36 @@ TEXTOS_PADRAO: Dict[str, Dict[str, str]] = {
         ),
     },
     "pedir_bairro": {
-        "descricao": "Pede a localização ou o bairro para indicar o CRAS e os lugares mais perto (só quando há CRAS cadastrado)",
+        "descricao": "Pergunta se a pessoa quer dizer onde mora e como: localização, CEP ou bairro (só quando há CRAS cadastrado)",
         "texto": (
-            "Para eu indicar os lugares mais perto de você, mande sua *localização* "
-            "(no WhatsApp: 📎 → Localização → Enviar localização atual) ou digite o nome do seu *bairro*. "
-            "Se não souber, responda *não sei*."
+            "Para eu indicar o CRAS e os lugares mais perto de você, como prefere me dizer onde mora? "
+            "Só uso isso para achar os lugares; seu endereço não fica guardado.\n"
+            "*1* - Enviar minha localização\n"
+            "*2* - Digitar meu CEP\n"
+            "*3* - Digitar meu bairro\n"
+            "*4* - Prefiro não informar"
+        ),
+    },
+    "pedir_localizacao": {
+        "descricao": "A pessoa escolheu enviar a localização: explica como mandar pelo WhatsApp",
+        "texto": (
+            "Toque no 📎 (ou no ➕ do iPhone) → *Localização* → *Enviar localização atual*.\n"
+            "Se mudar de ideia, digite o CEP, o bairro ou *4* para seguir sem informar."
+        ),
+    },
+    "pedir_cep": {
+        "descricao": "A pessoa escolheu informar o CEP",
+        "texto": "Digite seu CEP, só os números (por exemplo: 75000000).",
+    },
+    "pedir_nome_bairro": {
+        "descricao": "A pessoa escolheu informar o bairro",
+        "texto": "Digite o nome do seu bairro.",
+    },
+    "cep_nao_encontrado": {
+        "descricao": "CEP inexistente, de outra cidade ou sem bairro (o bot continua esperando a localização)",
+        "texto": (
+            "Não encontrei esse CEP aqui na cidade. Confira os números e mande de novo, "
+            "ou responda *3* para digitar o bairro ou *4* para seguir sem informar."
         ),
     },
     "bairro_nao_encontrado": {
@@ -164,7 +189,12 @@ TEXTOS_ANTIGOS: Dict[str, tuple] = {
     ),
     "contato_recusado": ("Tudo bem! Se precisar de novo, é só mandar uma mensagem. Cuide-se. 💚",),
     "fim_sem_contato": ("Procure o CRAS com os documentos da lista. Se precisar, é só mandar uma mensagem. 💚",),
-    "pedir_bairro": ("Para eu indicar o CRAS mais perto de você, em qual *bairro* você mora? Se não souber, responda *não sei*.",),
+    "pedir_bairro": (
+        "Para eu indicar o CRAS mais perto de você, em qual *bairro* você mora? Se não souber, responda *não sei*.",
+        "Para eu indicar os lugares mais perto de você, mande sua *localização* "
+        "(no WhatsApp: 📎 → Localização → Enviar localização atual) ou digite o nome do seu *bairro*. "
+        "Se não souber, responda *não sei*.",
+    ),
     "bairro_nao_encontrado": ("Não encontrei o CRAS do seu bairro na minha lista. Você pode confirmar o seu CRAS pelo Disque Social 121.",),
 }
 
