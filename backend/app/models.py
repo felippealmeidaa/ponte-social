@@ -65,6 +65,9 @@ class Triagem(Base):
     avaliacao: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     # Resumo da conversa feito pela IA para a ficha (gerado na primeira vez que alguém abre)
     resumo_ia: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    # Correção da necessidade pela equipe (vira exemplo de treino; a sugestão original fica em categoria_modelo)
+    corrigida_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    corrigida_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     # Fotos de documentos que a pessoa mandou pelo WhatsApp para adiantar a análise (ver DocumentoAnexo)
     documentos_enviados: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 

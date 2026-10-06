@@ -1,0 +1,614 @@
+{
+  "timestamp": "2026-10-06T20:24:44.800946+00:00",
+  "conjunto": "80 relatos informais simulados, os mesmos do relatório do modelo (nunca usados no treino)",
+  "modelo_llm": "gemini-3.5-flash-lite",
+  "abordagens": {
+    "modelo_local": {
+      "f1_macro": 0.6777319902319903,
+      "acuracia": 0.6125,
+      "recall_violencia": 0.7,
+      "f1_macro_ic95": [
+        0.5515190116995073,
+        0.7625446608130431
+      ],
+      "taxa_nao_identificado": 0.2375,
+      "tempo_medio_ms": 6.2,
+      "descricao": "Regra de violência + Regressão Logística + palavras-chave (sem internet, sem custo)"
+    },
+    "llm": {
+      "f1_macro": 0.9681685273790537,
+      "acuracia": 0.9625,
+      "recall_violencia": 1.0,
+      "f1_macro_ic95": [
+        0.9221336261777439,
+        1.0
+      ],
+      "taxa_nao_identificado": 0.0125,
+      "tempo_medio_ms": 1073.7,
+      "tempo_p95_ms": 1787.4,
+      "tokens_medios": 636.0,
+      "falhas": 0,
+      "descricao": "Gemini (gemini-3.5-flash-lite) sozinho, escolhendo entre as categorias do sistema"
+    },
+    "hibrido": {
+      "f1_macro": 0.9160851940457203,
+      "acuracia": 0.9125,
+      "recall_violencia": 1.0,
+      "f1_macro_ic95": [
+        0.8440477840174531,
+        0.9651844197469197
+      ],
+      "taxa_nao_identificado": 0.0125,
+      "descricao": "O que roda no WhatsApp: a IA lê, mas violência vista pela regra ou pelo modelo local sempre vale"
+    }
+  },
+  "mcnemar_local_x_llm": {
+    "modelo_a": "modelo_local",
+    "modelo_b": "llm",
+    "a_certo_b_errado": 2,
+    "a_errado_b_certo": 30,
+    "p_valor": 2.4633482098579407e-07
+  },
+  "casos": [
+    {
+      "texto": "boa tarde moça to sem trabalho faz 4 mes e as conta tao tudo atrasada, tem algum dinheiro do governo q eu posso pegar?",
+      "esperado": "renda_beneficio",
+      "modelo_local": "renda_beneficio",
+      "llm": "trabalho_renda",
+      "hibrido": "trabalho_renda"
+    },
+    {
+      "texto": "oi queria saber como faz pra receber o bolsa familia pq meu marido saiu de casa e eu fiquei sem nada",
+      "esperado": "renda_beneficio",
+      "modelo_local": "renda_beneficio",
+      "llm": "renda_beneficio",
+      "hibrido": "renda_beneficio"
+    },
+    {
+      "texto": "minha mae tem 67 anos nunca contribuiu com o inss, ela consegue o loas?",
+      "esperado": "renda_beneficio",
+      "modelo_local": "renda_beneficio",
+      "llm": "renda_beneficio",
+      "hibrido": "renda_beneficio"
+    },
+    {
+      "texto": "o bolsa familia da minha vizinha e 600 e o meu veio so 150 pq isso",
+      "esperado": "renda_beneficio",
+      "modelo_local": "renda_beneficio",
+      "llm": "renda_beneficio",
+      "hibrido": "renda_beneficio"
+    },
+    {
+      "texto": "a gente ta vivendo so com o que eu ganho de diarista e nao fecha o mes, existe ajuda pra familia de baixa renda?",
+      "esperado": "renda_beneficio",
+      "modelo_local": "renda_beneficio",
+      "llm": "renda_beneficio",
+      "hibrido": "renda_beneficio"
+    },
+    {
+      "texto": "queria pedir o auxilio gas, vi que tem pra quem e pobre",
+      "esperado": "renda_beneficio",
+      "modelo_local": "renda_beneficio",
+      "llm": "renda_beneficio",
+      "hibrido": "renda_beneficio"
+    },
+    {
+      "texto": "sou mae sozinha com 3 crianca e nao recebo pensao, tem algum beneficio pra mim",
+      "esperado": "renda_beneficio",
+      "modelo_local": "renda_beneficio",
+      "llm": "renda_beneficio",
+      "hibrido": "renda_beneficio"
+    },
+    {
+      "texto": "como eu faco pra pedir desconto na conta de luz, aquela tarifa social",
+      "esperado": "renda_beneficio",
+      "modelo_local": "renda_beneficio",
+      "llm": "renda_beneficio",
+      "hibrido": "renda_beneficio"
+    },
+    {
+      "texto": "meu beneficio foi cortado do nada esse mes e eu dependia dele pra tudo",
+      "esperado": "renda_beneficio",
+      "modelo_local": "renda_beneficio",
+      "llm": "renda_beneficio",
+      "hibrido": "renda_beneficio"
+    },
+    {
+      "texto": "perdi o emprego e o seguro ja acabou, o que eu posso fazer pra ter alguma renda ate arrumar outro",
+      "esperado": "renda_beneficio",
+      "modelo_local": "renda_beneficio",
+      "llm": "trabalho_renda",
+      "hibrido": "trabalho_renda"
+    },
+    {
+      "texto": "meu cad unico ta vencido, preciso ir aonde pra arrumar?",
+      "esperado": "cadastro_atualizacao",
+      "modelo_local": "nao_identificado",
+      "llm": "cadastro_atualizacao",
+      "hibrido": "cadastro_atualizacao"
+    },
+    {
+      "texto": "nasceu meu neto e preciso colocar ele no cadastro da familia, como faz",
+      "esperado": "cadastro_atualizacao",
+      "modelo_local": "nao_identificado",
+      "llm": "cadastro_atualizacao",
+      "hibrido": "cadastro_atualizacao"
+    },
+    {
+      "texto": "chegou mensagem dizendo q tenho q fazer revisao cadastral senao perco o beneficio",
+      "esperado": "cadastro_atualizacao",
+      "modelo_local": "renda_beneficio",
+      "llm": "cadastro_atualizacao",
+      "hibrido": "cadastro_atualizacao"
+    },
+    {
+      "texto": "esqueci meu numero do nis, onde eu vejo",
+      "esperado": "cadastro_atualizacao",
+      "modelo_local": "cadastro_atualizacao",
+      "llm": "cadastro_atualizacao",
+      "hibrido": "cadastro_atualizacao"
+    },
+    {
+      "texto": "mudei de bairro, tem q avisar no cadastro unico?",
+      "esperado": "cadastro_atualizacao",
+      "modelo_local": "cadastro_atualizacao",
+      "llm": "cadastro_atualizacao",
+      "hibrido": "cadastro_atualizacao"
+    },
+    {
+      "texto": "meu filho mais velho saiu de casa, preciso tirar ele da composicao familiar do cadastro",
+      "esperado": "cadastro_atualizacao",
+      "modelo_local": "nao_identificado",
+      "llm": "cadastro_atualizacao",
+      "hibrido": "cadastro_atualizacao"
+    },
+    {
+      "texto": "nunca fiz o cadunico, primeira vez, o que precisa levar",
+      "esperado": "cadastro_atualizacao",
+      "modelo_local": "cadastro_atualizacao",
+      "llm": "cadastro_atualizacao",
+      "hibrido": "cadastro_atualizacao"
+    },
+    {
+      "texto": "fui fazer inscricao de um curso e pediram o comprovante do cadastro unico, como tiro",
+      "esperado": "cadastro_atualizacao",
+      "modelo_local": "cadastro_atualizacao",
+      "llm": "cadastro_atualizacao",
+      "hibrido": "cadastro_atualizacao"
+    },
+    {
+      "texto": "da pra marcar horario pra atualizar o cadastro ou tem q ir e pegar fila",
+      "esperado": "cadastro_atualizacao",
+      "modelo_local": "cadastro_atualizacao",
+      "llm": "cadastro_atualizacao",
+      "hibrido": "cadastro_atualizacao"
+    },
+    {
+      "texto": "minha renda mudou, comecei a trabalhar registrada, preciso informar no cad?",
+      "esperado": "cadastro_atualizacao",
+      "modelo_local": "renda_beneficio",
+      "llm": "cadastro_atualizacao",
+      "hibrido": "cadastro_atualizacao"
+    },
+    {
+      "texto": "o dono da casa mandou a gente sair ate o fim do mes e nao tenho pra onde ir",
+      "esperado": "moradia",
+      "modelo_local": "nao_identificado",
+      "llm": "moradia",
+      "hibrido": "moradia"
+    },
+    {
+      "texto": "choveu e a parede do quarto caiu, to com medo do resto da casa desabar",
+      "esperado": "moradia",
+      "modelo_local": "violencia_protecao",
+      "llm": "moradia",
+      "hibrido": "violencia_protecao"
+    },
+    {
+      "texto": "to dormindo na praca faz uma semana, tem lugar pra eu passar a noite?",
+      "esperado": "moradia",
+      "modelo_local": "nao_identificado",
+      "llm": "moradia",
+      "hibrido": "moradia"
+    },
+    {
+      "texto": "como faz pra se inscrever nas casinha da prefeitura",
+      "esperado": "moradia",
+      "modelo_local": "nao_identificado",
+      "llm": "moradia",
+      "hibrido": "moradia"
+    },
+    {
+      "texto": "pago 700 de aluguel e ganho 1000, nao da mais, tem algum auxilio pra aluguel",
+      "esperado": "moradia",
+      "modelo_local": "moradia",
+      "llm": "moradia",
+      "hibrido": "moradia"
+    },
+    {
+      "texto": "a enchente levou tudo da minha casa, colchao, roupa, tudo",
+      "esperado": "moradia",
+      "modelo_local": "moradia",
+      "llm": "moradia",
+      "hibrido": "moradia"
+    },
+    {
+      "texto": "moro de favor na casa da minha sogra com meus 4 filhos num comodo so",
+      "esperado": "moradia",
+      "modelo_local": "nao_identificado",
+      "llm": "moradia",
+      "hibrido": "moradia"
+    },
+    {
+      "texto": "a defesa civil interditou minha rua e falou q a gente tem q sair",
+      "esperado": "moradia",
+      "modelo_local": "moradia",
+      "llm": "moradia",
+      "hibrido": "moradia"
+    },
+    {
+      "texto": "meu barraco nao tem banheiro nem agua encanada",
+      "esperado": "moradia",
+      "modelo_local": "moradia",
+      "llm": "moradia",
+      "hibrido": "moradia"
+    },
+    {
+      "texto": "fui despejada hj, to na rua com as crianca e as coisa",
+      "esperado": "moradia",
+      "modelo_local": "moradia",
+      "llm": "moradia",
+      "hibrido": "moradia"
+    },
+    {
+      "texto": "roubaram minha bolsa com todos os documentos dentro, como tiro tudo de novo sem pagar",
+      "esperado": "documentacao",
+      "modelo_local": "documentacao",
+      "llm": "documentacao",
+      "hibrido": "documentacao"
+    },
+    {
+      "texto": "meu filho tem 5 anos e nunca foi registrado, o pai sumiu",
+      "esperado": "documentacao",
+      "modelo_local": "documentacao",
+      "llm": "documentacao",
+      "hibrido": "documentacao"
+    },
+    {
+      "texto": "preciso fazer a identidade nova mas nao tenho dinheiro pra taxa",
+      "esperado": "documentacao",
+      "modelo_local": "renda_beneficio",
+      "llm": "documentacao",
+      "hibrido": "documentacao"
+    },
+    {
+      "texto": "minha certidao de nascimento ta toda rasgada, onde peco segunda via de graca",
+      "esperado": "documentacao",
+      "modelo_local": "documentacao",
+      "llm": "documentacao",
+      "hibrido": "documentacao"
+    },
+    {
+      "texto": "meu cpf ta irregular na receita e nao consigo fazer nada",
+      "esperado": "documentacao",
+      "modelo_local": "documentacao",
+      "llm": "documentacao",
+      "hibrido": "documentacao"
+    },
+    {
+      "texto": "perdi minha carteira de trabalho, como faz outra",
+      "esperado": "documentacao",
+      "modelo_local": "trabalho_renda",
+      "llm": "documentacao",
+      "hibrido": "documentacao"
+    },
+    {
+      "texto": "minha avo nao tem nenhum documento, nunca teve, nasceu na roca",
+      "esperado": "documentacao",
+      "modelo_local": "documentacao",
+      "llm": "documentacao",
+      "hibrido": "documentacao"
+    },
+    {
+      "texto": "preciso da certidao de obito do meu pai pra resolver as coisa dele e nao tenho como pagar o cartorio",
+      "esperado": "documentacao",
+      "modelo_local": "documentacao",
+      "llm": "documentacao",
+      "hibrido": "documentacao"
+    },
+    {
+      "texto": "onde tira o rg gratis aqui em anapolis",
+      "esperado": "documentacao",
+      "modelo_local": "documentacao",
+      "llm": "documentacao",
+      "hibrido": "documentacao"
+    },
+    {
+      "texto": "cai num golpe e levaram meus documento, preciso refazer",
+      "esperado": "documentacao",
+      "modelo_local": "documentacao",
+      "llm": "documentacao",
+      "hibrido": "documentacao"
+    },
+    {
+      "texto": "nao tem nada na geladeira hoje, so agua",
+      "esperado": "alimentacao",
+      "modelo_local": "nao_identificado",
+      "llm": "alimentacao",
+      "hibrido": "alimentacao"
+    },
+    {
+      "texto": "meus filho foram dormir sem janta ontem, alguem me ajuda com comida",
+      "esperado": "alimentacao",
+      "modelo_local": "alimentacao",
+      "llm": "alimentacao",
+      "hibrido": "alimentacao"
+    },
+    {
+      "texto": "onde pega cesta basica aqui no bairro",
+      "esperado": "alimentacao",
+      "modelo_local": "alimentacao",
+      "llm": "alimentacao",
+      "hibrido": "alimentacao"
+    },
+    {
+      "texto": "acabou o leite da minha bebe e nao tenho como comprar",
+      "esperado": "alimentacao",
+      "modelo_local": "alimentacao",
+      "llm": "alimentacao",
+      "hibrido": "alimentacao"
+    },
+    {
+      "texto": "tem aquele restaurante de 1 real aqui na cidade? onde fica",
+      "esperado": "alimentacao",
+      "modelo_local": "nao_identificado",
+      "llm": "nao_identificado",
+      "hibrido": "nao_identificado"
+    },
+    {
+      "texto": "a gente ta comendo uma vez por dia so pra dar pras criancas",
+      "esperado": "alimentacao",
+      "modelo_local": "violencia_protecao",
+      "llm": "alimentacao",
+      "hibrido": "violencia_protecao"
+    },
+    {
+      "texto": "o cras ainda ta dando cesta? fui la mes passado e falaram q tinha acabado",
+      "esperado": "alimentacao",
+      "modelo_local": "nao_identificado",
+      "llm": "alimentacao",
+      "hibrido": "alimentacao"
+    },
+    {
+      "texto": "meu vizinho idoso ta sem comer faz dias, ninguem leva nada pra ele",
+      "esperado": "alimentacao",
+      "modelo_local": "violencia_protecao",
+      "llm": "alimentacao",
+      "hibrido": "violencia_protecao"
+    },
+    {
+      "texto": "to passando fome mesmo, nao e exagero",
+      "esperado": "alimentacao",
+      "modelo_local": "violencia_protecao",
+      "llm": "alimentacao",
+      "hibrido": "violencia_protecao"
+    },
+    {
+      "texto": "tem doacao de alimento em alguma igreja ou na prefeitura?",
+      "esperado": "alimentacao",
+      "modelo_local": "alimentacao",
+      "llm": "alimentacao",
+      "hibrido": "alimentacao"
+    },
+    {
+      "texto": "meu pai tem alzheimer e fica sozinho o dia todo enquanto eu trabalho, tem algum lugar q cuida dele de dia?",
+      "esperado": "pessoa_idosa_pcd",
+      "modelo_local": "trabalho_renda",
+      "llm": "pessoa_idosa_pcd",
+      "hibrido": "pessoa_idosa_pcd"
+    },
+    {
+      "texto": "meu filho e autista e preciso da carteirinha pra ele andar de onibus de graca",
+      "esperado": "pessoa_idosa_pcd",
+      "modelo_local": "pessoa_idosa_pcd",
+      "llm": "pessoa_idosa_pcd",
+      "hibrido": "pessoa_idosa_pcd"
+    },
+    {
+      "texto": "minha mae acamada precisa de fralda e cadeira de banho, onde consigo",
+      "esperado": "pessoa_idosa_pcd",
+      "modelo_local": "pessoa_idosa_pcd",
+      "llm": "pessoa_idosa_pcd",
+      "hibrido": "pessoa_idosa_pcd"
+    },
+    {
+      "texto": "sou cadeirante e quero saber se tenho direito a algum beneficio",
+      "esperado": "pessoa_idosa_pcd",
+      "modelo_local": "renda_beneficio",
+      "llm": "pessoa_idosa_pcd",
+      "hibrido": "pessoa_idosa_pcd"
+    },
+    {
+      "texto": "tenho 70 anos, moro sozinho e nao tenho ninguem pra me ajudar",
+      "esperado": "pessoa_idosa_pcd",
+      "modelo_local": "nao_identificado",
+      "llm": "pessoa_idosa_pcd",
+      "hibrido": "pessoa_idosa_pcd"
+    },
+    {
+      "texto": "minha filha tem sindrome de down, o que ela tem direito",
+      "esperado": "pessoa_idosa_pcd",
+      "modelo_local": "nao_identificado",
+      "llm": "pessoa_idosa_pcd",
+      "hibrido": "pessoa_idosa_pcd"
+    },
+    {
+      "texto": "perdi a perna num acidente e nao consigo mais trabalhar",
+      "esperado": "pessoa_idosa_pcd",
+      "modelo_local": "nao_identificado",
+      "llm": "pessoa_idosa_pcd",
+      "hibrido": "pessoa_idosa_pcd"
+    },
+    {
+      "texto": "tem grupo de convivencia pra terceira idade aqui perto?",
+      "esperado": "pessoa_idosa_pcd",
+      "modelo_local": "nao_identificado",
+      "llm": "pessoa_idosa_pcd",
+      "hibrido": "pessoa_idosa_pcd"
+    },
+    {
+      "texto": "meu irmao tem deficiencia mental e precisa de acompanhamento",
+      "esperado": "pessoa_idosa_pcd",
+      "modelo_local": "pessoa_idosa_pcd",
+      "llm": "pessoa_idosa_pcd",
+      "hibrido": "pessoa_idosa_pcd"
+    },
+    {
+      "texto": "como consigo uma vaga em casa de repouso publica pra minha avo",
+      "esperado": "pessoa_idosa_pcd",
+      "modelo_local": "trabalho_renda",
+      "llm": "pessoa_idosa_pcd",
+      "hibrido": "pessoa_idosa_pcd"
+    },
+    {
+      "texto": "to procurando servico de qualquer coisa, sei fazer limpeza e cozinhar",
+      "esperado": "trabalho_renda",
+      "modelo_local": "nao_identificado",
+      "llm": "trabalho_renda",
+      "hibrido": "trabalho_renda"
+    },
+    {
+      "texto": "tem curso de graca de cabeleireiro ou manicure?",
+      "esperado": "trabalho_renda",
+      "modelo_local": "trabalho_renda",
+      "llm": "trabalho_renda",
+      "hibrido": "trabalho_renda"
+    },
+    {
+      "texto": "meu filho tem 16 anos e quer ser jovem aprendiz, como inscreve",
+      "esperado": "trabalho_renda",
+      "modelo_local": "trabalho_renda",
+      "llm": "trabalho_renda",
+      "hibrido": "trabalho_renda"
+    },
+    {
+      "texto": "vendo salgado na rua e queria abrir mei, quem ajuda",
+      "esperado": "trabalho_renda",
+      "modelo_local": "trabalho_renda",
+      "llm": "trabalho_renda",
+      "hibrido": "trabalho_renda"
+    },
+    {
+      "texto": "onde fica o sine aqui",
+      "esperado": "trabalho_renda",
+      "modelo_local": "trabalho_renda",
+      "llm": "trabalho_renda",
+      "hibrido": "trabalho_renda"
+    },
+    {
+      "texto": "nao sei fazer curriculo, alguem me ajuda",
+      "esperado": "trabalho_renda",
+      "modelo_local": "trabalho_renda",
+      "llm": "trabalho_renda",
+      "hibrido": "trabalho_renda"
+    },
+    {
+      "texto": "queria aprender um oficio pra conseguir trabalhar",
+      "esperado": "trabalho_renda",
+      "modelo_local": "nao_identificado",
+      "llm": "trabalho_renda",
+      "hibrido": "trabalho_renda"
+    },
+    {
+      "texto": "tem vaga de emprego pra quem nao terminou o estudo?",
+      "esperado": "trabalho_renda",
+      "modelo_local": "trabalho_renda",
+      "llm": "trabalho_renda",
+      "hibrido": "trabalho_renda"
+    },
+    {
+      "texto": "faco artesanato e queria vender numa feira da prefeitura",
+      "esperado": "trabalho_renda",
+      "modelo_local": "nao_identificado",
+      "llm": "trabalho_renda",
+      "hibrido": "trabalho_renda"
+    },
+    {
+      "texto": "sai da cadeia mes passado e ninguem me da emprego, tem algum programa",
+      "esperado": "trabalho_renda",
+      "modelo_local": "trabalho_renda",
+      "llm": "trabalho_renda",
+      "hibrido": "trabalho_renda"
+    },
+    {
+      "texto": "ele chegou bebado de novo e me empurrou na frente das criancas, to com medo",
+      "esperado": "violencia_protecao",
+      "modelo_local": "violencia_protecao",
+      "llm": "violencia_protecao",
+      "hibrido": "violencia_protecao"
+    },
+    {
+      "texto": "meu marido falou q se eu sair de casa ele me mata",
+      "esperado": "violencia_protecao",
+      "modelo_local": "violencia_protecao",
+      "llm": "violencia_protecao",
+      "hibrido": "violencia_protecao"
+    },
+    {
+      "texto": "a vizinha deixa os filhos pequenos trancados sozinhos o dia inteiro e eles choram muito",
+      "esperado": "violencia_protecao",
+      "modelo_local": "violencia_protecao",
+      "llm": "violencia_protecao",
+      "hibrido": "violencia_protecao"
+    },
+    {
+      "texto": "meu padrasto mexe comigo quando minha mae sai pra trabalhar",
+      "esperado": "violencia_protecao",
+      "modelo_local": "violencia_protecao",
+      "llm": "violencia_protecao",
+      "hibrido": "violencia_protecao"
+    },
+    {
+      "texto": "meu filho bate na minha mae idosa pra pegar o dinheiro da aposentadoria dela",
+      "esperado": "violencia_protecao",
+      "modelo_local": "renda_beneficio",
+      "llm": "violencia_protecao",
+      "hibrido": "violencia_protecao"
+    },
+    {
+      "texto": "meu ex nao para de me perseguir, aparece no meu servico e fica me vigiando",
+      "esperado": "violencia_protecao",
+      "modelo_local": "nao_identificado",
+      "llm": "violencia_protecao",
+      "hibrido": "violencia_protecao"
+    },
+    {
+      "texto": "to com o olho roxo e nao sei pra onde ir com meus filhos",
+      "esperado": "violencia_protecao",
+      "modelo_local": "violencia_protecao",
+      "llm": "violencia_protecao",
+      "hibrido": "violencia_protecao"
+    },
+    {
+      "texto": "ele me xinga todo dia, quebrou meu celular e nao deixa eu ver minha familia",
+      "esperado": "violencia_protecao",
+      "modelo_local": "violencia_protecao",
+      "llm": "violencia_protecao",
+      "hibrido": "violencia_protecao"
+    },
+    {
+      "texto": "tem uma crianca na minha rua que aparece toda machucada",
+      "esperado": "violencia_protecao",
+      "modelo_local": "violencia_protecao",
+      "llm": "violencia_protecao",
+      "hibrido": "violencia_protecao"
+    },
+    {
+      "texto": "fui estuprada e nao tive coragem de contar pra ninguem",
+      "esperado": "violencia_protecao",
+      "modelo_local": "nao_identificado",
+      "llm": "violencia_protecao",
+      "hibrido": "violencia_protecao"
+    }
+  ]
+}

@@ -3,7 +3,7 @@ import { BellRing, Eye, FileText, History, Languages, MessagesSquare, Phone, Sav
 import { api, atualizar, enviar, ErroApi, sessaoSalva } from '../api';
 import { irPara } from '../navegacao';
 import type { Triagem } from '../tipos';
-import { CANAIS, dataHora, ESTADOS, nomeCategoria, PRIORIDADES, tempoDesde } from '../vocabulario';
+import { CANAIS, CATEGORIAS, dataHora, ESTADOS, nomeCategoria, PRIORIDADES, tempoDesde } from '../vocabulario';
 import { DocumentosDoCaso } from './DocumentosDoCaso';
 import { Aviso, Botao, classeEntrada, PainelLateral, Selo } from './ui';
 
@@ -19,6 +19,8 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
   const [avisar, setAvisar] = useState(true);
   const [aviso, setAviso] = useState<{ enviado: boolean; motivo: string | null } | null>(null);
   const [verOriginal, setVerOriginal] = useState(false);
+  const [corrigindo, setCorrigindo] = useState(false);
+  const [novaCategoria, setNovaCategoria] = useState(caso?.categoria ?? '');
   const [resumo, setResumo] = useState<string | null | undefined>(undefined); // undefined = carregando
   const [historico, setHistorico] = useState<{ id: string; criado_em: string; categoria: string; status: string; avaliacao: number | null }[]>([]);
   const casoId = caso?.id;
@@ -45,6 +47,20 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
       if (acao === 'observacoes') setSalvo(true);
     } catch (e) {
       setErro(e instanceof ErroApi ? e.message : 'Não foi possível salvar.');
+    } finally {
+      setSalvando(null);
+    }
+  };
+
+  const corrigir = async () => {
+    setSalvando('categoria');
+    setErro(null);
+    try {
+      const r = await api<{ triagem: Triagem }>(`/triagem/${caso.id}/categoria`, atualizar({ categoria: novaCategoria }));
+      onAlterado(r.triagem);
+      setCorrigindo(false);
+    } catch (e) {
+      setErro(e instanceof ErroApi ? e.message : 'Não foi possível corrigir.');
     } finally {
       setSalvando(null);
     }
@@ -209,7 +225,30 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
           {caso.necessidades_secundarias.length > 0 && (
             <p className="mt-1">Também pode envolver: {caso.necessidades_secundarias.map(nomeCategoria).join(', ').toLowerCase()}.</p>
           )}
+          {caso.corrigida_por && (
+            <p className="mt-1 text-texto">
+              Necessidade corrigida pela equipe ({caso.corrigida_por}); o sistema tinha indicado {nomeCategoria(caso.categoria_modelo).toLowerCase()}.
+            </p>
+          )}
           <p className="mt-1 text-texto-3">É uma sugestão. Quem avalia o direito é o profissional.</p>
+          {corrigindo ? (
+            <div className="mt-3 flex flex-wrap items-end gap-2">
+              <label className="flex flex-col gap-1">
+                <span className="text-[12.5px] font-medium text-texto-2">Necessidade certa</span>
+                <select value={novaCategoria} onChange={(e) => setNovaCategoria(e.target.value)} className={`${classeEntrada} h-9 py-1 text-[14px]`}>
+                  {Object.keys(CATEGORIAS).filter((c) => c !== 'nao_identificado').map((c) => <option key={c} value={c}>{nomeCategoria(c)}</option>)}
+                </select>
+              </label>
+              <Botao tamanho="sm" variante="primario" carregando={salvando === 'categoria'} disabled={novaCategoria === caso.categoria} onClick={corrigir}>Salvar correção</Botao>
+              <Botao tamanho="sm" variante="fantasma" onClick={() => setCorrigindo(false)}>Cancelar</Botao>
+              <p className="w-full text-[12px] text-texto-3">O caminho do caso passa a ser o da necessidade certa, e a correção ensina o modelo no próximo treino.</p>
+            </div>
+          ) : (
+            <button type="button" onClick={() => { setNovaCategoria(caso.categoria); setCorrigindo(true); }}
+              className="mt-2 text-[13px] font-medium text-caneta underline-offset-2 hover:underline">
+              O sistema errou? Corrigir a necessidade
+            </button>
+          )}
         </section>
 
         <section>

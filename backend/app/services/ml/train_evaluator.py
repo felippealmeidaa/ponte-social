@@ -237,13 +237,29 @@ def escolher_limiares(probs_oof, X, y, classes):
 
 
 def train_and_evaluate(dataset_path: str = DATASET_PATH, output_model_path: str = MODEL_OUTPUT,
-                       report_output_path: str = REPORT_OUTPUT, test_path: str = TEST_PATH):
+                       report_output_path: str = REPORT_OUTPUT, test_path: str = TEST_PATH,
+                       exemplos_reais: list = None, n_jobs: int = -1):
+    """exemplos_reais: [{"texto", "categoria"}] de casos confirmados pela pessoa ou corrigidos pela equipe.
+    Entram só no treino (nunca no teste, que fica fixo para a comparação ser justa)."""
     print("=" * 70)
     print("TREINO E AVALIAÇÃO DO CLASSIFICADOR DE NECESSIDADES SOCIAIS")
     print("=" * 70)
 
     df = carregar_treino(dataset_path)
     teste = carregar_teste(test_path)
+    df["origem"] = "simulado"
+    n_reais = 0
+    if exemplos_reais:
+        textos_teste = {t.strip().lower() for t in teste["texto"]}
+        reais = pd.DataFrame([e for e in exemplos_reais if e["categoria"] in CATEGORIAS
+                              and e["texto"].strip().lower() not in textos_teste])  # nada do teste entra no treino
+        if len(reais):
+            reais = reais.drop_duplicates(subset="texto")
+            reais = reais[~reais["texto"].isin(df["texto"])]
+            reais["grupo"] = range(int(df["grupo"].max()) + 1, int(df["grupo"].max()) + 1 + len(reais))
+            reais["origem"] = "real"
+            n_reais = len(reais)
+            df = pd.concat([df, reais[["texto", "categoria", "grupo", "origem"]]], ignore_index=True)
     X, y, grupos = df["texto"].values, df["categoria"].values, df["grupo"].values
     X_teste, y_teste = teste["texto"].values, teste["categoria"].values
     print(f"Treino: {len(df)} relatos únicos em {df['grupo'].nunique()} frases-modelo | Teste: {len(teste)} relatos informais")
@@ -270,7 +286,7 @@ def train_and_evaluate(dataset_path: str = DATASET_PATH, output_model_path: str 
     # Modelos: ajuste de hiperparâmetros com CV agrupada, depois avaliação no teste
     resultados, ajustados, preds_teste = {}, {}, {}
     for nome, (pipeline, grade) in modelos_candidatos().items():
-        busca = GridSearchCV(pipeline, grade, scoring="f1_macro", cv=cv, n_jobs=-1)
+        busca = GridSearchCV(pipeline, grade, scoring="f1_macro", cv=cv, n_jobs=n_jobs)
         busca.fit(X, y, groups=grupos)
         i = busca.best_index_
         oof = cross_val_predict(busca.best_estimator_, X, y, groups=grupos, cv=cv)
@@ -331,7 +347,8 @@ def train_and_evaluate(dataset_path: str = DATASET_PATH, output_model_path: str 
     relatorio = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "metodologia": {
-            "treino": f"{len(df)} relatos únicos ({df['grupo'].nunique()} frases-modelo) após remover duplicatas",
+            "treino": f"{len(df)} relatos únicos ({df['grupo'].nunique()} frases-modelo) após remover duplicatas"
+                      + (f", dos quais {n_reais} reais (confirmados pela pessoa ou corrigidos pela equipe)" if n_reais else ""),
             "validacao": "StratifiedGroupKFold k=5 agrupando variações da mesma frase-modelo; GridSearchCV para hiperparâmetros",
             "teste": f"{len(teste)} relatos informais simulados, escritos à parte e nunca usados no treino nem na escolha do modelo",
             "escolha_do_modelo": "maior F1 macro na validação cruzada; empate (<0,01) favorece Regressão Logística",
@@ -340,6 +357,7 @@ def train_and_evaluate(dataset_path: str = DATASET_PATH, output_model_path: str 
             "limitacao": "treino e teste ainda são simulados; os números precisam ser refeitos com relatos reais do CRAS",
         },
         "dataset_size": int(len(df)),
+        "exemplos_reais": int(n_reais),
         "test_size": int(len(teste)),
         "classes": CATEGORIAS,
         "baselines": baselines,

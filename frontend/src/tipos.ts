@@ -31,6 +31,9 @@ export interface Triagem {
   avaliacao?: number | null;
   /** Fotos de documentos que a pessoa mandou pelo WhatsApp. */
   documentos_enviados?: number;
+  /** Quem da equipe corrigiu a necessidade (vira exemplo de treino). */
+  corrigida_por?: string | null;
+  corrigida_em?: string | null;
 }
 
 export interface ResumoConversa {

@@ -19,7 +19,8 @@ from app.services.channels.envio import enviar_pelo_canal
 from app.services.llm.traducao import traduzir
 from app.services.llm.resumo import resumir
 from app.services.live_chat.manager import live_chat_manager
-from app.services.ml.classifier_service import SocialClassifierService
+from app.services.ml.classifier_service import PRIORIDADE_POR_CATEGORIA, SocialClassifierService
+from app.services.ml.train_evaluator import CATEGORIAS, VIOLENCIA
 from app.services.triagens import STATUS_VALIDOS, TENANT_PADRAO, criar_triagem, listar, para_dict
 
 router = APIRouter(dependencies=[Depends(usuario_logado)])
@@ -140,6 +141,36 @@ async def assumir_caso(triagem_id: str, payload: AssumirRequest, usuario: Dict[s
     await live_chat_manager.broadcast_to_tenant(TENANT_PADRAO, {"event": "STATUS_ATUALIZADO", "triagem_id": triagem_id,
                                                                 "novo_status": triagem.status})
     return {"triagem": para_dict(triagem), "aviso": aviso}
+
+
+class CategoriaRequest(BaseModel):
+    categoria: str
+
+
+@router.patch("/{triagem_id}/categoria")
+async def corrigir_categoria(triagem_id: str, payload: CategoriaRequest, usuario: Dict[str, Any] = Depends(usuario_logado),
+                             session: AsyncSession = Depends(get_session)):
+    """A equipe corrige a necessidade quando o bot errou. O caminho (serviços, documentos, prioridade) passa a ser
+    o da necessidade certa, a sugestão original fica guardada e o caso vira exemplo de treino."""
+    if payload.categoria not in CATEGORIAS:
+        raise HTTPException(status_code=422, detail="Necessidade inválida.")
+    triagem = await _triagem_ou_404(session, triagem_id, usuario)
+    if payload.categoria != triagem.categoria:
+        info = catalogo.servico(payload.categoria, triagem.unidade_id)
+        triagem.categoria = payload.categoria
+        triagem.titulo_encaminhamento = info["titulo"]
+        triagem.servicos_recomendados, triagem.documentos_necessarios = info["servicos"], info["documentos"]
+        triagem.prioridade = PRIORIDADE_POR_CATEGORIA.get(payload.categoria, "BAIXA")
+        if payload.categoria == VIOLENCIA and triagem.status == "PENDENTE":
+            triagem.status = "URGENTE_CREAS"
+        elif payload.categoria != VIOLENCIA and triagem.status == "URGENTE_CREAS":
+            triagem.status = "PENDENTE"
+        triagem.corrigida_por, triagem.corrigida_em = usuario.get("nome") or usuario.get("sub"), datetime.now(timezone.utc)
+        triagem.atualizado_em = triagem.corrigida_em
+        await session.commit()
+        await live_chat_manager.broadcast_to_tenant(TENANT_PADRAO, {"event": "STATUS_ATUALIZADO", "triagem_id": triagem_id,
+                                                                    "novo_status": triagem.status})
+    return {"triagem": para_dict(triagem)}
 
 
 @router.get("/{triagem_id}/historico")

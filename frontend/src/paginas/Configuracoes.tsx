@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { Bot, Camera, MapPin, Mic, QrCode, RefreshCw, Send, Smartphone, Square, Trash2, UserRound, Wifi, WifiOff } from 'lucide-react';
+import { Bot, Camera, MapPin, Mic, QrCode, Send, Smartphone, Square, Trash2, UserRound, Wifi, WifiOff } from 'lucide-react';
 import { api, enviar, ErroApi } from '../api';
 import { Aviso, Botao, Esqueleto, Selo } from '../components/ui';
 import { irPara } from '../navegacao';
 import { useAtualizacao } from '../useAtualizacao';
 import { EquipeEAcesso } from './Equipe';
+import { ModeloIA } from './ModeloIA';
 
 const ABAS = [
   { id: 'whatsapp', rotulo: 'WhatsApp' },
@@ -294,85 +295,3 @@ function ComLinks({ texto }: { texto: string }) {
   );
 }
 
-interface Metricas { f1_macro: number; acuracia: number; recall_violencia: number; f1_macro_ic95?: [number, number]; taxa_nao_identificado?: number }
-interface Relatorio {
-  timestamp: string;
-  dataset_size: number;
-  test_size: number;
-  metodologia: Record<string, string>;
-  baselines: Record<string, { teste_informal: Metricas }>;
-  modelos_avaliados_cv5: Record<string, { f1_macro_mean: number; teste_informal: Metricas }>;
-  modelo_final: { nome: string; teste_sistema_completo: Metricas };
-}
-
-const pct = (v: number) => `${Math.round(v * 100)}%`;
-const n2 = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-function ModeloIA() {
-  const { dados, erro, recarregar } = useAtualizacao(useCallback(() => api<Relatorio>('/ml/metrics'), []), 0);
-  const [treinando, setTreinando] = useState(false);
-
-  const retreinar = async () => {
-    setTreinando(true);
-    const antes = dados?.timestamp;
-    try {
-      await api('/ml/retrain', { method: 'POST' });
-      for (let i = 0; i < 60; i++) {
-        await new Promise((r) => setTimeout(r, 3000));
-        const novo = await api<Relatorio>('/ml/metrics');
-        if (novo.timestamp !== antes) break;
-      }
-      await recarregar();
-    } finally {
-      setTreinando(false);
-    }
-  };
-
-  if (erro) return <Aviso>{erro}</Aviso>;
-  if (!dados) return <Esqueleto className="h-72" />;
-  const s = dados.modelo_final.teste_sistema_completo;
-  const linhas: [string, Metricas, boolean][] = [
-    ['Sempre a categoria mais comum', dados.baselines.classe_majoritaria.teste_informal, false],
-    ['Só palavras-chave', dados.baselines.regras_palavras_chave.teste_informal, false],
-    ...Object.entries(dados.modelos_avaliados_cv5).map(([nome, m]) => [`${nome} (sozinho)`, m.teste_informal, false] as [string, Metricas, boolean]),
-    ['Sistema em uso (regra de violência + modelo + palavras-chave)', s, true],
-  ];
-
-  return (
-    <div className="flex flex-col gap-8">
-      <Aviso tom="info">{dados.metodologia.limitacao}. Os números abaixo são de relatos simulados.</Aviso>
-      <p className="max-w-[75ch] text-texto-2">
-        No teste com {dados.test_size} relatos escritos como no WhatsApp, o sistema acertou a necessidade em{' '}
-        <strong className="text-texto">{pct(s.acuracia)}</strong> dos casos e reconheceu{' '}
-        <strong className={s.recall_violencia < 0.9 ? 'text-urgente' : 'text-texto'}>{pct(s.recall_violencia)}</strong> das situações de violência.
-        Em {pct(s.taxa_nao_identificado ?? 0)} ele preferiu não arriscar e indicou o Disque Social 121.
-      </p>
-      <div className="overflow-x-auto rounded-[6px] border border-linha">
-        <table className="w-full min-w-[560px] text-sm">
-          <thead className="bg-superficie text-left text-texto-2">
-            <tr>
-              <th className="px-4 py-2.5 font-medium">Abordagem</th>
-              <th className="px-4 py-2.5 font-medium text-right">F1 macro</th>
-              <th className="px-4 py-2.5 font-medium text-right">Acerto</th>
-              <th className="px-4 py-2.5 font-medium text-right">Violência reconhecida</th>
-            </tr>
-          </thead>
-          <tbody>
-            {linhas.map(([nome, m, destaque]) => (
-              <tr key={nome} className={`border-t border-linha ${destaque ? 'bg-caneta-fundo/50 font-medium' : ''}`}>
-                <td className="px-4 py-2.5">{nome}</td>
-                <td className="px-4 py-2.5 text-right tabular">{n2(m.f1_macro)}{m.f1_macro_ic95 && <span className="ml-1 text-xs text-texto-3">({n2(m.f1_macro_ic95[0])}–{n2(m.f1_macro_ic95[1])})</span>}</td>
-                <td className="px-4 py-2.5 text-right tabular">{pct(m.acuracia)}</td>
-                <td className="px-4 py-2.5 text-right tabular">{pct(m.recall_violencia)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <Botao icone={RefreshCw} carregando={treinando} onClick={retreinar}>{treinando ? 'Retreinando (cerca de 1 minuto)' : 'Retreinar e reavaliar'}</Botao>
-        <span className="text-[13px] text-texto-3">Relatório de {new Date(dados.timestamp).toLocaleString('pt-BR')}, modelo {dados.modelo_final.nome}, {dados.dataset_size} relatos de treino.</span>
-      </div>
-    </div>
-  );
-}
