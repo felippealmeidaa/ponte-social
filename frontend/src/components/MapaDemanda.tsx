@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { Map as IconeMapa, Table2 } from 'lucide-react';
 import { api } from '../api';
 import { useAtualizacao } from '../useAtualizacao';
+import { Painel } from './ui';
 import { corCategoria, nomeCategoria } from '../vocabulario';
 
 // Mapa de demandas: um ponto por bairro (média dos pontos aproximados das conversas ou centro do bairro), nunca por pessoa.
@@ -63,14 +64,13 @@ export function MapaDemanda({ dias }: { dias: number }) {
   const cor = categoria === TODAS ? 'var(--color-acao)' : corCategoria(categoria);
 
   return (
-    <section aria-labelledby="t-mapa">
-      <div className="mb-1.5 flex flex-wrap items-center justify-between gap-4">
-        <h2 id="t-mapa" className="titulo text-[22px] leading-[1.05]">Onde está a demanda</h2>
+    <Painel id="t-mapa" titulo="Onde está a demanda"
+      acao={
         <button onClick={() => setTabela((t) => !t)} className="inline-flex items-center gap-1.5 text-[13px] text-texto-2 hover:text-texto">
           {tabela ? <IconeMapa className="size-4" aria-hidden /> : <Table2 className="size-4" aria-hidden />}
           {tabela ? 'Ver mapa' : 'Ver como tabela'}
         </button>
-      </div>
+      }>
       <p className="mb-4 max-w-[75ch] text-[14px] text-texto-2">
         Casos do período por bairro. Cada bairro é um ponto só (a média dos pontos aproximados que as pessoas informaram, ou o centro do bairro): nenhuma casa aparece no mapa.
       </p>
@@ -78,7 +78,7 @@ export function MapaDemanda({ dias }: { dias: number }) {
       <div role="group" aria-label="Necessidade mostrada" className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
         {[[TODAS, dados.bairros.reduce((s, b) => s + b.total, 0) + dados.sem_ponto.reduce((s, b) => s + b.total, 0)] as [string, number], ...categorias].map(([c, n]) => (
           <button key={c} aria-pressed={categoria === c} onClick={() => setCategoria(c)}
-            className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] ${categoria === c ? 'border-caneta bg-caneta-fundo text-caneta font-semibold' : 'border-linha-forte text-texto-2 hover:text-texto'}`}>
+            className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[3px] border px-3 text-[13px] ${categoria === c ? 'border-caneta bg-caneta-fundo text-caneta font-semibold' : 'border-linha-forte text-texto-2 hover:text-texto'}`}>
             {c !== TODAS && <span className="size-2.5 rounded-full" style={{ background: corCategoria(c) }} aria-hidden />}
             {c === TODAS ? 'Todas as necessidades' : nomeCategoria(c)}
             <span className="tabular text-[12px] opacity-75">{n}</span>
@@ -87,7 +87,7 @@ export function MapaDemanda({ dias }: { dias: number }) {
       </div>
 
       {tabela ? (
-        <div className="max-h-96 overflow-y-auto rounded-[6px] border border-linha">
+        <div className="max-h-96 overflow-y-auto rounded-[4px] border border-linha">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-superficie text-left text-texto-2">
               <tr><th className="px-4 py-2 font-medium">Bairro</th><th className="px-4 py-2 font-medium">Mais pedido</th><th className="px-4 py-2 text-right font-medium">Casos</th></tr>
@@ -113,7 +113,7 @@ export function MapaDemanda({ dias }: { dias: number }) {
           {dados.sem_bairro > 0 && <>{dados.sem_bairro} caso{dados.sem_bairro > 1 ? 's' : ''} sem bairro informado.</>}
         </p>
       )}
-    </section>
+    </Painel>
   );
 }
 
@@ -184,7 +184,7 @@ function MapaLeaflet({ bairros, unidades, categoria, cor, tema }: {
 
   return (
     <div>
-      <div ref={caixa} className="mapa-demanda relative isolate h-[340px] w-full sm:h-[420px] overflow-hidden rounded-[6px] border border-linha" role="region"
+      <div ref={caixa} className="mapa-demanda relative isolate h-[340px] w-full sm:h-[420px] overflow-hidden rounded-[4px] border border-linha" role="region"
         aria-label='Mapa de casos por bairro. Use "Ver como tabela" para os valores.' />
       <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-texto-3">
         <span className="inline-flex items-center gap-1.5"><span className="mapa-bairro mapa-legenda" style={{ ['--cor' as string]: cor }} aria-hidden />número de casos no bairro (clique para ver as necessidades)</span>

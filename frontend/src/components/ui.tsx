@@ -26,7 +26,7 @@ export function Botao({
     <button
       {...props}
       disabled={props.disabled || carregando}
-      className={`inline-flex items-center justify-center rounded-[5px] whitespace-nowrap transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${medidas} ${VARIANTES[variante]} ${className}`}
+      className={`inline-flex items-center justify-center rounded-[3px] whitespace-nowrap transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${medidas} ${VARIANTES[variante]} ${className}`}
     >
       {carregando ? <Loader2 className="size-4 animate-spin" aria-hidden /> : Icone && <Icone className="size-4 shrink-0" aria-hidden />}
       {children}
@@ -37,7 +37,7 @@ export function Botao({
 const TONS: Record<Tom, { classe: string; icone: LucideIcon }> = {
   urgente: { classe: 'bg-urgente-fundo text-urgente border-urgente/35', icone: ShieldAlert },
   alta: { classe: 'bg-alta-fundo text-alta border-alta/30', icone: AlertTriangle },
-  media: { classe: 'bg-elevada text-texto border-linha-forte', icone: CircleDot },
+  media: { classe: 'bg-transparent text-texto-2 border-transparent !px-0 font-medium', icone: CircleDot },
   caneta: { classe: 'bg-caneta-fundo text-caneta border-caneta/25', icone: Clock },
   info: { classe: 'bg-info-fundo text-info border-info/25', icone: Circle },
   ok: { classe: 'bg-ok-fundo text-ok border-ok/25', icone: CheckCircle2 },
@@ -67,7 +67,7 @@ export function TituloPagina({ titulo, descricao, acoes }: { titulo: string; des
   return (
     <header className="mb-7 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="titulo text-[34px]">{titulo}</h1>
+        <h1 className="titulo text-[28px]">{titulo}</h1>
         {descricao && <p className="mt-2 max-w-[68ch] text-texto-2">{descricao}</p>}
       </div>
       {acoes && <div className="flex flex-wrap gap-2">{acoes}</div>}
@@ -83,7 +83,7 @@ export function Aviso({ tom = 'urgente', children }: { tom?: 'urgente' | 'info' 
   }[tom];
   const Icone = { urgente: AlertTriangle, info: Info, ok: CheckCircle2 }[tom];
   return (
-    <div role={tom === 'urgente' ? 'alert' : 'status'} className={`flex items-start gap-2 rounded-[5px] border px-3 py-2.5 text-sm ${estilo}`}>
+    <div role={tom === 'urgente' ? 'alert' : 'status'} className={`flex items-start gap-2 rounded-[3px] border px-3 py-2.5 text-sm ${estilo}`}>
       <Icone className="mt-0.5 size-4 shrink-0" aria-hidden />
       <div>{children}</div>
     </div>
@@ -92,7 +92,7 @@ export function Aviso({ tom = 'urgente', children }: { tom?: 'urgente' | 'info' 
 
 export function Vazio({ icone: Icone, titulo, children }: { icone: LucideIcon; titulo: string; children?: ReactNode }) {
   return (
-    <div className="flex flex-col items-start gap-2 rounded-[6px] border-2 border-dashed border-linha-forte bg-superficie/60 px-6 py-8 text-texto-2">
+    <div className="flex flex-col items-start gap-2 rounded-[4px] border-2 border-dashed border-linha-forte bg-superficie/60 px-6 py-8 text-texto-2">
       <Icone className="size-6 text-texto-3" aria-hidden />
       <p className="font-semibold text-texto">{titulo}</p>
       {children && <div className="max-w-[60ch] text-sm">{children}</div>}
@@ -101,7 +101,7 @@ export function Vazio({ icone: Icone, titulo, children }: { icone: LucideIcon; t
 }
 
 export function Esqueleto({ className = '' }: { className?: string }) {
-  return <div className={`animate-pulse rounded-[5px] bg-realce ${className}`} aria-hidden />;
+  return <div className={`animate-pulse rounded-[3px] bg-realce ${className}`} aria-hidden />;
 }
 
 /** Campo de formulário: rótulo curto em cima, a linha de preenchimento embaixo. */
@@ -133,7 +133,7 @@ export function Segmentado<T extends string>({ valor, opcoes, onMudar, disabled,
   valor: T; opcoes: { valor: T; rotulo: string }[]; onMudar: (v: T) => void; disabled?: boolean; rotuloId: string;
 }) {
   return (
-    <div role="radiogroup" aria-labelledby={rotuloId} className="grid auto-cols-fr grid-flow-col gap-1 rounded-[6px] border border-linha-forte bg-elevada p-1">
+    <div role="radiogroup" aria-labelledby={rotuloId} className="grid auto-cols-fr grid-flow-col gap-1 rounded-[4px] border border-linha-forte bg-elevada p-1">
       {opcoes.map((o) => (
         <button key={o.valor} type="button" role="radio" aria-checked={valor === o.valor} disabled={disabled}
           onClick={() => onMudar(o.valor)}
@@ -146,26 +146,42 @@ export function Segmentado<T extends string>({ valor, opcoes, onMudar, disabled,
 }
 
 export const classeEntrada =
-  'w-full rounded-[5px] border border-linha-forte bg-superficie px-3 py-2 text-[15px] text-texto transition-colors duration-150 hover:border-texto-3 focus:border-caneta focus:outline-none focus:ring-2 focus:ring-caneta/15';
+  'w-full rounded-[3px] border border-linha-forte bg-superficie px-3 py-2 text-[15px] text-texto transition-colors duration-150 hover:border-texto-3 focus:border-caneta focus:outline-none focus:ring-2 focus:ring-caneta/15';
 
-/** Painel lateral: uma folha que entra sobre a mesa para trabalhar um item sem perder a lista. Esc fecha. */
-export function PainelLateral({ aberto, titulo, onFechar, children, largura = 'max-w-xl' }: {
-  aberto: boolean; titulo: string; onFechar: () => void; children: ReactNode; largura?: string;
+/** Painel lateral: uma folha que entra sobre a mesa para trabalhar um item sem perder a lista. Esc fecha.
+ *  Encaixado: fica ao lado do conteúdo (sem véu), e a lista continua usável. */
+export function PainelLateral({ aberto, titulo, onFechar, children, largura = 'max-w-xl', encaixado = false }: {
+  aberto: boolean; titulo: string; onFechar: () => void; children: ReactNode; largura?: string; encaixado?: boolean;
 }) {
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
     if (!aberto) return;
     const anterior = document.activeElement as HTMLElement | null;
-    ref.current?.focus();
+    if (!encaixado) ref.current?.focus();
     const aoTeclar = (e: KeyboardEvent) => e.key === 'Escape' && onFechar();
     window.addEventListener('keydown', aoTeclar);
     return () => {
       window.removeEventListener('keydown', aoTeclar);
-      anterior?.focus();
+      if (!encaixado) anterior?.focus();
     };
-  }, [aberto, onFechar]);
+  }, [aberto, onFechar, encaixado]);
 
   if (!aberto) return null;
+  const cabeca = (
+    <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-linha bg-superficie px-5 py-3">
+      <h2 className="titulo text-[18px]">{titulo}</h2>
+      <Botao variante="fantasma" tamanho="sm" icone={X} onClick={onFechar} aria-label="Fechar">Fechar</Botao>
+    </div>
+  );
+  if (encaixado) {
+    return (
+      <aside ref={ref} tabIndex={-1} aria-label={titulo}
+        className="painel sticky top-4 max-h-[calc(100dvh-2rem)] min-w-0 overflow-y-auto focus:outline-none">
+        {cabeca}
+        <div className="px-5 py-4">{children}</div>
+      </aside>
+    );
+  }
   return (
     <div className="fixed inset-0 z-40 flex justify-end">
       <div className="absolute inset-0 bg-veu/45" onClick={onFechar} aria-hidden />
@@ -175,14 +191,55 @@ export function PainelLateral({ aberto, titulo, onFechar, children, largura = 'm
         role="dialog"
         aria-modal="true"
         aria-label={titulo}
-        className={`relative h-full w-full ${largura} overflow-y-auto border-l border-linha bg-superficie shadow-[-20px_0_40px_-20px_rgb(27_39_51/0.45)] focus:outline-none animate-[entrar_220ms_var(--ease-saida)]`}
+        className={`relative h-full w-full ${largura} overflow-y-auto border-l border-linha bg-superficie focus:outline-none animate-[entrar_220ms_var(--ease-saida)]`}
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b-2 border-texto bg-superficie px-6 py-4">
-          <h2 className="titulo text-[22px]">{titulo}</h2>
-          <Botao variante="fantasma" tamanho="sm" icone={X} onClick={onFechar} aria-label="Fechar">Fechar</Botao>
-        </div>
+        {cabeca}
         <div className="px-6 py-5">{children}</div>
       </aside>
     </div>
   );
+}
+
+/** Painel do terminal: bloco com traço fino, barra de título (com uma ação opcional à direita) e corpo. */
+export function Painel({ id, titulo, detalhe, acao, children, className = '', semCorpo }: {
+  id: string; titulo: ReactNode; detalhe?: ReactNode; acao?: ReactNode; children: ReactNode; className?: string; semCorpo?: boolean;
+}) {
+  return (
+    <section aria-labelledby={id} className={`painel min-w-0 ${className}`}>
+      <div className="painel-cabeca">
+        <h2 id={id} className="titulo flex min-w-0 items-baseline gap-2.5 text-[16px] text-texto">
+          {titulo}
+          {detalhe && <span className="font-sans text-[12.5px] font-normal tracking-normal text-texto-3">{detalhe}</span>}
+        </h2>
+        {acao}
+      </div>
+      {semCorpo ? children : <div className="painel-corpo">{children}</div>}
+    </section>
+  );
+}
+
+/** Faixa de leitura no topo de uma tela: células lado a lado, como os mostradores de um painel. */
+export function FaixaLeitura({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return (
+    <dl className={`grid grid-cols-2 overflow-hidden rounded-[4px] border border-linha bg-superficie sm:grid-cols-3 lg:grid-cols-5 ${className}`}>
+      {children}
+    </dl>
+  );
+}
+
+/** Célula da faixa de leitura: rótulo pequeno, valor em mono; com endereço, leva ao filtro. */
+export function Leitura({ rotulo, valor, detalhe, href, urgente }: { rotulo: string; valor: number | string; detalhe?: string; href?: string; urgente?: boolean }) {
+  const corpo = (
+    <>
+      <dt className="flex items-center gap-1.5 text-[12.5px] text-texto-2">
+        {urgente && <ShieldAlert className="size-3.5 text-urgente" aria-hidden />}{rotulo}
+      </dt>
+      <dd className={`dado text-[21px] font-medium leading-tight ${urgente ? 'text-urgente' : 'text-texto'}`}>{valor}</dd>
+      {detalhe && <dd className="dado text-[12px] text-texto-3">{detalhe}</dd>}
+    </>
+  );
+  const classe = '-mb-px -mr-px block min-w-0 border-b border-r border-linha px-4 py-2';
+  return href
+    ? <a href={href} className={`${classe} hover:bg-elevada`}>{corpo}</a>
+    : <div className={classe}>{corpo}</div>;
 }

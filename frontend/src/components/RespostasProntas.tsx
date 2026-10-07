@@ -41,7 +41,7 @@ function Painel({ onEscolher }: { onEscolher: (texto: string) => void }) {
 
   return (
     <div role="dialog" aria-label="Respostas prontas"
-      className="absolute bottom-full right-0 z-30 mb-2 flex max-h-[60vh] w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden rounded-[6px] border border-linha-forte bg-superficie shadow-[0_16px_36px_-16px_rgb(27_39_51/0.45)]">
+      className="absolute bottom-full right-0 z-30 mb-2 flex max-h-[60vh] w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden rounded-[4px] border border-linha-forte bg-superficie shadow-[0_16px_36px_-16px_rgb(27_39_51/0.45)]">
       <div className="flex items-center justify-between gap-2 border-b border-linha px-3.5 py-2.5">
         <p className="text-[13.5px] font-semibold">Respostas prontas</p>
         {podeEditar && !editando && <Botao tamanho="sm" variante="fantasma" icone={Plus} onClick={() => setEditando('nova')}>Nova</Botao>}
@@ -54,13 +54,13 @@ function Painel({ onEscolher }: { onEscolher: (texto: string) => void }) {
           {dados?.map((p) => (
             <li key={p.id} className="group flex items-start gap-1 px-1.5">
               <button type="button" onClick={() => onEscolher(p.texto)}
-                className="min-w-0 flex-1 rounded-[5px] px-2 py-2 text-left hover:bg-elevada focus-visible:bg-elevada">
+                className="min-w-0 flex-1 rounded-[3px] px-2 py-2 text-left hover:bg-elevada focus-visible:bg-elevada">
                 <span className="block text-[14px] font-semibold">{p.titulo}</span>
                 <span className="line-clamp-2 text-[13px] leading-snug text-texto-2">{p.texto}</span>
               </button>
               {podeEditar && (
                 <button type="button" onClick={() => setEditando(p)} aria-label={`Editar ${p.titulo}`}
-                  className="mt-1.5 rounded-[5px] p-1.5 text-texto-3 opacity-0 hover:bg-elevada hover:text-texto group-hover:opacity-100 focus-visible:opacity-100">
+                  className="mt-1.5 rounded-[3px] p-1.5 text-texto-3 opacity-0 hover:bg-elevada hover:text-texto group-hover:opacity-100 focus-visible:opacity-100">
                   <Pencil className="size-4" aria-hidden />
                 </button>
               )}

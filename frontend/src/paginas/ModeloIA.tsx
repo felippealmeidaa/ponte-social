@@ -61,7 +61,7 @@ export function ModeloIA() {
 function Titulo({ id, icone: Icone, children }: { id: string; icone: typeof Brain; children: string }) {
   return (
     <h2 id={id} className="flex items-center gap-2.5 titulo text-[22px] leading-[1.1]">
-      <span className="flex size-8 items-center justify-center rounded-[7px] bg-caneta-fundo text-caneta"><Icone className="size-[18px]" aria-hidden /></span>
+      <span className="flex size-8 items-center justify-center rounded-[4px] bg-caneta-fundo text-caneta"><Icone className="size-[18px]" aria-hidden /></span>
       {children}
     </h2>
   );
@@ -112,7 +112,7 @@ function ComparacaoLLM() {
       {!dados && !erro && <Esqueleto className="h-48" />}
       {dados && !r && !rodando && <p className="text-[14px] text-texto-3">A comparação ainda não foi rodada.</p>}
       {r && (
-        <div className="overflow-x-auto rounded-[6px] border border-linha">
+        <div className="overflow-x-auto rounded-[4px] border border-linha">
           <table className="w-full min-w-[720px] text-sm">
             <thead className="bg-elevada text-left text-texto-2">
               <tr>
@@ -177,7 +177,7 @@ function TabelaLocal({ dados }: { dados: Relatorio }) {
         <strong className={s.recall_violencia < 0.9 ? 'text-urgente' : 'text-texto'}>{pct(s.recall_violencia)}</strong> das situações de violência.
         Em {pct(s.taxa_nao_identificado ?? 0)} ele preferiu não arriscar e indicou o Disque Social 121.
       </p>
-      <div className="overflow-x-auto rounded-[6px] border border-linha">
+      <div className="overflow-x-auto rounded-[4px] border border-linha">
         <table className="w-full min-w-[560px] text-sm">
           <thead className="bg-elevada text-left text-texto-2">
             <tr>
@@ -252,7 +252,7 @@ function AprenderComCasos({ onTreinou }: { onTreinou: () => void }) {
       {falha && <Aviso>{falha}</Aviso>}
       {resultado && <ResultadoTreino t={resultado} />}
       {dados && dados.historico.length > 0 && (
-        <div className="overflow-x-auto rounded-[6px] border border-linha">
+        <div className="overflow-x-auto rounded-[4px] border border-linha">
           <table className="w-full min-w-[640px] text-sm">
             <caption className="px-4 pt-3 text-left text-[13.5px] font-semibold text-texto-2">Treinos anteriores</caption>
             <thead className="text-left text-texto-2">
@@ -285,7 +285,7 @@ function AprenderComCasos({ onTreinou }: { onTreinou: () => void }) {
 function ResultadoTreino({ t }: { t: Treino }) {
   const Icone = t.trocou ? CheckCircle2 : CircleX;
   return (
-    <div role="status" className={`flex items-start gap-3 rounded-[6px] border px-4 py-3 ${t.trocou ? 'border-ok/30 bg-ok-fundo' : 'border-linha bg-elevada'}`}>
+    <div role="status" className={`flex items-start gap-3 rounded-[4px] border px-4 py-3 ${t.trocou ? 'border-ok/30 bg-ok-fundo' : 'border-linha bg-elevada'}`}>
       <Icone className={`mt-0.5 size-5 shrink-0 ${t.trocou ? 'text-ok' : 'text-texto-2'}`} aria-hidden />
       <div className="text-[14.5px]">
         <p className="font-semibold">{t.trocou ? 'O modelo novo está em uso.' : 'O modelo anterior foi mantido.'}</p>

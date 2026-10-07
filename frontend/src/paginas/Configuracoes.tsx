@@ -21,7 +21,7 @@ export function Configuracoes({ aba }: { aba?: string }) {
   return (
     <>
       <header className="mb-6">
-        <h1 className="titulo text-[35px] leading-[1.05]">Configurações</h1>
+        <h1 className="titulo text-[28px] leading-[1.05]">Configurações</h1>
         <p className="mt-2 text-texto-2">Conexão do WhatsApp, teste do bot, qualidade do modelo e contas da equipe.</p>
       </header>
       <div role="tablist" aria-label="Configurações" className="mb-8 flex gap-1 overflow-x-auto border-b border-linha">
@@ -81,9 +81,9 @@ function ConexaoWhatsApp() {
         </ol>
         <div><Botao variante="primario" icone={QrCode} carregando={gerando} onClick={gerarQr} disabled={conectado}>Gerar QR Code</Botao></div>
       </section>
-      <section aria-live="polite" className="grid min-h-64 place-items-center rounded-[6px] border border-dashed border-linha-forte p-6">
+      <section aria-live="polite" className="grid min-h-64 place-items-center rounded-[4px] border border-dashed border-linha-forte p-6">
         {qr?.erro && <Aviso tom="info">{qr.erro}</Aviso>}
-        {imagem && <img src={imagem} alt="QR Code para conectar o WhatsApp do CRAS" className="size-64 rounded-[5px] bg-white p-2" />}
+        {imagem && <img src={imagem} alt="QR Code para conectar o WhatsApp do CRAS" className="size-64 rounded-[3px] bg-white p-2" />}
         {qr?.pairing_code && <p className="mt-3 text-sm text-texto-2">Código de pareamento: <strong className="tabular text-texto">{qr.pairing_code}</strong></p>}
         {!qr && <p className="text-sm text-texto-3">O QR Code aparece aqui.</p>}
       </section>
@@ -232,7 +232,7 @@ function TestarBot() {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
-      <section className="flex flex-col overflow-hidden rounded-[6px] border border-linha bg-superficie">
+      <section className="flex flex-col overflow-hidden rounded-[4px] border border-linha bg-superficie">
         <div ref={rolagem} className="h-[52dvh] overflow-y-auto px-5 py-5" aria-live="polite">
           {conversa.length === 0 && <p className="text-sm text-texto-3">Mande “oi” para começar, como se fosse uma pessoa no WhatsApp.</p>}
           <ol className="flex flex-col gap-3">
@@ -245,7 +245,7 @@ function TestarBot() {
                 {m.audio ? (
                   <audio controls src={m.audio} className="h-10 max-w-full" aria-label="Resposta falada do bot" />
                 ) : (
-                  <p className={`whitespace-pre-wrap rounded-[6px] px-3.5 py-2.5 text-sm leading-relaxed ${m.de === 'pessoa' ? 'bg-whats-enviada text-whats-texto rounded-br-[2px]' : 'bg-elevada text-texto rounded-bl-[2px]'}`}>
+                  <p className={`whitespace-pre-wrap rounded-[4px] px-3.5 py-2.5 text-sm leading-relaxed ${m.de === 'pessoa' ? 'bg-whats-enviada text-whats-texto rounded-br-[2px]' : 'bg-elevada text-texto rounded-bl-[2px]'}`}>
                     <ComLinks texto={m.texto.replace(/\*/g, '')} />
                   </p>
                 )}
@@ -256,7 +256,7 @@ function TestarBot() {
         <form onSubmit={mandar} className="flex gap-2 border-t border-linha px-5 py-4">
           <label htmlFor="msg-teste" className="sr-only">Mensagem da pessoa</label>
           <input id="msg-teste" value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Mensagem da pessoa"
-            className="h-10 flex-1 rounded-[5px] border border-linha-forte bg-fundo px-3 text-sm hover:border-texto-3 focus:border-caneta focus:outline-none" />
+            className="h-10 flex-1 rounded-[3px] border border-linha-forte bg-fundo px-3 text-sm hover:border-texto-3 focus:border-caneta focus:outline-none" />
           <Botao type="button" icone={MapPin} carregando={localizando} disabled={enviando || gravando !== null} onClick={mandarLocalizacao}
             title="Envia a localização deste navegador, como o pino do WhatsApp">Localização</Botao>
           <Botao type="button" variante={gravando !== null ? 'perigo' : 'secundario'} icone={gravando !== null ? Square : Mic}
@@ -276,7 +276,7 @@ function TestarBot() {
         <div className="flex flex-col gap-1.5">
           <label htmlFor="tel-teste" className="text-[13px] font-medium">Telefone fictício</label>
           <input id="tel-teste" value={telefone} onChange={(e) => { setTelefone(e.target.value); setConversa([]); setConversaId(null); }}
-            className="h-9 rounded-[5px] border border-linha-forte bg-fundo px-3 text-sm tabular focus:border-caneta focus:outline-none" />
+            className="h-9 rounded-[3px] border border-linha-forte bg-fundo px-3 text-sm tabular focus:border-caneta focus:outline-none" />
           <p className="text-xs text-texto-3">Trocar o número começa outra conversa.</p>
         </div>
         <div className="flex flex-wrap gap-2">

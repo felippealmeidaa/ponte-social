@@ -95,7 +95,7 @@ function GestaoEquipe({ meuId }: { meuId: string }) {
       {erro && <Aviso>{erro}</Aviso>}
       {!dados && !erro && <Esqueleto className="h-48" />}
       {dados && (
-        <ul className="divide-y divide-linha overflow-hidden rounded-[6px] border border-linha bg-superficie">
+        <ul className="divide-y divide-linha overflow-hidden rounded-[4px] border border-linha bg-superficie">
           {dados.map((c) => (
             <li key={c.id}>
               <button onClick={() => setEditando(c)} className="flex w-full flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 text-left hover:bg-elevada/60">

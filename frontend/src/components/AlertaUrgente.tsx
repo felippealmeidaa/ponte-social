@@ -82,23 +82,23 @@ export function AlertaUrgente({ triagens, minutos = 10 }: { triagens: Triagem[];
   const espera = maisAntigo >= 60 ? `${Math.floor(maisAntigo / 60)} h ${maisAntigo % 60} min` : `${maisAntigo} min`;
 
   return (
-    <div role="alert" className="nao-imprimir mb-7 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-[6px] bg-alerta px-4 py-3 text-sobre-alerta md:px-5">
+    <div role="alert" className="nao-imprimir mb-7 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-[4px] bg-alerta px-4 py-3 text-sobre-alerta md:px-5">
       <p className="flex min-w-0 grow basis-[26rem] items-center gap-3 text-[15px] leading-snug">
         <ShieldAlert className="size-5 shrink-0" aria-hidden />
         <span>
           <strong className="font-semibold">
-            {n === 1 ? '1 caso de violência' : `${n} casos de violência`} sem ninguém atendendo
+            {n === 1 ? '1 caso de violência passou' : `${n} casos de violência passaram`} de {minutos} min sem ninguém atendendo
           </strong>
           {n === 1 ? ` há ${espera}.` : ` (o mais antigo há ${espera}).`} Abra a ficha e marque “Em atendimento” quando alguém assumir.
         </span>
       </p>
       <div className="flex items-center gap-2">
         <button type="button" onClick={alternarSom} aria-pressed={som}
-          className="inline-flex h-9 items-center gap-1.5 rounded-[5px] px-3 text-[13.5px] text-sobre-alerta/90 transition-colors duration-150 hover:bg-sobre-alerta/15 hover:text-sobre-alerta">
+          className="inline-flex h-9 items-center gap-1.5 rounded-[3px] px-3 text-[13.5px] text-sobre-alerta/90 transition-colors duration-150 hover:bg-sobre-alerta/15 hover:text-sobre-alerta">
           {som ? <BellRing className="size-4" aria-hidden /> : <BellOff className="size-4" aria-hidden />}
           {som ? 'Som ligado' : 'Ligar som'}
         </button>
-        <a href="#/fila" className="inline-flex h-9 items-center rounded-[5px] bg-superficie px-3.5 text-[14px] font-semibold text-urgente transition-colors duration-150 hover:bg-urgente-fundo">
+        <a href="#/fila" className="inline-flex h-9 items-center rounded-[3px] bg-superficie px-3.5 text-[14px] font-semibold text-urgente transition-colors duration-150 hover:bg-urgente-fundo">
           Ver na fila
         </a>
       </div>

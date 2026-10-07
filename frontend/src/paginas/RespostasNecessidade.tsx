@@ -80,11 +80,11 @@ export function Respostas({ ctx }: { ctx: ContextoRespostas }) {
             return (
               <li key={s.categoria} className="shrink-0">
                 <button type="button" onClick={() => setSelecionada(s.categoria)} aria-current={ativa ? 'true' : undefined}
-                  className={`group flex w-full items-center gap-3 rounded-[6px] border px-2.5 py-2 text-left transition-colors duration-150 max-lg:min-w-[200px] ${ativa
+                  className={`group flex w-full items-center gap-3 rounded-[4px] border px-2.5 py-2 text-left transition-colors duration-150 max-lg:min-w-[200px] ${ativa
                     ? 'border-caneta/35 bg-caneta-fundo'
                     : 'border-transparent hover:border-linha hover:bg-elevada'}`}>
                   <span style={{ '--cat': corCategoria(s.categoria) } as CSSProperties}
-                    className={`flex size-9 shrink-0 items-center justify-center rounded-[7px] ${ativa ? 'bg-[var(--cat)] text-sobre' : 'chip-cat'}`}>
+                    className={`flex size-9 shrink-0 items-center justify-center rounded-[4px] ${ativa ? 'bg-[var(--cat)] text-sobre' : 'chip-cat'}`}>
                     <Icone className="size-[18px]" strokeWidth={1.9} aria-hidden />
                   </span>
                   <span className="flex min-w-0 flex-col">
@@ -171,7 +171,7 @@ function EditorServico({ servico, ctx, onSalvo }: { servico: Servico; ctx: Conte
         <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3 border-b border-linha pb-5">
           <div className="flex items-start gap-3.5">
             <span style={{ '--cat': corCategoria(servico.categoria) } as CSSProperties}
-              className="mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-[9px] bg-[var(--cat)] text-sobre">
+              className="mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-[4px] bg-[var(--cat)] text-sobre">
               <Icone className="size-[22px]" strokeWidth={1.9} aria-hidden />
             </span>
             <div>
@@ -219,7 +219,7 @@ function EditorServico({ servico, ctx, onSalvo }: { servico: Servico; ctx: Conte
             </div>
           </Secao>
 
-          <section aria-labelledby="t-conferencia" className="mt-7 flex flex-col gap-4 rounded-[6px] border border-linha bg-elevada/70 p-4 sm:p-5">
+          <section aria-labelledby="t-conferencia" className="mt-7 flex flex-col gap-4 rounded-[4px] border border-linha bg-elevada/70 p-4 sm:p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="flex items-start gap-2.5">
                 <BadgeCheck className="mt-0.5 size-[18px] shrink-0 text-texto-2" aria-hidden />
@@ -260,7 +260,7 @@ function EditorServico({ servico, ctx, onSalvo }: { servico: Servico; ctx: Conte
 
         {!somenteLeitura && (alterado || estado === 'salvo' || erro) && (
           <div role="region" aria-label="Salvar alterações"
-            className="sticky bottom-3 z-10 mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[6px] border border-linha-forte bg-superficie px-4 py-3 shadow-[0_12px_28px_-14px_rgb(27_39_51/0.45)]">
+            className="sticky bottom-3 z-10 mt-6 flex flex-wrap items-center justify-between gap-3 rounded-[4px] border border-linha-forte bg-superficie px-4 py-3 shadow-[0_12px_28px_-14px_rgb(27_39_51/0.45)]">
             <p role="status" className={`text-[14px] ${erro ? 'text-urgente' : alterado ? 'text-texto' : 'text-ok font-semibold'}`}>
               {erro ?? (alterado ? (incompleto ? 'Preencha título, ao menos um serviço, um documento, onde ir e contato.' : 'Alterações ainda não salvas.') : 'Salvo. Já vale para as próximas conversas.')}
             </p>
@@ -278,7 +278,7 @@ function EditorServico({ servico, ctx, onSalvo }: { servico: Servico; ctx: Conte
 
       <aside aria-label="Prévia no WhatsApp" className="self-start xl:sticky xl:top-6">
         <p className="mb-2 text-[13.5px] font-semibold text-texto-2">O que a pessoa vê no WhatsApp</p>
-        <div className="conversa-whats rounded-[6px] border border-linha py-4 pl-5 pr-4">
+        <div className="conversa-whats rounded-[4px] border border-linha py-4 pl-5 pr-4">
           <div className="balao-whats flex flex-col gap-1.5 px-2 py-2 text-[13.5px] leading-relaxed">
             <Trecho ativo={parte === 'titulo'}><p className="font-semibold">📋 {titulo || '…'}</p></Trecho>
             <Trecho ativo={parte === 'servicos'}>
@@ -321,7 +321,7 @@ function Secao({ icone: Icone, titulo, ajuda, children, onFocus, onMouseEnter }:
 /** Um bloco da prévia, aceso quando a parte correspondente está sendo editada. */
 function Trecho({ ativo, children }: { ativo: boolean; children: ReactNode }) {
   return (
-    <div className={`rounded-[5px] px-1.5 py-1 transition-[background-color,box-shadow] duration-200 ${ativo ? 'bg-caneta-fundo shadow-[inset_0_0_0_1.5px_rgb(36_87_197/0.45)]' : ''}`}>
+    <div className={`rounded-[3px] px-1.5 py-1 transition-[background-color,box-shadow] duration-200 ${ativo ? 'bg-caneta-fundo shadow-[inset_0_0_0_1.5px_rgb(36_87_197/0.45)]' : ''}`}>
       {children}
     </div>
   );
@@ -370,7 +370,7 @@ function ListaItens({ rotulo, itens, onMudar, somenteLeitura }: {
               onChange={(e) => mudar(i, e.target.value)} onKeyDown={(e) => tecla(e, i)} className={`${classeEntrada} flex-1`} />
             {!somenteLeitura && (
               <button type="button" onClick={() => remover(i)} aria-label={`Remover ${rotulo.toLowerCase()} ${i + 1}`} title="Remover"
-                className="flex size-9 shrink-0 items-center justify-center rounded-[5px] text-texto-3 transition-colors duration-150 hover:bg-urgente-fundo hover:text-urgente">
+                className="flex size-9 shrink-0 items-center justify-center rounded-[3px] text-texto-3 transition-colors duration-150 hover:bg-urgente-fundo hover:text-urgente">
                 <X className="size-4" aria-hidden />
               </button>
             )}
@@ -379,7 +379,7 @@ function ListaItens({ rotulo, itens, onMudar, somenteLeitura }: {
       </ol>
       {!somenteLeitura && (
         <button type="button" onClick={() => inserir(itens.length - 1)}
-          className="ml-7 inline-flex items-center gap-1.5 self-start rounded-[5px] px-2 py-1.5 text-[14px] font-medium text-caneta transition-colors duration-150 hover:bg-caneta-fundo">
+          className="ml-7 inline-flex items-center gap-1.5 self-start rounded-[3px] px-2 py-1.5 text-[14px] font-medium text-caneta transition-colors duration-150 hover:bg-caneta-fundo">
           <Plus className="size-4" aria-hidden />
           Adicionar {rotulo.toLowerCase()}
         </button>

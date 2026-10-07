@@ -20,7 +20,7 @@ const POR_ID: Record<string, Etapa> = Object.fromEntries(ETAPAS.map((e) => [e.id
 /** Trilho do fluxo: faixa de violência, caminho principal com os desvios embaixo e os comandos à parte. */
 export function TrilhoFluxo(estado: EstadoTrilho) {
   return (
-    <div className="flex flex-col gap-6 rounded-[6px] border border-linha bg-elevada/60 p-4 sm:p-5">
+    <div className="flex flex-col gap-6 rounded-[4px] border border-linha bg-elevada/60 p-4 sm:p-5">
       <FaixaViolencia {...estado} />
       <ol aria-label="Caminho da conversa, na ordem" className="grid lg:grid-cols-6 lg:gap-x-3">
         {TRILHO.map((id, i) => <Estacao key={id} etapa={POR_ID[id]} indice={i} {...estado} />)}
@@ -38,7 +38,7 @@ export function TrilhoFluxo(estado: EstadoTrilho) {
 function FaixaViolencia(estado: EstadoTrilho) {
   return (
     <section aria-labelledby="t-seguranca"
-      className="flex flex-wrap items-center gap-x-4 gap-y-2.5 rounded-[5px] border border-urgente/30 bg-urgente-fundo px-3.5 py-3">
+      className="flex flex-wrap items-center gap-x-4 gap-y-2.5 rounded-[3px] border border-urgente/30 bg-urgente-fundo px-3.5 py-3">
       <h3 id="t-seguranca" className="flex items-center gap-2 text-[14px] font-semibold text-urgente-forte">
         <ShieldAlert className="size-4 shrink-0" aria-hidden />
         Violência, em qualquer etapa e em todos os CRAS
@@ -82,7 +82,7 @@ function Estacao({ etapa, indice, ...estado }: EstadoTrilho & { etapa: Etapa; in
       <Extras antesDe={etapa.id} className="mb-3 max-lg:pl-[54px] lg:max-w-[210px]" {...estado} />
 
       <button type="button" onClick={() => onAbrir(etapa.id)} aria-pressed={ativa}
-        className="group relative flex items-start gap-3.5 rounded-[6px] text-left focus-visible:outline-none lg:flex-col lg:items-center lg:gap-2 lg:text-center">
+        className="group relative flex items-start gap-3.5 rounded-[4px] text-left focus-visible:outline-none lg:flex-col lg:items-center lg:gap-2 lg:text-center">
         <span className={`flex size-10 shrink-0 items-center justify-center rounded-full border-2 transition-[background-color,border-color,box-shadow] duration-150 group-focus-visible:ring-2 group-focus-visible:ring-caneta group-focus-visible:ring-offset-2 ${circulo}`}>
           {etapa.tipo === 'fim'
             ? <Icone className="size-[18px]" aria-hidden />
@@ -160,7 +160,7 @@ function ChipEtapa({ etapa, cheio, selecionada, contagem, puladas, personalizada
   return (
     <button type="button" onClick={() => onAbrir(etapa.id)} aria-pressed={ativa}
       title={pulada?.motivo}
-      className={`flex items-center gap-2 rounded-[5px] border px-2.5 py-1.5 text-left text-[13.5px] leading-tight transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caneta ${cheio ? 'w-full' : ''} ${estilo}`}>
+      className={`flex items-center gap-2 rounded-[3px] border px-2.5 py-1.5 text-left text-[13.5px] leading-tight transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-caneta ${cheio ? 'w-full' : ''} ${estilo}`}>
       <Icone className={`size-[15px] shrink-0 ${urgente && !ativa ? 'text-urgente' : ativa ? 'text-caneta' : 'text-texto-2'}`} aria-hidden />
       <span className="min-w-0 flex-1">{etapa.titulo}</span>
       {etapa.travada && <Lock className="size-3 shrink-0 text-texto-3" aria-label="travada" />}

@@ -96,7 +96,7 @@ export function Unidades() {
               {lista.map((u) => (
                 <li key={u.id}>
                   <button onClick={() => setEditando(u)}
-                    className="flex h-full w-full flex-col gap-2 rounded-[6px] border border-linha bg-superficie p-4 text-left hover:border-linha-forte">
+                    className="flex h-full w-full flex-col gap-2 rounded-[4px] border border-linha bg-superficie p-4 text-left hover:border-linha-forte">
                     <span className="flex flex-wrap items-center gap-2">
                       <span className={`font-medium ${u.ativo ? '' : 'text-texto-3 line-through'}`}>{u.nome}</span>
                       {u.tipo === 'CREAS' && <Selo tom="urgente" semIcone>Violência</Selo>}
@@ -146,7 +146,7 @@ function TestarBairro() {
   };
 
   return (
-    <section aria-labelledby="t-testar-bairro" className="rounded-[6px] border border-linha bg-superficie p-4">
+    <section aria-labelledby="t-testar-bairro" className="rounded-[4px] border border-linha bg-superficie p-4">
       <h3 id="t-testar-bairro" className="font-medium">Testar um bairro</h3>
       <p className="mt-1 text-[13px] text-texto-2">
         Veja qual CRAS o bot indicaria. Primeiro vale a lista de bairros de cada CRAS; sem ela, o CRAS mais perto do bairro no mapa.

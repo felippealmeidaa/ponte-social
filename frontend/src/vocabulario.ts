@@ -19,8 +19,8 @@ export type Tom = 'urgente' | 'alta' | 'media' | 'neutro' | 'ok' | 'info' | 'can
 
 export const ESTADOS: Record<string, { rotulo: string; tom: Tom }> = {
   URGENTE_CREAS: { rotulo: 'Urgente', tom: 'urgente' },
-  PENDENTE: { rotulo: 'Aguardando', tom: 'caneta' },
-  EM_ATENDIMENTO: { rotulo: 'Em atendimento', tom: 'info' },
+  PENDENTE: { rotulo: 'Aguardando', tom: 'media' },
+  EM_ATENDIMENTO: { rotulo: 'Em atendimento', tom: 'ok' },
   ENCAMINHADO_CREAS: { rotulo: 'Encaminhado ao CREAS', tom: 'info' },
   CONCLUIDO: { rotulo: 'Concluído', tom: 'ok' },
   ARQUIVADO: { rotulo: 'Arquivado', tom: 'neutro' },

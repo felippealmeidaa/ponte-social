@@ -25,7 +25,7 @@ export function Conversas({ conversas, selecionada }: { conversas: ReturnType<ty
   return (
     <>
       <header className="mb-6">
-        <h1 className="titulo text-[35px] leading-[1.05]">Conversas</h1>
+        <h1 className="titulo text-[28px] leading-[1.05]">Conversas</h1>
         <p className="mt-2 text-texto-2 max-w-[75ch]">
           Conversas do WhatsApp com o bot. Ao responder, você assume a conversa e o bot fica em silêncio até você devolver.
         </p>
@@ -33,8 +33,11 @@ export function Conversas({ conversas, selecionada }: { conversas: ReturnType<ty
 
       {conversas.erro && <div className="mb-4"><Aviso>{conversas.erro}</Aviso></div>}
 
-      <div className="grid min-h-[70dvh] overflow-hidden rounded-[6px] border border-linha bg-superficie lg:grid-cols-[340px_1fr]">
+      <div className="grid min-h-[70dvh] overflow-hidden rounded-[4px] border border-linha bg-superficie lg:grid-cols-[340px_1fr]">
         <nav aria-label="Lista de conversas" className={`border-linha lg:border-r ${selecionada ? 'hidden lg:block' : ''}`}>
+          <div className="painel-cabeca">
+            <h2 className="titulo flex items-baseline gap-2.5 text-[16px]">Conversas <span className="dado text-[13px] font-normal text-texto-3">{lista.length}</span></h2>
+          </div>
           {!conversas.dados && !conversas.erro && (
             <div className="flex flex-col gap-3 p-4" aria-busy="true">{[0, 1, 2, 3].map((i) => <Esqueleto key={i} className="h-16" />)}</div>
           )}
@@ -45,7 +48,7 @@ export function Conversas({ conversas, selecionada }: { conversas: ReturnType<ty
               </Vazio>
             </div>
           )}
-          <ul className="max-h-[70dvh] overflow-y-auto">
+          <ul className="max-h-[calc(70dvh-46px)] overflow-y-auto">
             {lista.map((c) => <ItemConversa key={c.id} conversa={c} ativa={c.id === selecionada} />)}
           </ul>
         </nav>
@@ -183,7 +186,7 @@ function Conversa({ id, resumo, onMudou }: { id: string; resumo?: ResumoConversa
     <>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-linha px-5 py-3">
         <div className="flex min-w-0 items-center gap-3">
-          <a href="#/conversas" className="rounded-md p-1 text-texto-2 hover:bg-elevada lg:hidden" aria-label="Voltar para a lista"><ArrowLeft className="size-5" aria-hidden /></a>
+          <a href="#/conversas" className="rounded-[3px] p-1 text-texto-2 hover:bg-elevada lg:hidden" aria-label="Voltar para a lista"><ArrowLeft className="size-5" aria-hidden /></a>
           <div className="min-w-0">
             <p className="font-medium tabular">{resumo?.telefone_mascarado ?? 'Conversa'}</p>
             <p className="text-xs text-texto-3">
@@ -229,7 +232,7 @@ function Conversa({ id, resumo, onMudou }: { id: string; resumo?: ResumoConversa
             onChange={(e) => setTexto(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }}
             placeholder={idioma === 'es' ? 'Escreva em português: vai traduzido para o espanhol (Enter envia)' : humano ? 'Escreva para a pessoa (Enter envia, Shift+Enter quebra linha)' : 'Responder assume a conversa e pausa o bot'}
-            className="min-h-11 flex-1 resize-none rounded-[5px] border border-linha-forte bg-fundo px-3 py-2.5 text-sm hover:border-texto-3 focus:border-caneta focus:outline-none"
+            className="min-h-11 flex-1 resize-none rounded-[3px] border border-linha-forte bg-fundo px-3 py-2.5 text-sm hover:border-texto-3 focus:border-caneta focus:outline-none"
           />
           <RespostasProntas onEscolher={(t) => setTexto((atual) => (atual.trim() ? `${atual.trimEnd()}\n${t}` : t))} />
           <Botao type="submit" variante="primario" icone={Send} carregando={ocupado} disabled={!texto.trim()}>Enviar</Botao>
@@ -253,7 +256,7 @@ function Balao({ mensagem: m }: { mensagem: Mensagem }) {
       <span className="flex items-center gap-1 text-[11px] text-texto-3">
         <Icone className="size-3" aria-hidden />{autor}, {new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
       </span>
-      <p className={`whitespace-pre-wrap rounded-[6px] px-3.5 py-2.5 text-sm leading-relaxed ${estilo}`}><TextoWhatsApp texto={m.traducao ?? m.texto} /></p>
+      <p className={`whitespace-pre-wrap rounded-[4px] px-3.5 py-2.5 text-sm leading-relaxed ${estilo}`}><TextoWhatsApp texto={m.traducao ?? m.texto} /></p>
       {m.traducao && (
         <details className={`max-w-full text-[12px] text-texto-3 ${doCidadao ? '' : 'text-right'}`}>
           <summary className="inline-flex cursor-pointer list-none items-center gap-1 hover:text-texto-2">

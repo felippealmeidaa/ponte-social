@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BellRing, Eye, FileText, History, Languages, MessagesSquare, Phone, Save, ShieldAlert, Sparkles, Star, UserRoundCheck, UserRoundX } from 'lucide-react';
+import { ArrowRight, BellRing, Eye, FileText, History, Languages, MessagesSquare, Phone, Save, ShieldAlert, Sparkles, Star, UserRoundCheck, UserRoundX } from 'lucide-react';
 import { api, atualizar, enviar, ErroApi, sessaoSalva } from '../api';
 import { irPara } from '../navegacao';
 import type { Triagem } from '../tipos';
@@ -10,7 +10,7 @@ import { Aviso, Botao, classeEntrada, PainelLateral, Selo } from './ui';
 
 const ACOES_STATUS = ['PENDENTE', 'EM_ATENDIMENTO', 'ENCAMINHADO_CREAS', 'CONCLUIDO', 'ARQUIVADO'];
 
-export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null; onFechar: () => void; onAlterado: (t: Triagem) => void }) {
+export function FichaCaso({ caso, onFechar, onAlterado, encaixado = false }: { caso: Triagem | null; onFechar: () => void; onAlterado: (t: Triagem) => void; encaixado?: boolean }) {
   // Estado inicial vem do caso; quem usa remonta o componente (key) ao trocar de caso
   const [observacoes, setObservacoes] = useState(caso?.observacoes ?? '');
   const [telefone, setTelefone] = useState<string | null>(null);
@@ -104,7 +104,7 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
   const fechado = caso.status === 'CONCLUIDO' || caso.status === 'ARQUIVADO';
 
   return (
-    <PainelLateral aberto titulo={nomeCategoria(caso.categoria)} onFechar={onFechar}>
+    <PainelLateral aberto titulo={nomeCategoria(caso.categoria)} onFechar={onFechar} encaixado={encaixado}>
       <div className="flex flex-col gap-6">
         <div className="flex flex-wrap items-center gap-2">
           <Selo tom={prioridade.tom}>Prioridade {prioridade.rotulo.toLowerCase()}</Selo>
@@ -115,7 +115,7 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
           </span>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[5px] border border-linha bg-elevada px-3.5 py-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[3px] border border-linha bg-elevada px-3.5 py-2.5">
           <p className="flex items-center gap-2 text-[14px]">
             <UserRoundCheck className={`size-4 shrink-0 ${caso.responsavel ? 'text-caneta' : 'text-texto-3'}`} aria-hidden />
             {caso.responsavel_nome
@@ -136,8 +136,8 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
         )}
 
         {resumo !== null && (
-          <section aria-labelledby="t-resumo" className="rounded-[5px] border border-caneta/25 bg-caneta-fundo/60 px-4 py-3">
-            <h3 id="t-resumo" className="mb-1 flex items-center gap-1.5 text-[13px] font-semibold text-caneta">
+          <section aria-labelledby="t-resumo" className="rounded-[3px] border border-linha bg-elevada px-4 py-3">
+            <h3 id="t-resumo" className="mb-1 flex items-center gap-1.5 text-[13px] font-semibold text-texto-2">
               <Sparkles className="size-3.5" aria-hidden />Resumo automático (IA)
             </h3>
             {resumo === undefined
@@ -157,7 +157,7 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
               </button>
             )}
           </div>
-          <blockquote lang={verOriginal && caso.idioma ? caso.idioma : 'pt-BR'} className="rounded-[5px] border border-linha bg-fundo px-4 py-3 text-[15px] leading-relaxed text-texto">
+          <blockquote lang={verOriginal && caso.idioma ? caso.idioma : 'pt-BR'} className="rounded-[3px] border border-linha bg-fundo px-4 py-3 text-[15px] leading-relaxed text-texto">
             {caso.relato_traducao && !verOriginal ? caso.relato_traducao : caso.relato_original}
           </blockquote>
           <p className="mt-1.5 text-xs text-texto-3">
@@ -203,19 +203,27 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
         <section className="grid gap-5 sm:grid-cols-2">
           <div>
             <h3 className="text-[13px] font-medium text-texto-2 mb-2">Caminho sugerido</h3>
-            <ul className="flex flex-col gap-1.5 text-sm">
-              {caso.servicos_recomendados.map((s) => <li key={s} className="flex gap-2"><span className="text-caneta" aria-hidden>•</span>{s}</li>)}
-            </ul>
+            {caso.servicos_recomendados.length === 0
+              ? <p className="text-sm text-texto-3">Nenhum serviço sugerido para esta necessidade. Confira a resposta em Serviços e mensagens.</p>
+              : (
+                <ul className="flex flex-col gap-1.5 text-sm">
+                  {caso.servicos_recomendados.map((s) => <li key={s} className="flex gap-2"><ArrowRight className="mt-0.5 size-4 shrink-0 text-texto-3" aria-hidden />{s}</li>)}
+                </ul>
+              )}
           </div>
           <div>
             <h3 className="text-[13px] font-medium text-texto-2 mb-2">Documentos para levar</h3>
-            <ul className="flex flex-col gap-1.5 text-sm">
-              {caso.documentos_necessarios.map((d) => <li key={d} className="flex gap-2"><FileText className="size-4 mt-0.5 shrink-0 text-texto-3" aria-hidden />{d}</li>)}
-            </ul>
+            {caso.documentos_necessarios.length === 0
+              ? <p className="text-sm text-texto-3">Nenhum documento listado para esta necessidade.</p>
+              : (
+                <ul className="flex flex-col gap-1.5 text-sm">
+                  {caso.documentos_necessarios.map((d) => <li key={d} className="flex gap-2"><FileText className="size-4 mt-0.5 shrink-0 text-texto-3" aria-hidden />{d}</li>)}
+                </ul>
+              )}
           </div>
         </section>
 
-        <section className="rounded-[5px] border border-linha px-4 py-3 text-[13px] text-texto-2">
+        <section className="rounded-[3px] border border-linha px-4 py-3 text-[13px] text-texto-2">
           <p>
             <span className="text-texto">Como o sistema chegou aqui:</span> {caso.metodo_decisao}
             {caso.confianca > 0 && `, com ${(caso.confianca * 100).toFixed(0)}% de confiança`}.
@@ -259,7 +267,7 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
             {caso.tem_contato && !telefone && (
               <Botao tamanho="sm" icone={Eye} carregando={salvando === 'telefone'} onClick={verTelefone}>Ver telefone</Botao>
             )}
-            {telefone && <a href={`tel:+${telefone}`} className="inline-flex h-8 items-center gap-1.5 rounded-[5px] border border-linha-forte px-3 text-[13px] hover:bg-elevada"><Phone className="size-4" aria-hidden />Ligar</a>}
+            {telefone && <a href={`tel:+${telefone}`} className="inline-flex h-8 items-center gap-1.5 rounded-[3px] border border-linha-forte px-3 text-[13px] hover:bg-elevada"><Phone className="size-4" aria-hidden />Ligar</a>}
             {caso.conversa_id && (
               <Botao tamanho="sm" icone={MessagesSquare} onClick={() => irPara('conversas', caso.conversa_id!)}>Abrir conversa</Botao>
             )}
@@ -278,7 +286,7 @@ export function FichaCaso({ caso, onFechar, onAlterado }: { caso: Triagem | null
                   aria-pressed={ativo}
                   disabled={salvando !== null}
                   onClick={() => salvar(s, s)}
-                  className={`h-9 rounded-[5px] border px-3 text-[13px] transition-colors duration-150 disabled:opacity-60 ${
+                  className={`h-9 rounded-[3px] border px-3 text-[13px] transition-colors duration-150 disabled:opacity-60 ${
                     ativo ? 'border-caneta bg-caneta-fundo text-caneta font-semibold' : 'border-linha-forte text-texto-2 hover:text-texto hover:bg-elevada'
                   }`}
                 >

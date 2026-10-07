@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { BarChart3, ListOrdered, LogOut, MessagesSquare, NotebookPen, Settings, type LucideIcon } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ChevronRight, LogOut, Menu } from 'lucide-react';
 import { api, encerrarSessao, sessaoSalva, type Usuario } from './api';
 import { LoginPage } from './components/LoginPage';
 import { Fila } from './paginas/Fila';
@@ -15,20 +15,17 @@ import { BotaoTema } from './components/Tema';
 import { useAtualizacao } from './useAtualizacao';
 import { nomeUnidade, useUnidades } from './unidades';
 import type { Rota } from './navegacao';
+import { GavetaMenu } from './components/MenuPrincipal';
+import { itemAtual, montarMenu } from './menu';
+import { contaAtual } from './unidades';
 
 export const NOME_PRODUTO = 'Ponte Social';
 
-const NAVEGACAO: { id: Rota; rotulo: string; curto: string; icone: LucideIcon }[] = [
-  { id: 'fila', rotulo: 'Fila', curto: 'Fila', icone: ListOrdered },
-  { id: 'conversas', rotulo: 'Conversas', curto: 'Conversas', icone: MessagesSquare },
-  { id: 'indicadores', rotulo: 'Indicadores', curto: 'Indicadores', icone: BarChart3 },
-  { id: 'servicos', rotulo: 'Serviços e mensagens', curto: 'Serviços', icone: NotebookPen },
-  { id: 'configuracoes', rotulo: 'Configurações', curto: 'Ajustes', icone: Settings },
-];
+const ROTAS: Rota[] = ['fila', 'conversas', 'indicadores', 'servicos', 'configuracoes'];
 
 function rotaAtual(): { rota: Rota; parametro?: string } {
   const [, rota, parametro] = window.location.hash.split('/');
-  const valida = NAVEGACAO.some((n) => n.id === rota) ? (rota as Rota) : 'fila';
+  const valida = ROTAS.includes(rota as Rota) ? (rota as Rota) : 'fila';
   return { rota: valida, parametro: parametro ? decodeURIComponent(parametro) : undefined };
 }
 
@@ -45,12 +42,12 @@ export default function App() {
   return <Painel usuario={usuario} onSair={() => { encerrarSessao(); setUsuario(null); }} />;
 }
 
-/** Campo do cabeçalho, como num formulário: rótulo pequeno e o valor sobre a linha. */
+/** Campo da barra do topo: rótulo e valor na mesma linha, sem caixa. */
 function CampoCabecalho({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
   return (
-    <div className="min-w-0 border-b border-sobre-topo/25 pb-1">
-      <dt className="text-[12px] text-sobre-topo-2">{rotulo}</dt>
-      <dd className="truncate text-[14.5px] font-semibold text-sobre-topo">{children}</dd>
+    <div className="flex min-w-0 items-baseline gap-1.5 whitespace-nowrap text-[13px]">
+      <dt className="text-sobre-topo-2">{rotulo}</dt>
+      <dd className="truncate font-medium text-sobre-topo">{children}</dd>
     </div>
   );
 }
@@ -73,84 +70,86 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
   const minutosAlerta = opcoesPainel.dados?.opcoes.alerta_urgente_min ?? 10;
   const [avisosLigados, setAvisosLigados] = useAvisosLigados();
   useAvisosUrgentes(triagens, minutosAlerta, avisosLigados);
-  const urgentes = triagens.filter((t) => t.status === 'URGENTE_CREAS').length;
+  // Mesma regra da Fila: violência que ainda espera alguém (urgente ou aguardando com prioridade de violência)
+  const urgentes = triagens.filter((t) => t.status === 'URGENTE_CREAS' || (t.prioridade === 'URGENTE_VIOLENCIA' && t.status === 'PENDENTE')).length;
   const aguardando = triagens.filter((t) => t.status === 'PENDENTE').length;
   const naoLidas = (conversas.dados ?? []).filter((c) => c.atendimento_humano && c.nao_lidas > 0).length;
   const papel = usuario.role === 'ADMIN' ? 'Coordenação' : 'Atendimento';
+  const emAtendimento = triagens.filter((t) => t.status === 'EM_ATENDIMENTO').length;
+  const geral = contaAtual().geral;
+  const menu = useMemo(() => montarMenu({ urgentes, aguardando, emAtendimento, naoLidas }, geral), [urgentes, aguardando, emAtendimento, naoLidas, geral]);
+  const aqui = itemAtual(menu, rota, parametro);
+  const [menuAberto, setMenuAberto] = useState(false);
+  const fecharMenu = useCallback(() => setMenuAberto(false), []);
 
   return (
-    <div className="min-h-dvh pb-20 md:pb-10">
-      <div className="topo pb-4 md:pb-0">
-      <header className="mx-auto max-w-[1440px] px-4 pt-4 md:px-8 md:pt-6">
-        <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
-          <div>
-            <p className="titulo text-[26px] text-sobre-topo md:text-[30px]">{NOME_PRODUTO}</p>
-            <p className="text-[13.5px] text-sobre-topo-2">Encaminhamento da assistência social</p>
-          </div>
+    <div className="min-h-dvh pb-10">
+      <div className="topo">
+      <header className="mx-auto flex h-14 max-w-[1440px] items-center gap-3 px-4 md:px-8">
+        <button type="button" onClick={() => setMenuAberto(true)} aria-expanded={menuAberto} aria-controls="menu-principal"
+          className="relative inline-flex size-9 shrink-0 items-center justify-center rounded-[3px] border border-linha-forte text-sobre-topo hover:border-caneta hover:text-caneta">
+          <Menu className="size-[18px]" aria-hidden />
+          <span className="sr-only">Abrir menu</span>
+          {(urgentes > 0 || naoLidas > 0) && (
+            <span className={`absolute -right-1 -top-1 size-2.5 rounded-full border-2 border-topo ${urgentes > 0 ? 'bg-urgente-topo' : 'bg-sobre-topo'}`} aria-hidden />
+          )}
+        </button>
+        <a href="#/fila" className="flex shrink-0 items-center gap-2.5" aria-label={`${NOME_PRODUTO}: ir para a fila`}>
+          <span className="dado inline-flex size-8 items-center justify-center rounded-[3px] bg-sobre-topo text-[13px] font-semibold text-topo" aria-hidden>PS</span>
+          <span className="titulo hidden text-[15.5px] text-sobre-topo sm:inline">{NOME_PRODUTO}</span>
+        </a>
 
-          <dl className="hidden flex-1 grid-cols-[repeat(3,minmax(0,auto))_auto_auto_auto] items-end justify-end gap-x-8 md:grid">
-            <CampoCabecalho rotulo="Unidade">{usuario.unidade_id ? nomeUnidade(unidades.dados, usuario.unidade_id) : 'Todas as unidades'}</CampoCabecalho>
-            <CampoCabecalho rotulo={papel}>{usuario.name}</CampoCabecalho>
-            <CampoCabecalho rotulo="Na fila agora">
-              {fila.dados ? (
-                <a href="#/fila" className="hover:underline">
-                  {urgentes > 0 && <span className="text-urgente-topo">{urgentes} urgente{urgentes > 1 ? 's' : ''}, </span>}
-                  <span className="tabular">{aguardando}</span> aguardando
-                </a>
-              ) : '–'}
-            </CampoCabecalho>
-            <BotaoAvisos ligado={avisosLigados} onMudar={setAvisosLigados} />
-            <BotaoTema naFaixa className="mb-1" />
-            <button onClick={onSair} className="mb-1 inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1.5 text-[13.5px] text-sobre-topo-2 hover:bg-sobre-topo/10 hover:text-sobre-topo">
-              <LogOut className="size-4" aria-hidden />Sair
-            </button>
-          </dl>
+        {aqui && (
+          <p className="ml-1 hidden min-w-0 items-center gap-1.5 border-l border-linha pl-4 text-[13.5px] text-sobre-topo-2 md:flex" aria-label="Você está em">
+            <span className="truncate">{aqui.grupo}</span>
+            <ChevronRight className="size-3.5 shrink-0" aria-hidden />
+            <span className={`truncate ${aqui.sub ? '' : 'font-semibold text-sobre-topo'}`}>{aqui.item}</span>
+            {aqui.sub && <><ChevronRight className="size-3.5 shrink-0" aria-hidden /><span className="truncate font-semibold text-sobre-topo">{aqui.sub}</span></>}
+          </p>
+        )}
+        {aqui && <p className="min-w-0 truncate text-[13.5px] font-semibold text-sobre-topo md:hidden">{aqui.sub ?? aqui.item}</p>}
 
-          <div className="flex items-center md:hidden">
-            <BotaoTema compacto naFaixa className="p-2" />
-            <button onClick={onSair} className="rounded-[5px] p-2 text-sobre-topo-2 hover:bg-sobre-topo/10 hover:text-sobre-topo" aria-label="Sair do sistema">
-              <LogOut className="size-5" aria-hidden />
-            </button>
-          </div>
+        <dl className="ml-auto hidden items-center gap-5 xl:flex">
+          <CampoCabecalho rotulo="Unidade">{usuario.unidade_id ? nomeUnidade(unidades.dados, usuario.unidade_id) : 'Todas as unidades'}</CampoCabecalho>
+          <CampoCabecalho rotulo={papel}>{usuario.name}</CampoCabecalho>
+          <CampoCabecalho rotulo="Na fila">
+            {fila.dados ? (
+              <a href="#/fila" className="hover:underline">
+                {urgentes > 0 && <span className="text-urgente-topo">{urgentes} urgente{urgentes > 1 ? 's' : ''} · </span>}
+                <span className="tabular">{aguardando}</span> aguardando
+              </a>
+            ) : '–'}
+          </CampoCabecalho>
+        </dl>
+        <div className="ml-auto flex shrink-0 items-center gap-1 xl:ml-3 xl:border-l xl:border-linha xl:pl-3">
+          <span className="hidden md:inline-flex"><BotaoAvisos ligado={avisosLigados} onMudar={setAvisosLigados} /></span>
+          <BotaoTema compacto naFaixa className="p-2" />
+          <button onClick={onSair} className="rounded-[3px] p-2 text-sobre-topo-2 hover:bg-sobre-topo/10 hover:text-sobre-topo" aria-label="Sair do sistema" title="Sair">
+            <LogOut className="size-[18px]" aria-hidden />
+          </button>
         </div>
-
-        <nav aria-label="Principal" className="mt-5 hidden gap-0.5 md:flex">
-          {NAVEGACAO.map(({ id, rotulo, icone: Icone }) => (
-            <a key={id} href={`#/${id}`} aria-current={rota === id ? 'page' : undefined}
-              className={`aba-pasta relative flex items-center gap-2 px-4 py-2.5 text-[14.5px] transition-colors duration-150 ${rota === id ? 'z-10 font-semibold text-texto' : 'text-sobre-topo-2 hover:bg-sobre-topo/10 hover:text-sobre-topo'}`}>
-              <Icone className="size-[17px] shrink-0" aria-hidden />
-              {rotulo}
-              {id === 'conversas' && naoLidas > 0 && (
-                <span className={`rounded-full px-1.5 text-[12px] font-bold leading-[18px] tabular ${rota === id ? 'bg-caneta text-sobre' : 'bg-sobre-topo text-topo'}`} aria-label={`${naoLidas} conversas com mensagens novas`}>{naoLidas}</span>
-              )}
-            </a>
-          ))}
-        </nav>
       </header>
       </div>
 
       <main className="mx-auto max-w-[1440px] md:px-8">
-        <div className="folha -mt-px min-h-[70vh] rounded-none px-4 py-6 md:rounded-[6px] md:rounded-t-none md:px-9 md:py-8">
+        <div className="folha min-h-[70vh] px-4 py-5 md:px-0 md:py-6">
           <AlertaUrgente triagens={triagens} minutos={minutosAlerta} />
           {rota === 'fila' && <Fila fila={fila} filtroEstado={parametro} />}
           {rota === 'conversas' && <Conversas conversas={conversas} selecionada={parametro} />}
           {rota === 'indicadores' && <Indicadores parametro={parametro} />}
-          {rota === 'servicos' && <ServicosMensagens />}
+          {rota === 'servicos' && <ServicosMensagens aba={parametro} />}
           {rota === 'configuracoes' && <Configuracoes aba={parametro} />}
         </div>
       </main>
 
-      <nav aria-label="Principal" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-linha bg-superficie md:hidden">
-        {NAVEGACAO.map(({ id, rotulo, curto, icone: Icone }) => (
-          <a key={id} href={`#/${id}`} aria-label={rotulo} aria-current={rota === id ? 'page' : undefined}
-            className={`relative flex flex-col items-center gap-1 py-2.5 text-[11px] ${rota === id ? 'font-semibold text-texto' : 'text-texto-3'}`}>
-            {rota === id && <span className="absolute inset-x-4 top-0 h-[3px] rounded-b bg-acao" aria-hidden />}
-            <Icone className="size-5" aria-hidden />
-            <span className="max-w-full px-0.5 text-center leading-tight">{curto}</span>
-            {id === 'conversas' && naoLidas > 0 && <span className="absolute right-[22%] top-1.5 size-2 rounded-full bg-caneta" aria-hidden />}
-          </a>
-        ))}
-      </nav>
+      {/* Só existe aberta: ao reabrir, começa com os tópicos fechados */}
+      {menuAberto && <GavetaMenu aberto onFechar={fecharMenu} grupos={menu} rota={rota} parametro={parametro}
+        rodape={
+          <div className="text-[13.5px]">
+            <p className="font-semibold">{usuario.name}</p>
+            <p className="text-texto-2">{papel} · {usuario.unidade_id ? nomeUnidade(unidades.dados, usuario.unidade_id) : 'Todas as unidades'}</p>
+          </div>
+        } />}
     </div>
   );
 }

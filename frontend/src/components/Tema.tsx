@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
 
-// Modo escuro: segue o computador até a pessoa escolher; a escolha fica neste navegador.
+// Tema: o painel abre no escuro até a pessoa escolher; a escolha fica neste navegador.
 // O index.html aplica o tema antes de a página aparecer (sem piscar branco ao abrir).
 const CHAVE = 'ponte_tema';
 type Tema = 'claro' | 'escuro';
@@ -15,30 +15,12 @@ function escolhido(): Tema | null {
   }
 }
 
-function doSistema(): Tema {
-  try { return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro'; } catch { return 'claro'; }
-}
-
 function aplicar(tema: Tema) {
   document.documentElement.dataset.tema = tema;
 }
 
 function useTema() {
-  const [tema, setTema] = useState<Tema>(() => (document.documentElement.dataset.tema as Tema) || escolhido() || doSistema());
-
-  // Sem escolha feita, acompanha o computador se ele mudar (ex.: modo noturno automático)
-  useEffect(() => {
-    let mq: MediaQueryList;
-    try { mq = window.matchMedia('(prefers-color-scheme: dark)'); } catch { return; }
-    const mudou = () => {
-      if (escolhido()) return;
-      const novo = mq.matches ? 'escuro' : 'claro';
-      aplicar(novo);
-      setTema(novo);
-    };
-    mq.addEventListener('change', mudou);
-    return () => mq.removeEventListener('change', mudou);
-  }, []);
+  const [tema, setTema] = useState<Tema>(() => (document.documentElement.dataset.tema as Tema) || escolhido() || 'escuro');
 
   const alternar = () => {
     const novo: Tema = tema === 'escuro' ? 'claro' : 'escuro';
@@ -55,7 +37,7 @@ export function BotaoTema({ className = '', compacto = false, naFaixa = false }:
   return (
     <button type="button" onClick={alternar} aria-pressed={escuro}
       title={escuro ? 'Voltar para o modo claro' : 'Usar o modo escuro'}
-      className={`inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1.5 text-[13.5px] transition-colors duration-150 ${naFaixa
+      className={`inline-flex items-center gap-1.5 rounded-[3px] px-2 py-1.5 text-[13.5px] transition-colors duration-150 ${naFaixa
         ? 'text-sobre-topo-2 hover:bg-sobre-topo/10 hover:text-sobre-topo'
         : 'text-texto-2 hover:bg-superficie hover:text-texto'} ${className}`}>
       {escuro ? <Sun className={compacto ? 'size-5' : 'size-4'} aria-hidden /> : <Moon className={compacto ? 'size-5' : 'size-4'} aria-hidden />}

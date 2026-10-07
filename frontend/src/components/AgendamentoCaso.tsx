@@ -68,7 +68,7 @@ export function AgendamentoCaso({ caso, podeAvisar, violencia, onAlterado }: {
         <CalendarClock className="size-3.5" aria-hidden />Atendimento marcado
       </h3>
       {caso.agendado_para && !editando ? (
-        <div className="flex flex-col gap-2 rounded-[5px] border border-caneta/25 bg-caneta-fundo/60 px-4 py-3">
+        <div className="flex flex-col gap-2 rounded-[3px] border border-caneta/25 bg-caneta-fundo/60 px-4 py-3">
           <p className="text-[15px]"><strong className="font-semibold">{descrever(caso.agendado_para)}</strong>{caso.agendado_local && <> no {caso.agendado_local}</>}</p>
           <p className="text-[12.5px] text-texto-2">
             Marcado por {caso.agendado_por ?? 'equipe'}.{' '}

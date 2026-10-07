@@ -29,7 +29,7 @@ export function BotaoAvisos({ ligado, onMudar }: { ligado: boolean; onMudar: (v:
   return (
     <button type="button" onClick={alternar} aria-pressed={ligado}
       title={negado ? 'O navegador bloqueou as notificações. Libere nas configurações do site.' : ligado ? 'Desligar avisos no computador' : 'Avisar no computador quando chegar um caso de violência'}
-      className="mb-1 inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1.5 text-[13.5px] text-sobre-topo-2 transition-colors duration-150 hover:bg-sobre-topo/10 hover:text-sobre-topo">
+      className="mb-1 inline-flex items-center gap-1.5 rounded-[3px] px-2 py-1.5 text-[13.5px] text-sobre-topo-2 transition-colors duration-150 hover:bg-sobre-topo/10 hover:text-sobre-topo">
       {ligado ? <Bell className="size-4" aria-hidden /> : <BellOff className="size-4" aria-hidden />}
       {negado ? 'Avisos bloqueados' : ligado ? 'Avisos ligados' : 'Ligar avisos'}
     </button>

@@ -93,7 +93,7 @@ function ItemDocumento({ casoId, doc, numero, onAmpliar, onRevisado }: {
 
   const borda = doc.situacao === 'legivel' ? 'border-ok/45' : doc.situacao === 'refazer' ? 'border-alta/50' : 'border-linha';
   return (
-    <li className={`flex flex-col overflow-hidden rounded-[6px] border bg-superficie ${borda}`}>
+    <li className={`flex flex-col overflow-hidden rounded-[4px] border bg-superficie ${borda}`}>
       <button type="button" disabled={!url} onClick={() => url && onAmpliar({ url, mime: doc.mime })}
         aria-label={`Ampliar documento ${numero}`}
         className="group relative flex h-36 items-center justify-center bg-elevada disabled:cursor-wait">
@@ -155,7 +155,7 @@ function Ampliado({ url, mime, onFechar }: { url: string; mime: string; onFechar
         <X className="size-5" aria-hidden />
       </button>
       {mime === 'application/pdf'
-        ? <iframe src={url} title="Documento em PDF" className="h-[88vh] w-full max-w-4xl rounded-[6px] bg-superficie" onClick={(e) => e.stopPropagation()} />
+        ? <iframe src={url} title="Documento em PDF" className="h-[88vh] w-full max-w-4xl rounded-[4px] bg-superficie" onClick={(e) => e.stopPropagation()} />
         : <img src={url} alt="Documento enviado pela pessoa, ampliado" className="max-h-[88vh] max-w-full rounded-[4px] object-contain" onClick={(e) => e.stopPropagation()} />}
     </div>
   );

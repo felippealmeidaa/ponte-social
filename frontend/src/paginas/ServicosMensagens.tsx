@@ -12,6 +12,7 @@ import { useAtualizacao } from '../useAtualizacao';
 import { Respostas } from './RespostasNecessidade';
 import { Unidades } from './Unidades';
 import { dataHora } from '../vocabulario';
+import { irPara as irParaRota } from '../navegacao';
 
 
 interface TextoBot {
@@ -48,21 +49,23 @@ interface Contexto {
   podeEditar: boolean;
 }
 
-export function ServicosMensagens() {
+export function ServicosMensagens({ aba: abaPedida }: { aba?: string }) {
   const conta = contaAtual();
   const unidades = useUnidades();
-  const [aba, setAba] = useState<Aba>('fluxo');
   const [escolhida, setEscolhida] = useState<string | null>(null);
   const unidade = conta.unidadeId ?? escolhida;
   const ctx: Contexto = { unidade, podeEditar: conta.coordenacao };
   const abas: [Aba, string][] = [['fluxo', 'Fluxo da conversa'], ['respostas', 'Respostas por necessidade']];
   if (conta.geral) abas.push(['unidades', 'Unidades de atendimento']);
+  // A aba vem do endereço (#/servicos/respostas), para o menu levar direto a ela
+  const aba: Aba = abas.some(([id]) => id === abaPedida) ? (abaPedida as Aba) : 'fluxo';
+  const setAba = (id: Aba) => irParaRota('servicos', id);
 
   return (
     <>
       <header className="mb-6 flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
         <div>
-          <h1 className="titulo text-[35px] leading-[1.05]">Serviços e mensagens</h1>
+          <h1 className="titulo text-[28px] leading-[1.05]">Serviços e mensagens</h1>
           <p className="mt-2 max-w-[75ch] text-texto-2">
             O que o bot responde no WhatsApp. As mudanças valem na hora para as próximas conversas, sem precisar de programador.
           </p>
@@ -108,7 +111,7 @@ function SeletorUnidade({ unidades, unidade, fixa, onMudar }: {
 }) {
   if (fixa) {
     return (
-      <p className="rounded-[5px] border border-linha bg-superficie px-3 py-2 text-sm">
+      <p className="rounded-[3px] border border-linha bg-superficie px-3 py-2 text-sm">
         <span className="text-texto-3">Configuração do </span><span className="font-medium">{nomeUnidade(unidades, unidade)}</span>
       </p>
     );
@@ -258,7 +261,7 @@ function Fluxo({ ctx, unidades, irPara }: { ctx: Contexto; unidades: UnidadeResu
 
       <section ref={editor} aria-labelledby="t-etapa" data-sem-orelha={orelha === null || novaAntesDe ? '' : undefined}
         style={orelha === null ? undefined : { '--orelha': `${orelha}px` } as CSSProperties}
-        className="editor-etapa mt-2 scroll-mt-4 rounded-[6px] border border-linha-forte bg-superficie shadow-[0_10px_28px_-20px_rgb(27_39_51/0.45)]">
+        className="editor-etapa mt-2 scroll-mt-4 rounded-[4px] border border-linha-forte bg-superficie shadow-[0_10px_28px_-20px_rgb(27_39_51/0.45)]">
         {(extraEscolhida || novaAntesDe) && dadosDesenho ? (
           <EditorExtra key={selecionada} extra={extraEscolhida} antesDe={extraEscolhida?.antes_de ?? novaAntesDe!} desenho={dadosDesenho} ctx={ctx}
             onSalvar={async (lista, id) => { if (await salvarDesenho({ extras: lista })) setSelecionada(id); }}
@@ -289,7 +292,7 @@ function Fluxo({ ctx, unidades, irPara }: { ctx: Contexto; unidades: UnidadeResu
       {avulsos.length > 0 && (
         <section aria-labelledby="t-avulsos" className="mt-4">
           <h2 id="t-avulsos" className="mb-3 titulo text-[19px] leading-[1.05]">Outros textos</h2>
-          <div className="conversa-whats flex flex-col gap-4 rounded-[6px] border border-linha px-4 py-5 sm:px-6">
+          <div className="conversa-whats flex flex-col gap-4 rounded-[4px] border border-linha px-4 py-5 sm:px-6">
             {avulsos.map((t) => <BalaoTexto key={t.chave + (t.atualizado_em ?? '')} texto={t} ctx={ctx} onSalvo={textos.recarregar} />)}
           </div>
         </section>
@@ -339,14 +342,14 @@ function EditorExtra({ extra, antesDe, desenho, ctx, onSalvar, onRemover }: {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="flex min-w-0 flex-col gap-3">
           <h3 className="text-[13.5px] font-semibold text-texto-2">O que a pessoa vê no WhatsApp</h3>
-          <div className="conversa-whats flex flex-col gap-3 rounded-[6px] border border-linha px-4 py-5 sm:px-6">
+          <div className="conversa-whats flex flex-col gap-3 rounded-[4px] border border-linha px-4 py-5 sm:px-6">
             <div className="balao-whats ml-2 max-w-[560px] whitespace-pre-wrap px-3 py-2 text-[14.5px] leading-[1.45]">
               {texto.trim() ? whatsapp(texto) : <span className="text-whats-2">A mensagem aparece aqui enquanto você escreve.</span>}
             </div>
             <p className="pl-2 text-[12.5px] text-whats-2">Logo depois vem a mensagem de “{POR_ID[ancora]?.titulo}”.</p>
           </div>
         </div>
-        <aside className="flex flex-col gap-4 rounded-[6px] border border-linha p-4">
+        <aside className="flex flex-col gap-4 rounded-[4px] border border-linha p-4">
           <fieldset disabled={somenteLeitura || ocupado !== null} className="flex flex-col gap-4 disabled:opacity-80">
             <Campo id="extra-titulo" rotulo="Nome do quadradinho" dica="Só aparece no painel.">
               <input id="extra-titulo" maxLength={60} value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Horário de atendimento" className={classeEntrada} />
@@ -417,7 +420,7 @@ function MensagensEtapa({ etapa, textos, ctx }: {
     if (!textos.dados) return <Esqueleto className="h-40" />;
   }
   return (
-    <div className="conversa-whats flex flex-col gap-5 rounded-[6px] border border-linha px-4 py-5 sm:px-6">
+    <div className="conversa-whats flex flex-col gap-5 rounded-[4px] border border-linha px-4 py-5 sm:px-6">
       {etapa.textos.map((chave) => {
         const t = textos.dados?.find((x) => x.chave === chave);
         return t ? <BalaoTexto key={t.chave + (t.atualizado_em ?? '') + t.personalizado} texto={t} ctx={ctx} onSalvo={textos.recarregar} /> : null;
@@ -470,7 +473,7 @@ function AjustesEtapa({ etapa, estado, ctx, onSalvo }: {
   };
 
   return (
-    <section aria-labelledby="t-ajustes" className="flex flex-col gap-4 rounded-[6px] border border-linha p-4">
+    <section aria-labelledby="t-ajustes" className="flex flex-col gap-4 rounded-[4px] border border-linha p-4">
       <h3 id="t-ajustes" className="text-[13.5px] font-semibold text-texto-2">{ctx.unidade ? 'Ajustes deste CRAS' : 'Ajustes do padrão da secretaria'}</h3>
       {opcoes.length > 0 && !estado && <Esqueleto className="h-16" />}
       {estado && opcoes.map((op) => {
@@ -531,7 +534,7 @@ function ParaOndeVai({ etapa, semConfirmacao, onAbrir }: { etapa: Etapa; semConf
           {saidas.map((l) => (
             <li key={l.para}>
               <button type="button" onClick={() => onAbrir(l.para)}
-                className="group flex w-full items-center gap-2 rounded-[5px] px-2 py-1.5 text-left text-[14px] hover:bg-elevada focus-visible:outline-2 focus-visible:outline-caneta">
+                className="group flex w-full items-center gap-2 rounded-[3px] px-2 py-1.5 text-left text-[14px] hover:bg-elevada focus-visible:outline-2 focus-visible:outline-caneta">
                 <span className="text-texto-2">{l.rotulo ?? 'depois'}</span>
                 <ArrowRight className={`size-3.5 shrink-0 ${l.urgente ? 'text-urgente' : 'text-texto-3'}`} aria-hidden />
                 <span className="font-semibold group-hover:underline group-hover:underline-offset-4">{POR_ID[l.para].titulo}</span>

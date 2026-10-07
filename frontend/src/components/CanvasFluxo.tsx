@@ -211,7 +211,7 @@ export function CanvasFluxo(estado: EstadoCanvas) {
   const comuns = { ...estado, arrastando, setArrastando, mover, lugar };
 
   return (
-    <div ref={canvas} className="canvas-fluxo relative isolate overflow-x-auto overflow-y-hidden rounded-[6px] border border-linha p-5">
+    <div ref={canvas} className="canvas-fluxo relative isolate overflow-x-auto overflow-y-hidden rounded-[4px] border border-linha p-5">
       <svg aria-hidden className="pointer-events-none absolute left-0 top-0 z-0 overflow-visible" style={{ width: larguraArea + 40, height: '100%' }}>
         <defs>
           {(['normal', 'ativa', 'urgente'] as const).map((tom) => (
@@ -266,7 +266,7 @@ export function CanvasFluxo(estado: EstadoCanvas) {
         })}
       </div>
 
-      <section aria-labelledby="c-seguranca" className="sticky left-0 mb-8 flex flex-wrap items-center gap-x-8 gap-y-3 rounded-[6px] border border-urgente/30 bg-urgente-fundo/80 px-4 py-3.5" style={{ maxWidth: largura || undefined }}>
+      <section aria-labelledby="c-seguranca" className="sticky left-0 mb-8 flex flex-wrap items-center gap-x-8 gap-y-3 rounded-[4px] border border-urgente/30 bg-urgente-fundo/80 px-4 py-3.5" style={{ maxWidth: largura || undefined }}>
         <h3 id="c-seguranca" className="flex max-w-[15rem] items-start gap-2 text-[14px] font-semibold leading-snug text-urgente-forte">
           <ShieldAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
           Violência, em qualquer etapa e em todos os CRAS
@@ -393,9 +393,9 @@ function Bloco({ id, etapa, tamanho, ref, extra, fixo, selecionada, contagem, pu
       onPointerDown={descer} onPointerMove={andar} onPointerUp={subir} onPointerCancel={cancelar}
       onKeyDown={teclado}
       aria-label={`${etapa.titulo}${extra ? ', mensagem extra' : ''}${pulada ? `, ${pulada.curto}` : ''}${n ? `, ${n} conversa(s) aqui agora` : ''}. Ver e editar.${arrastavel ? ' Alt e setas movem.' : ''}`}
-      className={`group flex select-none flex-col items-center gap-2 rounded-[8px] text-center focus-visible:outline-none ${t.largura} ${arrastavel ? `touch-none ${emArraste ? 'cursor-grabbing' : 'cursor-grab'}` : ''}`}>
+      className={`group flex select-none flex-col items-center gap-2 rounded-[4px] text-center focus-visible:outline-none ${t.largura} ${arrastavel ? `touch-none ${emArraste ? 'cursor-grabbing' : 'cursor-grab'}` : ''}`}>
       <span ref={ref}
-        className={`relative flex items-center justify-center border transition-[border-color,background-color,box-shadow,scale] duration-150 group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-caneta ${t.bloco} ${fim ? 'rounded-l-[10px] rounded-r-full' : 'rounded-[10px]'} ${moldura} ${emArraste ? 'scale-[1.06] shadow-[0_16px_28px_-12px_rgb(27_39_51/0.55)]' : ''}`}>
+        className={`relative flex items-center justify-center border transition-[border-color,background-color,box-shadow,scale] duration-150 group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-caneta ${t.bloco} ${fim ? 'rounded-l-[10px] rounded-r-full' : 'rounded-[4px]'} ${moldura} ${emArraste ? 'scale-[1.06] shadow-[0_16px_28px_-12px_rgb(27_39_51/0.55)]' : ''}`}>
         <Icone className={t.icone} strokeWidth={1.75} aria-hidden />
         {n > 0 && (
           <span className="absolute -right-2 -top-2 min-w-5 rounded-full border-2 border-superficie bg-info px-1 text-[11.5px] font-semibold leading-4 tabular text-sobre">{n}</span>

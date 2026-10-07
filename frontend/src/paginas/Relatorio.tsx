@@ -82,7 +82,7 @@ export function Relatorio() {
         <div className="flex flex-wrap items-center gap-2">
           <label className="sr-only" htmlFor="mes-relatorio">Mês do relatório</label>
           <select id="mes-relatorio" value={mes} onChange={(e) => setMes(e.target.value)}
-            className="h-10 rounded-[5px] border border-linha-forte bg-superficie px-2.5 text-[14.5px]">
+            className="h-10 rounded-[3px] border border-linha-forte bg-superficie px-2.5 text-[14.5px]">
             {meses.map((m) => <option key={m.valor} value={m.valor}>{m.rotulo}</option>)}
           </select>
           <Botao icone={FileSpreadsheet} onClick={planilha} carregando={baixando} disabled={!dados}>Baixar planilha</Botao>
@@ -106,7 +106,7 @@ function Conteudo({ d }: { d: DadosRelatorio }) {
     <>
       <header className="mb-8 border-b-2 border-texto pb-4">
         <p className="text-[13px] text-texto-2">Ponte Social · {d.unidade}</p>
-        <h1 className="titulo mt-1 text-[35px] leading-[1.05]">Relatório de {d.titulo}</h1>
+        <h1 className="titulo mt-1 text-[28px] leading-[1.05]">Relatório de {d.titulo}</h1>
         <p className="mt-2 text-[13px] text-texto-3">Gerado em {gerado}. Conta os casos que chegaram no mês (horário de Brasília); os exemplos de demonstração não entram.</p>
       </header>
 

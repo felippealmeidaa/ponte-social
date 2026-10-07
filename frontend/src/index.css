@@ -1,73 +1,75 @@
 @import "tailwindcss";
-@import "@fontsource-variable/archivo/wdth.css";
-@import "@fontsource-variable/atkinson-hyperlegible-next/wght.css";
+@import "@fontsource-variable/ibm-plex-sans/wdth.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/600.css";
 
-/* Ponte Social · direção "Guia de encaminhamento":
-   a mesa (fundo frio), o papel (onde está o conteúdo), a tinta (texto e ação),
-   a pauta (linhas de formulário), a caneta (foco e seleção) e o carimbo (só urgência). */
+/* Ponte Social · direção "Painel de turno": um terminal de operação da rede socioassistencial.
+   Grafite (fundo e painéis), traço fino (bordas), vermelhão (o que está ativo e a ação principal),
+   verde (o que está em ordem) e um vermelho frio reservado à violência. Dados sempre em Plex Mono. */
 @theme {
-  --font-sans: "Atkinson Hyperlegible Next Variable", "Segoe UI", system-ui, sans-serif;
-  --font-display: "Archivo Variable", "Atkinson Hyperlegible Next Variable", sans-serif;
+  --font-sans: "IBM Plex Sans Variable", "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-display: "IBM Plex Sans Variable", "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
 
-  /* Base neutra e fria; um único acento (azul-petróleo). Cores fortes só nos status. */
-  --color-fundo: #eef1f4;        /* mesa */
-  --color-superficie: #ffffff;   /* papel */
-  --color-elevada: #f6f8fa;      /* papel sob a mão: hover, campo em destaque */
-  --color-realce: #e9edf1;
-  --color-linha: #dde3e9;        /* pauta */
-  --color-linha-forte: #b3bdc8;
+  /* Tema claro: o mesmo painel sob luz do dia (papel acinzentado, tinta grafite) */
+  --color-fundo: #e8e7e3;
+  --color-superficie: #f6f5f2;
+  --color-elevada: #eeede9;
+  --color-realce: #e3e2dd;
+  --color-linha: #d5d3cd;
+  --color-linha-forte: #a9a7a0;
 
-  --color-texto: #1b2733;        /* tinta ardósia */
-  --color-texto-2: #4a5868;
-  --color-texto-3: #5d6a79;
+  --color-texto: #17181a;
+  --color-texto-2: #4a4b4e;
+  --color-texto-3: #5f605f;
 
-  --color-caneta: #0e6b67;       /* acento: foco, seleção e ação */
-  --color-caneta-fundo: #e7f2f1;
-  --color-urgente: #c4352e;      /* carimbo: só urgência */
-  --color-urgente-fundo: #fcedec;
-  --color-alta: #a85410;
-  --color-alta-fundo: #fcf1e6;
-  --color-media: #6d5a00;
+  /* Vermelhão: item ativo, foco, seleção e ação principal */
+  --color-caneta: #b83d12;
+  --color-caneta-fundo: #f6e3da;
+  /* Vermelho frio: só violência e urgência (diferente do vermelhão, sempre com o escudo) */
+  --color-urgente: #c3162f;
+  --color-urgente-fundo: #f8e1e4;
+  --color-alta: #9a5300;
+  --color-alta-fundo: #f5e9d8;
+  --color-media: #6b5a00;
   --color-ok: #17733f;
-  --color-ok-fundo: #e6f4ec;
-  --color-info: #2559b8;
-  --color-info-fundo: #e9effb;
+  --color-ok-fundo: #dfefe4;
+  --color-info: #2a5aa8;
+  --color-info-fundo: #e2e9f5;
 
-  /* Faixa do topo na cor da marca: cabeçalho e abas */
-  --color-topo: #0d4a47;
-  --color-sobre-topo: #ffffff;
-  --color-sobre-topo-2: #b8d6d2;
-  --color-urgente-topo: #ffb8b0;
+  /* Barra do topo: parte do painel, separada só por um traço */
+  --color-topo: #f6f5f2;
+  --color-sobre-topo: #17181a;
+  --color-sobre-topo-2: #4a4b4e;
+  --color-urgente-topo: #c3162f;
 
-  /* Uma cor por necessidade (ícones, barras): sóbrias, legíveis sobre o papel */
+  /* Uma cor por necessidade (ícones, barras, mapa) */
   --color-cat-renda: #1f7a4d;
   --color-cat-cadastro: #2459a8;
   --color-cat-moradia: #a3561c;
   --color-cat-documentos: #5b4bb5;
-  --color-cat-alimentacao: #8f6400;
+  --color-cat-alimentacao: #8a6200;
   --color-cat-idosa: #8a3f86;
   --color-cat-trabalho: #0e6b67;
-  --color-cat-violencia: #c4352e;
-  --color-cat-outro: #5d6a79;
+  --color-cat-violencia: #c3162f;
+  --color-cat-outro: #5f605f;
 
-  /* Caso ainda não aberto: um toque discreto no canhoto da guia */
-  --color-marca: #d99a00;
-  --color-marca-fundo: #fff7e0;
+  /* Caso ainda não aberto */
+  --color-marca: #b98500;
+  --color-marca-fundo: #f3ead0;
 
-  /* Ação principal (botão, marcas de etapa) */
-  --color-acao: #0e6b67;
-  --color-acao-hover: #0a5551;
+  --color-acao: #c4461a;
+  --color-acao-hover: #a8390f;
   --color-sobre-acao: #ffffff;
 
-  /* Texto forte sobre os fundos de aviso, e texto sobre os preenchimentos de cor (selo, contador) */
-  --color-urgente-forte: #8e231d;
+  --color-urgente-forte: #8c0f22;
   --color-info-forte: #1c4489;
   --color-ok-forte: #135a33;
   --color-sobre: #ffffff;
-  --color-tinta-hover: #0a5551;
-  --color-veu: #1b2733;
-  /* Faixa de caso urgente parado: preenchimento forte com texto claro */
-  --color-alerta: #c4352e;
+  --color-tinta-hover: #a8390f;
+  --color-veu: #0d0e0f;
+  --color-alerta: #c3162f;
   --color-sobre-alerta: #ffffff;
 
   /* Prévia do WhatsApp, nas cores do próprio WhatsApp */
@@ -80,64 +82,61 @@
   --ease-saida: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Títulos: Archivo largo e pesado, como cabeçalho de formulário impresso */
-/* Modo escuro: a mesma guia, à noite. A mesa fica quase preta azulada, o papel um pouco mais claro,
-   a tinta clara; a caneta e o carimbo clareiam para manter o contraste (AA) sobre o fundo escuro. */
+/* Tema escuro (padrão do terminal): grafite neutro, não azulado; contraste AA em todo texto */
 :root[data-tema="escuro"] {
   color-scheme: dark;
-  /* À noite: ardósia, não preto; o acento clareia para manter o contraste */
-  --color-fundo: #111821;
-  --color-superficie: #18212c;
-  --color-elevada: #1e2935;
-  --color-realce: #253242;
-  --color-linha: #2a3746;
-  --color-linha-forte: #435367;
+  --color-fundo: #161718;
+  --color-superficie: #1d1e20;
+  --color-elevada: #252628;
+  --color-realce: #2c2d30;
+  --color-linha: #2f3134;
+  --color-linha-forte: #4a4c50;
 
-  --color-texto: #e6ebf0;
-  --color-texto-2: #a9b5c2;
-  --color-texto-3: #8e9bab;
+  --color-texto: #ecebe7;
+  --color-texto-2: #aeaca6;
+  --color-texto-3: #8d8b85;
 
-  --color-caneta: #4fbfb5;
-  --color-caneta-fundo: #17302f;
-  --color-urgente: #f2786d;
-  --color-urgente-fundo: #36201f;
-  --color-alta: #e9a35c;
+  --color-caneta: #ff7a45;
+  --color-caneta-fundo: #33221b;
+  --color-urgente: #ff5c6c;
+  --color-urgente-fundo: #3a1c21;
+  --color-alta: #f0a24f;
   --color-alta-fundo: #33281c;
   --color-media: #dcc463;
-  --color-ok: #5fcb8d;
-  --color-ok-fundo: #173126;
-  --color-info: #85b4f2;
-  --color-info-fundo: #1b2b44;
+  --color-ok: #3ccf6e;
+  --color-ok-fundo: #163020;
+  --color-info: #7fb0f5;
+  --color-info-fundo: #1a2638;
 
-  --color-marca: #e2b33f;
-  --color-marca-fundo: #2a2a21;
+  --color-topo: #1d1e20;
+  --color-sobre-topo: #ecebe7;
+  --color-sobre-topo-2: #aeaca6;
+  --color-urgente-topo: #ff5c6c;
 
-  --color-topo: #0f3236;
-  --color-sobre-topo: #e8f3f1;
-  --color-sobre-topo-2: #9fc3be;
-  --color-urgente-topo: #ff9d93;
+  --color-cat-renda: #4fd08a;
+  --color-cat-cadastro: #7fb0f5;
+  --color-cat-moradia: #c9a27c;
+  --color-cat-documentos: #ab9cf5;
+  --color-cat-alimentacao: #e6c04f;
+  --color-cat-idosa: #e08fd8;
+  --color-cat-trabalho: #45c8bd;
+  --color-cat-violencia: #ff5c6c;
+  --color-cat-outro: #9b9993;
 
-  --color-cat-renda: #6fcf9a;
-  --color-cat-cadastro: #86b2f0;
-  --color-cat-moradia: #eba366;
-  --color-cat-documentos: #aea1f2;
-  --color-cat-alimentacao: #e1b44e;
-  --color-cat-idosa: #d993d3;
-  --color-cat-trabalho: #4fbfb5;
-  --color-cat-violencia: #f2786d;
-  --color-cat-outro: #9aa7b5;
+  --color-marca: #e6b84a;
+  --color-marca-fundo: #2e2818;
 
-  --color-acao: #4fbfb5;
-  --color-acao-hover: #77d0c8;
-  --color-sobre-acao: #0a1c1b;
+  --color-acao: #f0602a;
+  --color-acao-hover: #ff7a45;
+  --color-sobre-acao: #170a04;
 
-  --color-urgente-forte: #ffb0a8;
+  --color-urgente-forte: #ffb3ba;
   --color-info-forte: #bad5fb;
   --color-ok-forte: #9be2b8;
-  --color-sobre: #0a1c1b;
-  --color-tinta-hover: #77d0c8;
-  --color-veu: #05080c;
-  --color-alerta: #a8342d;
+  --color-sobre: #170a04;
+  --color-tinta-hover: #ff7a45;
+  --color-veu: #050506;
+  --color-alerta: #b3172d;
   --color-sobre-alerta: #ffffff;
 
   --color-whats-fundo: #0b141a;
@@ -147,12 +146,20 @@
   --color-whats-enviada: #005c4b;
 }
 
+/* Títulos: Plex Sans semi-negrito, levemente condensado; tamanho moderado, como o título de um painel */
 @utility titulo {
   font-family: var(--font-display);
-  font-stretch: 118%;
-  font-weight: 780;
+  font-stretch: 94%;
+  font-weight: 600;
   letter-spacing: -0.012em;
-  line-height: 1.02;
+  line-height: 1.12;
+}
+
+/* Dado: números, horários, códigos e contagens em Plex Mono, alinhados em coluna */
+@utility dado {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+  letter-spacing: -0.01em;
 }
 
 @layer base {
@@ -168,20 +175,20 @@
     background: var(--color-fundo);
     color: var(--color-texto);
     font-family: var(--font-sans);
-    font-size: 15.5px;
+    font-size: 15px;
     line-height: 1.55;
     -webkit-font-smoothing: antialiased;
   }
 
   ::selection {
-    background: color-mix(in oklab, var(--color-caneta) 22%, transparent);
+    background: color-mix(in oklab, var(--color-caneta) 28%, transparent);
     color: var(--color-texto);
   }
 
   :focus-visible {
     outline: 2px solid var(--color-caneta);
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: 3px;
   }
 
   input,
@@ -204,8 +211,11 @@
     scrollbar-color: var(--color-linha-forte) transparent;
   }
 
+  /* Todo número que a equipe compara (contagens, tempos, guias) sai em mono */
   .tabular {
-    font-variant-numeric: tabular-nums;
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums slashed-zero;
+    letter-spacing: -0.01em;
   }
 }
 
@@ -216,6 +226,17 @@
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+@keyframes entrar-esquerda {
+  from {
+    transform: translateX(-28px);
+    opacity: 0.6;
+  }
+  to {
+    transform: none;
+    opacity: 1;
   }
 }
 
@@ -230,46 +251,41 @@
   }
 }
 
-/* O papel: folha branca sobre a mesa, com sombra deslocada e tingida de tinta */
+/* Painel: a área de trabalho, com traço fino e canto quase reto (sem sombra macia) */
+/* Área de trabalho: as telas ficam direto no grafite; cada bloco (ficha, lista, gráfico) é um .painel */
 .folha {
-  background: var(--color-superficie);
-  border: 1px solid var(--color-linha);
-  border-radius: 6px;
-  box-shadow: 0 1px 0 rgb(27 39 51 / 0.04), 0 8px 24px -16px rgb(27 39 51 / 0.28);
-}
-:root[data-tema="escuro"] .folha {
-  box-shadow: 0 1px 0 rgb(0 0 0 / 0.3), 0 12px 30px -16px rgb(0 0 0 / 0.7);
+  background: transparent;
 }
 
-/* Guia de encaminhamento: canhoto à esquerda, separado por picote com recortes */
+/* Painel: bloco com traço fino e barra de título, como num terminal de operação */
+.painel {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-linha);
+  border-radius: 4px;
+}
+.painel-cabeca {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 46px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--color-linha);
+}
+.painel-corpo {
+  padding: 16px;
+}
+
+/* Ficha do caso na fila: coluna de identificação à esquerda (guia, espera) separada por um traço */
 .guia {
-  --recorte: 9px;
   position: relative;
   display: grid;
   grid-template-columns: 132px minmax(0, 1fr);
 }
 .guia-canhoto {
   position: relative;
-  border-right: 2px dashed var(--color-linha-forte);
-}
-.guia-canhoto::before,
-.guia-canhoto::after {
-  content: "";
-  position: absolute;
-  right: calc(var(--recorte) * -1 - 1px);
-  width: calc(var(--recorte) * 2);
-  height: calc(var(--recorte) * 2);
-  border-radius: 999px;
-  background: var(--color-fundo);
-  border: 1px solid var(--color-linha);
-}
-.guia-canhoto::before {
-  top: calc(var(--recorte) * -1 - 1px);
-  clip-path: inset(50% 0 0 0);
-}
-.guia-canhoto::after {
-  bottom: calc(var(--recorte) * -1 - 1px);
-  clip-path: inset(0 0 50% 0);
+  border-right: 1px solid var(--color-linha);
+  background: color-mix(in oklab, var(--color-elevada) 60%, transparent);
 }
 @media (max-width: 639px) {
   .guia {
@@ -277,44 +293,23 @@
   }
   .guia-canhoto {
     border-right: 0;
-    border-bottom: 2px dashed var(--color-linha-forte);
-  }
-  .guia-canhoto::before,
-  .guia-canhoto::after {
-    display: none;
+    border-bottom: 1px solid var(--color-linha);
   }
 }
 
-/* Carimbo: a única ousadia do painel. Só em violência/urgência. */
+/* Etiqueta de urgência: reta, em mono, com traço duplo na cor da violência. Só em violência/urgência. */
 .carimbo {
   display: inline-block;
-  font-family: var(--font-display);
-  font-stretch: 125%;
-  font-weight: 860;
-  letter-spacing: 0.04em;
-  line-height: 1.1;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
   color: var(--color-urgente);
-  border: 3px double var(--color-urgente);
-  border-radius: 4px;
-  padding: 2px 10px 1px;
-  transform: rotate(-7deg);
-  mix-blend-mode: multiply;
-  opacity: 0.92;
-  animation: carimbar 260ms var(--ease-saida) both;
-}
-/* "multiply" some com o vermelho no escuro: o carimbo fica por cima, sem mistura */
-:root[data-tema="escuro"] .carimbo {
-  mix-blend-mode: normal;
-}
-@keyframes carimbar {
-  from {
-    transform: rotate(-7deg) scale(1.35);
-    opacity: 0;
-  }
-  to {
-    transform: rotate(-7deg) scale(1);
-    opacity: 0.92;
-  }
+  background: var(--color-urgente-fundo);
+  border: 1px solid var(--color-urgente);
+  box-shadow: inset 0 0 0 2px var(--color-urgente-fundo), inset 0 0 0 3px color-mix(in oklab, var(--color-urgente) 45%, transparent);
+  border-radius: 3px;
+  padding: 3px 10px;
 }
 
 /* Caso que chegou e ainda não foi aberto: o canhoto da guia fica levemente destacado (o rótulo "Novo" diz o resto) */
@@ -322,27 +317,16 @@
   background: var(--color-marca-fundo);
 }
 
-/* Faixa do topo: a marca em cor cheia; as abas ficam na borda de baixo e a ativa encaixa na folha */
+/* Barra do topo: parte do painel, separada do conteúdo por um traço */
 .topo {
   background: var(--color-topo);
+  border-bottom: 1px solid var(--color-linha);
 }
 
 /* Chip de necessidade: ícone na cor da categoria sobre um fundo bem claro dela */
 .chip-cat {
   color: var(--cat);
   background: color-mix(in oklab, var(--cat) 13%, var(--color-superficie));
-}
-
-/* Abas de pasta: a aba ativa se funde com a folha logo abaixo */
-.aba-pasta {
-  border: 1px solid transparent;
-  border-bottom: 0;
-  border-radius: 6px 6px 0 0;
-}
-.aba-pasta[aria-current="page"] {
-  background: var(--color-superficie);
-  border-color: var(--color-superficie);
-  box-shadow: 0 1px 0 var(--color-superficie);
 }
 
 /* Fluxo do bot em canvas: pontos da prancheta, como no n8n, sobre o papel claro */
