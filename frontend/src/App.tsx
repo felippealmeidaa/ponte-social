@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BarChart3, ListOrdered, LogOut, MessagesSquare, NotebookPen, Settings, type LucideIcon } from 'lucide-react';
+import { 
+  BarChart3, 
+  BrainCircuit,
+  ListOrdered, 
+  LogOut, 
+  MessagesSquare, 
+  NotebookPen, 
+  Settings, 
+  ShieldCheck, 
+  type LucideIcon 
+} from 'lucide-react';
 import { api, encerrarSessao, sessaoSalva, type Usuario } from './api';
 import { LoginPage } from './components/LoginPage';
 import { Fila } from './paginas/Fila';
@@ -19,11 +29,11 @@ import type { Rota } from './navegacao';
 export const NOME_PRODUTO = 'Ponte Social';
 
 const NAVEGACAO: { id: Rota; rotulo: string; curto: string; icone: LucideIcon }[] = [
-  { id: 'fila', rotulo: 'Fila', curto: 'Fila', icone: ListOrdered },
-  { id: 'conversas', rotulo: 'Conversas', curto: 'Conversas', icone: MessagesSquare },
-  { id: 'indicadores', rotulo: 'Indicadores', curto: 'Indicadores', icone: BarChart3 },
-  { id: 'servicos', rotulo: 'Serviços e mensagens', curto: 'Serviços', icone: NotebookPen },
-  { id: 'configuracoes', rotulo: 'Configurações', curto: 'Ajustes', icone: Settings },
+  { id: 'fila', rotulo: 'Fila de Triagem', curto: 'Fila', icone: ListOrdered },
+  { id: 'conversas', rotulo: 'Live Chat', curto: 'Chat', icone: MessagesSquare },
+  { id: 'indicadores', rotulo: 'Indicadores', curto: 'Métricas', icone: BarChart3 },
+  { id: 'servicos', rotulo: 'Fluxos e Mensagens', curto: 'Fluxos', icone: NotebookPen },
+  { id: 'configuracoes', rotulo: 'Configurações & IA', curto: 'Ajustes', icone: Settings },
 ];
 
 function rotaAtual(): { rota: Rota; parametro?: string } {
@@ -43,16 +53,6 @@ export default function App() {
 
   if (!usuario) return <LoginPage onEntrar={setUsuario} />;
   return <Painel usuario={usuario} onSair={() => { encerrarSessao(); setUsuario(null); }} />;
-}
-
-/** Campo do cabeçalho, como num formulário: rótulo pequeno e o valor sobre a linha. */
-function CampoCabecalho({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
-  return (
-    <div className="min-w-0 border-b border-sobre-topo/25 pb-1">
-      <dt className="text-[12px] text-sobre-topo-2">{rotulo}</dt>
-      <dd className="truncate text-[14.5px] font-semibold text-sobre-topo">{children}</dd>
-    </div>
-  );
 }
 
 function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
@@ -79,77 +79,149 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
   const papel = usuario.role === 'ADMIN' ? 'Coordenação' : 'Atendimento';
 
   return (
-    <div className="min-h-dvh pb-20 md:pb-10">
-      <div className="topo pb-4 md:pb-0">
-      <header className="mx-auto max-w-[1440px] px-4 pt-4 md:px-8 md:pt-6">
-        <div className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
-          <div>
-            <p className="titulo text-[26px] text-sobre-topo md:text-[30px]">{NOME_PRODUTO}</p>
-            <p className="text-[13.5px] text-sobre-topo-2">Encaminhamento da assistência social</p>
+    <div className="min-h-screen pb-24 md:pb-12 text-texto flex flex-col transition-colors duration-200">
+      {/* Top Header Adaptativo */}
+      <header className="sticky top-0 z-40 border-b border-linha bg-superficie/90 backdrop-blur-xl transition-all">
+        <div className="mx-auto max-w-[1440px] px-4 py-3 md:px-8">
+          <div className="flex items-center justify-between gap-4">
+            
+            {/* Logo / Brand */}
+            <div className="flex items-center gap-3">
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-sky-600 to-emerald-600 text-white shadow-sm">
+                <BrainCircuit className="size-5 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="titulo text-[19px] md:text-[21px] tracking-tight text-texto">
+                    {NOME_PRODUTO}
+                  </span>
+                  <span className="hidden sm:inline-flex items-center gap-1 rounded-full border border-sky-500/20 bg-sky-500/10 px-2 py-0.5 text-[10.5px] font-semibold text-sky-700 dark:text-sky-300">
+                    v2.5 OMNICHANNEL
+                  </span>
+                </div>
+                <p className="hidden sm:block text-[11.5px] text-texto-2 font-medium">
+                  {usuario.unidade_id ? nomeUnidade(unidades.dados, usuario.unidade_id) : 'Rede Municipal Anápolis'} · {papel}
+                </p>
+              </div>
+            </div>
+
+            {/* Status & KPIs no Topo (Desktop) */}
+            <div className="hidden lg:flex items-center gap-4">
+              <a 
+                href="#/fila" 
+                className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-1.5 transition-all duration-200 ${
+                  urgentes > 0 
+                    ? 'border-rose-500/30 bg-superficie text-texto shadow-xs hover:border-rose-500' 
+                    : 'border-linha bg-superficie text-texto hover:border-linha-forte shadow-xs'
+                }`}
+              >
+                <div className={`h-2 w-2 rounded-full ${urgentes > 0 ? 'bg-rose-600 animate-pulse' : 'bg-emerald-500'}`} />
+                <span className={`text-[13px] font-medium ${urgentes > 0 ? 'text-rose-700 dark:text-rose-400 font-semibold' : 'text-texto'}`}>
+                  {urgentes > 0 ? `${urgentes} Urgente${urgentes > 1 ? 's' : ''}` : 'Fila sob controle'}
+                </span>
+                <span className="mono text-[11.5px] font-semibold bg-elevada border border-linha px-2 py-0.5 rounded-md tabular text-texto-2">
+                  {aguardando} na espera
+                </span>
+              </a>
+
+              <div className="flex items-center gap-2 border-l border-linha pl-4">
+                <div className="text-right">
+                  <p className="text-[13px] font-semibold text-texto leading-tight">{usuario.name}</p>
+                  <p className="text-[11px] text-texto-2 flex items-center justify-end gap-1">
+                    <ShieldCheck className="size-3 text-marca" />
+                    {usuario.role === 'ADMIN' ? 'Admin / Coordenação' : 'Técnico Social'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Ações Rápidas (Avisos, Tema & Logout) */}
+            <div className="flex items-center gap-2">
+              <BotaoAvisos ligado={avisosLigados} onMudar={setAvisosLigados} />
+              <BotaoTema />
+              <button
+                onClick={onSair}
+                title="Encerrar Sessão"
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-linha bg-elevada text-texto-2 hover:border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-600 transition-all duration-150 cursor-pointer"
+                aria-label="Sair do sistema"
+              >
+                <LogOut className="size-4" aria-hidden />
+              </button>
+            </div>
           </div>
 
-          <dl className="hidden flex-1 grid-cols-[repeat(3,minmax(0,auto))_auto_auto_auto] items-end justify-end gap-x-8 md:grid">
-            <CampoCabecalho rotulo="Unidade">{usuario.unidade_id ? nomeUnidade(unidades.dados, usuario.unidade_id) : 'Todas as unidades'}</CampoCabecalho>
-            <CampoCabecalho rotulo={papel}>{usuario.name}</CampoCabecalho>
-            <CampoCabecalho rotulo="Na fila agora">
-              {fila.dados ? (
-                <a href="#/fila" className="hover:underline">
-                  {urgentes > 0 && <span className="text-urgente-topo">{urgentes} urgente{urgentes > 1 ? 's' : ''}, </span>}
-                  <span className="tabular">{aguardando}</span> aguardando
+          {/* Navegação por Abas (Desktop) */}
+          <nav aria-label="Principal" className="mt-3 hidden md:flex items-center gap-1 border-t border-linha pt-2.5">
+            {NAVEGACAO.map(({ id, rotulo, icone: Icone }) => {
+              const ativo = rota === id;
+              return (
+                <a
+                  key={id}
+                  href={`#/${id}`}
+                  aria-current={ativo ? 'page' : undefined}
+                  className={`group relative flex items-center gap-2 rounded-xl px-3.5 py-1.5 text-[13.5px] font-medium transition-all duration-150 ${
+                    ativo
+                      ? 'bg-elevada border border-linha-forte text-texto font-semibold shadow-xs'
+                      : 'text-texto-2 hover:text-texto hover:bg-elevada/60 border border-transparent'
+                  }`}
+                >
+                  <Icone className={`size-4 transition-transform duration-150 group-hover:scale-105 ${ativo ? 'text-marca' : 'text-texto-3'}`} aria-hidden />
+                  {rotulo}
+                  {id === 'conversas' && naoLidas > 0 && (
+                    <span className="mono text-[11px] font-bold px-1.5 py-0.2 rounded-full bg-sky-600 text-white shadow-xs animate-pulse">
+                      {naoLidas}
+                    </span>
+                  )}
+                  {id === 'fila' && urgentes > 0 && (
+                    <span className="mono text-[11px] font-bold px-1.5 py-0.2 rounded-full bg-rose-600 text-white shadow-xs">
+                      {urgentes}
+                    </span>
+                  )}
                 </a>
-              ) : '–'}
-            </CampoCabecalho>
-            <BotaoAvisos ligado={avisosLigados} onMudar={setAvisosLigados} />
-            <BotaoTema naFaixa className="mb-1" />
-            <button onClick={onSair} className="mb-1 inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1.5 text-[13.5px] text-sobre-topo-2 hover:bg-sobre-topo/10 hover:text-sobre-topo">
-              <LogOut className="size-4" aria-hidden />Sair
-            </button>
-          </dl>
-
-          <div className="flex items-center md:hidden">
-            <BotaoTema compacto naFaixa className="p-2" />
-            <button onClick={onSair} className="rounded-[5px] p-2 text-sobre-topo-2 hover:bg-sobre-topo/10 hover:text-sobre-topo" aria-label="Sair do sistema">
-              <LogOut className="size-5" aria-hidden />
-            </button>
-          </div>
+              );
+            })}
+          </nav>
         </div>
-
-        <nav aria-label="Principal" className="mt-5 hidden gap-0.5 md:flex">
-          {NAVEGACAO.map(({ id, rotulo, icone: Icone }) => (
-            <a key={id} href={`#/${id}`} aria-current={rota === id ? 'page' : undefined}
-              className={`aba-pasta relative flex items-center gap-2 px-4 py-2.5 text-[14.5px] transition-colors duration-150 ${rota === id ? 'z-10 font-semibold text-texto' : 'text-sobre-topo-2 hover:bg-sobre-topo/10 hover:text-sobre-topo'}`}>
-              <Icone className="size-[17px] shrink-0" aria-hidden />
-              {rotulo}
-              {id === 'conversas' && naoLidas > 0 && (
-                <span className={`rounded-full px-1.5 text-[12px] font-bold leading-[18px] tabular ${rota === id ? 'bg-caneta text-sobre' : 'bg-sobre-topo text-topo'}`} aria-label={`${naoLidas} conversas com mensagens novas`}>{naoLidas}</span>
-              )}
-            </a>
-          ))}
-        </nav>
       </header>
-      </div>
 
-      <main className="mx-auto max-w-[1440px] md:px-8">
-        <div className="folha -mt-px min-h-[70vh] rounded-none px-4 py-6 md:rounded-[6px] md:rounded-t-none md:px-9 md:py-8">
-          <AlertaUrgente triagens={triagens} minutos={minutosAlerta} />
+      {/* Conteúdo Principal */}
+      <main className="mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 md:px-8 md:py-8">
+        <AlertaUrgente triagens={triagens} minutos={minutosAlerta} />
+        <div>
           {rota === 'fila' && <Fila fila={fila} filtroEstado={parametro} />}
           {rota === 'conversas' && <Conversas conversas={conversas} selecionada={parametro} />}
           {rota === 'indicadores' && <Indicadores />}
           {rota === 'servicos' && <ServicosMensagens />}
-          {rota === 'configuracoes' && <Configuracoes aba={parametro} />}
+          {rota === 'configuracoes' && <Configuracoes />}
         </div>
       </main>
 
-      <nav aria-label="Principal" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-linha bg-superficie md:hidden">
-        {NAVEGACAO.map(({ id, rotulo, curto, icone: Icone }) => (
-          <a key={id} href={`#/${id}`} aria-label={rotulo} aria-current={rota === id ? 'page' : undefined}
-            className={`relative flex flex-col items-center gap-1 py-2.5 text-[11px] ${rota === id ? 'font-semibold text-texto' : 'text-texto-3'}`}>
-            {rota === id && <span className="absolute inset-x-4 top-0 h-[3px] rounded-b bg-acao" aria-hidden />}
-            <Icone className="size-5" aria-hidden />
-            <span className="max-w-full px-0.5 text-center leading-tight">{curto}</span>
-            {id === 'conversas' && naoLidas > 0 && <span className="absolute right-[22%] top-1.5 size-2 rounded-full bg-caneta" aria-hidden />}
-          </a>
-        ))}
+      {/* Barra de Navegação Inferior (Mobile) */}
+      <nav aria-label="Navegação móvel" className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-linha bg-superficie/95 backdrop-blur-xl px-2 py-2 md:hidden">
+        {NAVEGACAO.map(({ id, curto, icone: Icone }) => {
+          const ativo = rota === id;
+          return (
+            <a
+              key={id}
+              href={`#/${id}`}
+              aria-current={ativo ? 'page' : undefined}
+              className={`flex flex-col items-center gap-1 rounded-xl px-3 py-1.5 text-[11px] font-medium transition-colors ${
+                ativo ? 'text-marca font-bold' : 'text-texto-2 hover:text-texto'
+              }`}
+            >
+              <div className="relative">
+                <Icone className="size-5" />
+                {id === 'conversas' && naoLidas > 0 && (
+                  <span className="absolute -top-1 -right-2 size-2 rounded-full bg-sky-600 animate-pulse" />
+                )}
+                {id === 'fila' && urgentes > 0 && (
+                  <span className="absolute -top-1 -right-2 size-2 rounded-full bg-rose-600" />
+                )}
+              </div>
+              <span>{curto}</span>
+            </a>
+          );
+        })}
       </nav>
     </div>
   );

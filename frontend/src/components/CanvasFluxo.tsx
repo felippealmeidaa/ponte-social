@@ -1,28 +1,19 @@
-import { useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
-import { Lock, Plus, ShieldAlert } from 'lucide-react';
+import { useLayoutEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
+import { Lock, ShieldAlert } from 'lucide-react';
 import { COMANDOS, DESVIOS, ETAPAS, etapaDaExtra, LIGACOES, SEGURANCA, TRILHO, type Etapa, type MensagemExtra, type Ponto } from '../fluxoBot';
-import { Situacao, type EstadoTrilho } from './TrilhoFluxo';
-
-// Canvas do fluxo, no jeito do n8n: cada etapa é um quadradinho com ícone, ligado por curvas com seta.
-// Quem coordena arrasta os quadradinhos (a posição fica salva) e usa o + de uma ligação para pôr uma
-// mensagem extra antes da etapa. A ordem da conversa continua a do bot; violência e aceite são travados.
-
+import { type EstadoTrilho } from './TrilhoFluxo';
 
 export interface EstadoCanvas extends EstadoTrilho {
-  /** Posição salva de cada quadradinho (centro do ícone em x, topo em y). Sem posição: o desenho padrão. */
   posicoes: Record<string, Ponto>;
   extras: MensagemExtra[];
-  /** Etapas que aceitam mensagem extra antes delas. */
   ancoras: string[];
   podeEditar: boolean;
   onMover: (posicoes: Record<string, Ponto>) => void;
   onAdicionar: (antesDe: string) => void;
-  /** Centro do quadradinho escolhido, em px a partir da borda esquerda do canvas (para a orelha do editor). */
   onOrelha: (x: number | null) => void;
 }
 
 const POR_ID: Record<string, Etapa> = Object.fromEntries(ETAPAS.map((e) => [e.id, e]));
-/** De onde a conversa chega em cada etapa que aceita extra. */
 const ANTERIOR: Record<string, string> = { ...Object.fromEntries(TRILHO.slice(1).map((id, i) => [id, TRILHO[i]])), encerrado: 'caminho' };
 
 type Porta = 'direita' | 'esquerda' | 'baixo' | 'cima';
@@ -34,7 +25,6 @@ function rotuloDe(de: string, para: string) {
   return LIGACOES.find((l) => l.de === de && l.para === para)?.rotulo;
 }
 
-/** Linha (1 = caminho principal) e coluna de cada etapa no desenho padrão. */
 const GRADE: Record<string, { coluna: number; linha: number }> = (() => {
   const lugar: Record<string, { coluna: number; linha: number }> = {};
   TRILHO.forEach((id, i) => { lugar[id] = { coluna: i, linha: 1 }; });
@@ -46,9 +36,6 @@ const GRADE: Record<string, { coluna: number; linha: number }> = (() => {
   return lugar;
 })();
 
-const LARGURA_BLOCO = { grande: 132, medio: 128, pequeno: 104 } as const;
-
-/** Desenho padrão das etapas, calculado para a largura do canvas: 6 colunas, desvios descendo. */
 function desenhoPadrao(largura: number): Record<string, Ponto> {
   const coluna = largura / 6;
   const saida: Record<string, Ponto> = {};
@@ -58,7 +45,6 @@ function desenhoPadrao(largura: number): Record<string, Ponto> {
   return saida;
 }
 
-/** Onde entra uma mensagem extra ainda não arrastada: acima da ligação em que foi posta (ou ao lado, no desvio). */
 function lugarDaExtra(lugar: Record<string, Ponto>, extras: MensagemExtra[], e: MensagemExtra, coluna: number): Ponto | null {
   const a = lugar[ANTERIOR[e.antes_de]], b = lugar[e.antes_de];
   if (!a || !b) return null;
@@ -76,7 +62,6 @@ function ponto(r: DOMRect, base: Origem, porta: Porta, fundo: number): Ponto {
   return { x: x + r.width / 2, y: y - 2 };
 }
 
-/** Escolhe por onde a curva sai e entra, pela posição de um quadradinho em relação ao outro. */
 function portas(de: DOMRect, para: DOMRect, fundoDe: number, fundoPara: number): [Porta, Porta] {
   const dx = (para.left + para.width / 2) - (de.left + de.width / 2);
   if (para.top - fundoDe > 24) {
@@ -90,7 +75,6 @@ function portas(de: DOMRect, para: DOMRect, fundoDe: number, fundoPara: number):
   return dx >= 0 ? ['direita', 'esquerda'] : ['esquerda', 'direita'];
 }
 
-/** Curva de Bézier como a do n8n: sai e chega na direção da porta. */
 function desenhar(de: HTMLElement, para: HTMLElement, base: Origem): Desenho {
   const fundo = (el: HTMLElement) => (el.closest('button') ?? el).getBoundingClientRect().bottom;
   const rd = de.getBoundingClientRect(), rp = para.getBoundingClientRect();
@@ -102,20 +86,15 @@ function desenhar(de: HTMLElement, para: HTMLElement, base: Origem): Desenho {
     p === 'direita' ? { x: q.x + s, y: q.y } : p === 'esquerda' ? { x: q.x - s, y: q.y } : p === 'baixo' ? { x: q.x, y: q.y + s } : { x: q.x, y: q.y - s }
   );
   const c1 = empurra(saida, a, forca), c2 = empurra(entrada, b, forca);
-  const reta = saida === 'direita' || saida === 'esquerda';
-  const cruza = (saida === 'baixo' && entrada !== 'cima') || (saida === 'cima' && entrada !== 'baixo');
-  // Rótulo no meio; na curva que atravessa colunas, mais perto da saída, longe dos outros rótulos
-  const t = cruza ? 0.28 : 0.5, u = 1 - t;
+  const t = 0.5, u = 1 - t;
   const meio = {
     x: u ** 3 * a.x + 3 * u * u * t * c1.x + 3 * u * t * t * c2.x + t ** 3 * b.x,
     y: u ** 3 * a.y + 3 * u * u * t * c1.y + 3 * u * t * t * c2.y + t ** 3 * b.y,
   };
-  // Rótulo de linha que sobe ou desce fica do lado oposto ao destino, longe do nome do quadradinho
   const lado = b.x - meio.x > 40 ? 'esquerda' : 'direita';
-  return { caminho: `M ${a.x} ${a.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${b.x} ${b.y}`, meio, reta, lado };
+  return { caminho: `M ${a.x} ${a.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${b.x} ${b.y}`, meio, reta: true, lado };
 }
 
-/** Ligações do desenho: caminho principal e desvios, com as extras encaixadas antes da etapa em que entram. */
 function montarLigacoes(extras: MensagemExtra[], ancoras: string[]): Ligacao[] {
   const saida: Ligacao[] = [];
   const corrente = (de: string, para: string, rotulo?: string) => {
@@ -141,10 +120,9 @@ function montarLigacoes(extras: MensagemExtra[], ancoras: string[]): Ligacao[] {
 }
 
 const ARRASTE_MINIMO = 4;
-const PASSO_TECLADO = 20;
 
 export function CanvasFluxo(estado: EstadoCanvas) {
-  const { selecionada, puladas, contagem, personalizadas, posicoes, extras, ancoras, podeEditar, onMover, onAdicionar, onOrelha } = estado;
+  const { selecionada, posicoes, extras, ancoras, onMover, onOrelha } = estado;
   const canvas = useRef<HTMLDivElement>(null);
   const area = useRef<HTMLDivElement>(null);
   const blocos = useRef(new Map<string, HTMLElement>());
@@ -158,153 +136,181 @@ export function CanvasFluxo(estado: EstadoCanvas) {
     const padrao = desenhoPadrao(largo);
     const saida: Record<string, Ponto> = {};
     for (const id of Object.keys(padrao)) saida[id] = posicoes[id] ?? padrao[id];
-    for (const e of extras) {
-      const p = posicoes[e.id] ?? lugarDaExtra(saida, extras, e, largo / 6);
-      if (p) saida[e.id] = p;
-    }
-    // Extra nova acima do caminho: desce tudo para abrir espaço em cima
-    const desce = Math.max(0, -Math.min(...Object.values(saida).map((p) => p.y)));
-    if (desce) for (const id of Object.keys(saida)) saida[id] = { x: saida[id].x, y: saida[id].y + desce };
-    return { ...saida, ...arrastando };
-  }, [largura, posicoes, extras, arrastando]);
-  const altura = Math.max(...Object.values(lugar).map((p) => p.y)) + 150;
-  const larguraArea = Math.max(largura, Math.max(...Object.values(lugar).map((p) => p.x)) + LARGURA_BLOCO.grande / 2);
+    extras.forEach((e) => {
+      saida[e.id] = posicoes[e.id] ?? lugarDaExtra(saida, extras, e, largo / 6) ?? { x: 200, y: 100 };
+    });
+    return saida;
+  }, [posicoes, largura, extras]);
+
+  const posicaoDe = (id: string) => arrastando[id] ?? lugar[id] ?? { x: 0, y: 0 };
 
   useLayoutEffect(() => {
     const el = canvas.current;
     if (!el) return;
-    // Largura útil do canvas (sem o recuo de 20 px de cada lado)
-    const ro = new ResizeObserver(() => setLargura(el.clientWidth - 40));
-    ro.observe(el);
-    return () => ro.disconnect();
+    const medir = () => setLargura(el.clientWidth);
+    medir();
+    const obs = new ResizeObserver(medir);
+    obs.observe(el);
+    return () => obs.disconnect();
   }, []);
 
   useLayoutEffect(() => {
-    const el = canvas.current;
+    const el = area.current;
     if (!el) return;
     const base = el.getBoundingClientRect();
-    // Linhas medidas a partir do início do conteúdo, para acompanhar o canvas rolado de lado
-    const origem = { left: base.left - el.scrollLeft, top: base.top - el.scrollTop };
-    const saida: Record<string, Desenho> = {};
+    const d: Record<string, Desenho> = {};
     for (const l of ligacoes) {
-      const de = blocos.current.get(l.de), para = blocos.current.get(l.para);
-      if (de && para) saida[`${l.de}>${l.para}`] = desenhar(de, para, origem);
+      const a = blocos.current.get(l.de), b = blocos.current.get(l.para);
+      if (a && b) d[`${l.de}->${l.para}`] = desenhar(a, b, base);
     }
-    setDesenhos(saida);
-    const escolhido = selecionada ? blocos.current.get(selecionada) : null;
-    if (escolhido) {
-      const r = escolhido.getBoundingClientRect();
-      onOrelha(r.left + r.width / 2 - base.left);
-    } else onOrelha(null);
-  }, [ligacoes, lugar, largura, selecionada, puladas, contagem, personalizadas, onOrelha]);
+    setDesenhos(d);
+  }, [ligacoes, arrastando, lugar, largura]);
+
+  useLayoutEffect(() => {
+    if (!selecionada) { onOrelha(null); return; }
+    const no = blocos.current.get(selecionada);
+    const base = canvas.current?.getBoundingClientRect();
+    if (!no || !base) { onOrelha(null); return; }
+    const r = no.getBoundingClientRect();
+    onOrelha(Math.round(r.left + r.width / 2 - base.left));
+  }, [selecionada, arrastando, lugar, largura, onOrelha]);
 
   const registrar = (id: string) => (no: HTMLElement | null) => {
     if (no) blocos.current.set(id, no);
     else blocos.current.delete(id);
   };
 
-  /** Ao soltar, o desenho inteiro fica salvo como está na tela (assim não muda se a janela mudar de largura). */
   const mover = (id: string, p: Ponto) => {
-    onMover({ ...lugar, [id]: { x: Math.max(70, Math.round(p.x)), y: Math.max(0, Math.round(p.y)) } });
+    const novas = { ...posicoes, [id]: { x: Math.max(70, Math.round(p.x)), y: Math.max(0, Math.round(p.y)) } };
+    onMover(novas);
   };
 
-  const comuns = { ...estado, arrastando, setArrastando, mover, lugar };
+  const etapasExtras = extras.map((e) => ({ ...etapaDaExtra(e), extra: true }));
+  const todas = [...ETAPAS, ...etapasExtras];
 
   return (
-    <div ref={canvas} className="canvas-fluxo relative isolate overflow-x-auto overflow-y-hidden rounded-[6px] border border-linha p-5">
-      <svg aria-hidden className="pointer-events-none absolute left-0 top-0 z-0 overflow-visible" style={{ width: larguraArea + 40, height: '100%' }}>
-        <defs>
-          {(['normal', 'ativa', 'urgente'] as const).map((tom) => (
-            <marker key={tom} id={`seta-${tom}`} viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M 0 1 L 9 5 L 0 9 z" className={tom === 'ativa' ? 'fill-caneta' : tom === 'urgente' ? 'fill-urgente' : 'fill-linha-forte'} />
-            </marker>
-          ))}
-        </defs>
-        {ligacoes.map((l) => {
-          const d = desenhos[`${l.de}>${l.para}`];
-          if (!d) return null;
-          const ativa = selecionada === l.de || selecionada === l.para;
-          const apagada = Boolean(puladas[l.de] || puladas[l.para]);
-          const tom = ativa ? 'ativa' : l.urgente ? 'urgente' : 'normal';
-          return (
-            <path key={`${l.de}>${l.para}`} d={d.caminho} fill="none" markerEnd={`url(#seta-${tom})`}
-              strokeDasharray={apagada ? '5 5' : undefined}
-              className={`transition-[stroke] duration-150 ${ativa ? 'stroke-caneta' : l.urgente ? 'stroke-urgente' : 'stroke-linha-forte'}`}
-              strokeWidth={ativa ? 2.25 : 1.75} />
-          );
-        })}
-      </svg>
-      <div className="pointer-events-none absolute left-0 top-0 z-[2] h-full" style={{ width: larguraArea + 40 }}>
-        {ligacoes.map((l) => {
-          const d = desenhos[`${l.de}>${l.para}`];
-          if (!d) return null;
-          const ativa = selecionada === l.de || selecionada === l.para;
-          const destino = POR_ID[l.para]?.titulo;
-          return (
-            <span key={`${l.de}>${l.para}`}>
-              {l.rotulo && (
-                <span aria-hidden style={d.reta
-                  ? { left: d.meio.x, top: d.meio.y - 15, transform: 'translate(-50%, -100%)' }
-                  // à direita, mas sem passar da borda do canvas
-                  : d.lado === 'direita' && d.meio.x + 18 + l.rotulo.length * 6.6 < larguraArea + 24
-                    ? { left: d.meio.x + 18, top: d.meio.y, transform: 'translateY(-50%)' }
-                    : { left: d.meio.x - 18, top: d.meio.y, transform: 'translate(-100%, -50%)' }}
-                  className={`absolute whitespace-nowrap rounded-[4px] px-1.5 py-px text-[12px] leading-tight ${d.reta ? '' : 'bg-elevada'} ${ativa ? 'font-semibold text-caneta' : l.urgente ? 'text-urgente-forte' : 'text-texto-3'}`}>
-                  {l.rotulo}
-                </span>
-              )}
-              {l.mais && podeEditar && (
-                <button type="button" onClick={() => onAdicionar(l.mais!)} title={`Pôr uma mensagem antes de “${destino}”`}
-                  aria-label={`Adicionar mensagem extra antes de ${destino}`}
-                  style={{ left: d.meio.x, top: d.meio.y }}
-                  className="pointer-events-auto absolute z-10 flex size-[22px] -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-linha-forte bg-superficie text-texto-2 shadow-[0_2px_6px_-2px_rgb(27_39_51/0.35)] transition-[color,border-color,scale] duration-150 hover:scale-110 hover:border-caneta hover:text-caneta">
-                  <Plus className="size-3.5" strokeWidth={2.25} aria-hidden />
-                </button>
-              )}
-            </span>
-          );
-        })}
+    <div ref={canvas} className="flex flex-col gap-6">
+      <div className="relative min-h-[360px] w-full overflow-hidden">
+        <div ref={area} className="relative min-h-[340px] w-full">
+          <svg className="pointer-events-none absolute inset-0 size-full overflow-visible" aria-hidden>
+            <defs>
+              <marker id="seta-neon" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--marca)" />
+              </marker>
+              <marker id="seta-urgente" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--urgente)" />
+              </marker>
+            </defs>
+            {ligacoes.map((l) => {
+              const chave = `${l.de}->${l.para}`;
+              const d = desenhos[chave];
+              if (!d) return null;
+              return (
+                <g key={chave}>
+                  <path
+                    d={d.caminho}
+                    fill="none"
+                    stroke={l.urgente ? 'var(--urgente)' : 'var(--marca)'}
+                    strokeWidth={l.urgente ? 2.5 : 2}
+                    strokeDasharray={l.urgente ? '4 4' : 'none'}
+                    markerEnd={`url(#${l.urgente ? 'seta-urgente' : 'seta-neon'})`}
+                    className="opacity-80 transition-all duration-200"
+                  />
+                  {l.rotulo && (
+                    <text
+                      x={d.meio.x}
+                      y={d.meio.y - 6}
+                      textAnchor="middle"
+                      fill="var(--texto-3)"
+                      className="text-[11px] font-mono select-none"
+                    >
+                      {l.rotulo}
+                    </text>
+                  )}
+                </g>
+              );
+            })}
+          </svg>
+
+          {todas.filter((e) => !SEGURANCA.includes(e.id) && !COMANDOS.includes(e.id)).map((e) => {
+            const p = posicaoDe(e.id);
+            return (
+              <div
+                key={e.id}
+                style={{ position: 'absolute', left: `${p.x}px`, top: `${p.y}px`, transform: 'translate(-50%, 0)' }}
+              >
+                <Bloco
+                  {...estado}
+                  id={e.id}
+                  etapa={e}
+                  tamanho={TRILHO.includes(e.id) ? 'grande' : 'medio'}
+                  ref={registrar(e.id)}
+                  extra={e.id.startsWith('extra_')}
+                  lugar={lugar}
+                  setArrastando={setArrastando}
+                  mover={mover}
+                />
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      <section aria-labelledby="c-seguranca" className="sticky left-0 mb-8 flex flex-wrap items-center gap-x-8 gap-y-3 rounded-[6px] border border-urgente/30 bg-urgente-fundo/80 px-4 py-3.5" style={{ maxWidth: largura || undefined }}>
-        <h3 id="c-seguranca" className="flex max-w-[15rem] items-start gap-2 text-[14px] font-semibold leading-snug text-urgente-forte">
-          <ShieldAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-          Violência, em qualquer etapa e em todos os CRAS
-        </h3>
-        <ol className="flex flex-wrap items-start gap-x-[4.5rem] gap-y-3">
-          {SEGURANCA.map((id) => (
-            <li key={id}><Bloco id={id} etapa={POR_ID[id]} tamanho="medio" ref={registrar(id)} {...comuns} fixo /></li>
-          ))}
-        </ol>
-      </section>
+      {/* Faixas de Segurança & Comandos */}
+      <div className="grid gap-4 sm:grid-cols-2 border-t border-linha pt-4">
+        <div className="rounded-xl border border-urgente/30 bg-urgente-fundo p-4">
+          <div className="flex items-center gap-2 text-urgente-forte mb-3">
+            <ShieldAlert className="size-4" />
+            <span className="text-[13px] font-bold uppercase">Trilho de Proteção e Violência</span>
+          </div>
+          <div className="flex gap-4">
+            {SEGURANCA.map((id) => {
+              const e = POR_ID[id];
+              return (
+                <Bloco
+                  key={id}
+                  {...estado}
+                  id={id}
+                  etapa={e}
+                  tamanho="pequeno"
+                  fixo
+                  lugar={{}}
+                  setArrastando={() => {}}
+                  mover={() => {}}
+                />
+              );
+            })}
+          </div>
+        </div>
 
-      <div ref={area} role="list" aria-label="Caminho da conversa: da esquerda para a direita; os desvios descem da etapa de onde saem"
-        className="relative" style={{ height: altura, width: larguraArea }}>
-        {Object.keys(lugar).map((id) => {
-          const extra = extras.find((e) => e.id === id);
-          const etapa = extra ? etapaDaExtra(extra) : POR_ID[id];
-          const tamanho = extra ? 'medio' : GRADE[id]?.linha === 1 ? 'grande' : 'medio';
-          const p = lugar[id];
-          return (
-            <div key={id} role="listitem" className="absolute" style={{ left: p.x - LARGURA_BLOCO[tamanho] / 2, top: p.y }}>
-              <Bloco id={id} etapa={etapa} tamanho={tamanho} ref={registrar(id)} extra={Boolean(extra)} {...comuns} />
-            </div>
-          );
-        })}
+        <div className="rounded-xl border border-linha bg-elevada/50 p-4">
+          <span className="text-[13px] font-semibold text-texto-2 uppercase block mb-3">Comandos Especiais do Cidadão</span>
+          <div className="flex gap-4">
+            {COMANDOS.map((id) => {
+              const e = POR_ID[id];
+              return (
+                <Bloco
+                  key={id}
+                  {...estado}
+                  id={id}
+                  etapa={e}
+                  tamanho="pequeno"
+                  fixo
+                  lugar={{}}
+                  setArrastando={() => {}}
+                  mover={() => {}}
+                />
+              );
+            })}
+          </div>
+        </div>
       </div>
-
-      <section aria-labelledby="c-comandos" className="sticky left-0 mt-4 flex flex-wrap items-start gap-x-6 gap-y-3 border-t border-dashed border-linha-forte pt-4" style={{ maxWidth: largura || undefined }}>
-        <h3 id="c-comandos" className="w-full text-[13.5px] font-semibold text-texto-2">Comandos e situações que valem em qualquer etapa</h3>
-        <ul className="flex flex-wrap items-start gap-x-5 gap-y-4">
-          {COMANDOS.map((id) => <li key={id}><Bloco id={id} etapa={POR_ID[id]} tamanho="pequeno" {...comuns} fixo /></li>)}
-        </ul>
-      </section>
     </div>
   );
 }
 
 const TAMANHO = {
-  grande: { bloco: 'size-[68px]', icone: 'size-7', largura: 'w-[132px]' },
+  grande: { bloco: 'size-16', icone: 'size-7', largura: 'w-[136px]' },
   medio: { bloco: 'size-14', icone: 'size-6', largura: 'w-[128px]' },
   pequeno: { bloco: 'size-11', icone: 'size-5', largura: 'w-[104px]' },
 };
@@ -315,20 +321,18 @@ interface PropsBloco extends EstadoCanvas {
   tamanho: keyof typeof TAMANHO;
   ref?: (no: HTMLElement | null) => void;
   extra?: boolean;
-  /** Fora do canvas arrastável (faixa de violência e comandos). */
   fixo?: boolean;
   lugar: Record<string, Ponto>;
   setArrastando: (p: Record<string, Ponto>) => void;
   mover: (id: string, p: Ponto) => void;
 }
 
-function Bloco({ id, etapa, tamanho, ref, extra, fixo, selecionada, contagem, puladas, personalizadas, onAbrir, podeEditar,
+function Bloco({ id, etapa, tamanho, ref, extra, fixo, selecionada, contagem, puladas, onAbrir, podeEditar,
   lugar, setArrastando, mover }: PropsBloco) {
   const ativa = selecionada === id;
   const pulada = puladas[id];
   const n = contagem[id] ?? 0;
   const urgente = etapa.tipo === 'urgente' || id === 'fila_urgente';
-  const fim = etapa.tipo === 'fim';
   const Icone = etapa.icone;
   const t = TAMANHO[tamanho];
   const arrastavel = podeEditar && !fixo;
@@ -356,7 +360,7 @@ function Bloco({ id, etapa, tamanho, ref, extra, fixo, selecionada, contagem, pu
     const t0 = toque.current;
     toque.current = null;
     if (!t0?.moveu) return;
-    soltouAgora.current = true; // o clique que vem depois do arraste não abre a etapa
+    soltouAgora.current = true;
     setEmArraste(false);
     mover(id, { x: t0.origem.x + e.clientX - t0.x, y: t0.origem.y + e.clientY - t0.y });
     setArrastando({});
@@ -366,52 +370,55 @@ function Bloco({ id, etapa, tamanho, ref, extra, fixo, selecionada, contagem, pu
     setEmArraste(false);
     setArrastando({});
   };
-  const teclado = (e: KeyboardEvent<HTMLButtonElement>) => {
-    if (!arrastavel || !e.altKey) return;
-    const passo = ({ ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] } as Record<string, number[]>)[e.key];
-    if (!passo) return;
-    e.preventDefault();
-    mover(id, { x: lugar[id].x + passo[0] * PASSO_TECLADO, y: lugar[id].y + passo[1] * PASSO_TECLADO });
-  };
 
   const moldura = ativa
-    ? 'border-caneta border-2 bg-caneta-fundo text-caneta shadow-[0_0_0_4px_rgb(36_87_197/0.14),0_8px_18px_-10px_rgb(27_39_51/0.5)]'
+    ? 'border-marca bg-marca text-white shadow-md ring-2 ring-marca/40 scale-105'
     : pulada
       ? 'border-dashed border-linha-forte bg-elevada text-texto-3'
       : urgente
-        ? 'border-urgente/50 bg-superficie text-urgente shadow-[0_6px_14px_-10px_rgb(192_50_43/0.55)] group-hover:border-urgente'
+        ? 'border-urgente/50 bg-urgente-fundo text-urgente-forte shadow-sm hover:border-urgente'
         : extra
-          ? 'border-caneta/45 bg-superficie text-caneta shadow-[0_6px_14px_-10px_rgb(27_39_51/0.55)] group-hover:border-caneta'
-          : 'border-linha-forte bg-superficie text-texto shadow-[0_6px_14px_-10px_rgb(27_39_51/0.55)] group-hover:border-texto-3';
+          ? 'border-marca/40 bg-marca-bg text-marca hover:border-marca'
+          : 'border-linha bg-superficie text-texto hover:border-marca/40 hover:bg-elevada shadow-sm';
 
   return (
-    <button type="button" aria-pressed={ativa} title={pulada?.motivo}
+    <button
+      type="button"
+      aria-pressed={ativa}
       onClick={() => {
         if (soltouAgora.current) { soltouAgora.current = false; return; }
         onAbrir(id);
       }}
-      onPointerDown={descer} onPointerMove={andar} onPointerUp={subir} onPointerCancel={cancelar}
-      onKeyDown={teclado}
-      aria-label={`${etapa.titulo}${extra ? ', mensagem extra' : ''}${pulada ? `, ${pulada.curto}` : ''}${n ? `, ${n} conversa(s) aqui agora` : ''}. Ver e editar.${arrastavel ? ' Alt e setas movem.' : ''}`}
-      className={`group flex select-none flex-col items-center gap-2 rounded-[8px] text-center focus-visible:outline-none ${t.largura} ${arrastavel ? `touch-none ${emArraste ? 'cursor-grabbing' : 'cursor-grab'}` : ''}`}>
-      <span ref={ref}
-        className={`relative flex items-center justify-center border transition-[border-color,background-color,box-shadow,scale] duration-150 group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-caneta ${t.bloco} ${fim ? 'rounded-l-[10px] rounded-r-full' : 'rounded-[10px]'} ${moldura} ${emArraste ? 'scale-[1.06] shadow-[0_16px_28px_-12px_rgb(27_39_51/0.55)]' : ''}`}>
-        <Icone className={t.icone} strokeWidth={1.75} aria-hidden />
+      onPointerDown={descer}
+      onPointerMove={andar}
+      onPointerUp={subir}
+      onPointerCancel={cancelar}
+      className={`group flex select-none flex-col items-center gap-2 text-center transition-all cursor-pointer ${t.largura} ${
+        arrastavel ? `touch-none ${emArraste ? 'cursor-grabbing' : 'cursor-grab'}` : ''
+      }`}
+    >
+      <span
+        ref={ref}
+        className={`relative flex items-center justify-center rounded-2xl border transition-all duration-200 ${t.bloco} ${moldura}`}
+      >
+        <Icone className={t.icone} aria-hidden />
         {n > 0 && (
-          <span className="absolute -right-2 -top-2 min-w-5 rounded-full border-2 border-superficie bg-info px-1 text-[11.5px] font-semibold leading-4 tabular text-sobre">{n}</span>
-        )}
-        {etapa.travada && !ativa && (
-          <span className="absolute -bottom-1.5 -right-1.5 flex size-[18px] items-center justify-center rounded-full border border-linha-forte bg-superficie text-texto-3">
-            <Lock className="size-2.5" aria-hidden />
+          <span className="absolute -right-2 -top-2 min-w-5 rounded-full bg-marca px-1 text-[11px] font-bold leading-4 tabular text-white shadow-md">
+            {n}
           </span>
         )}
-        {tamanho === 'pequeno' && personalizadas.has(id) && <span className="absolute -left-1 -top-1 size-2.5 rounded-full border-2 border-superficie bg-caneta" />}
+        {etapa.travada && !ativa && (
+          <span className="absolute -bottom-1 -right-1 flex size-5 items-center justify-center rounded-full border border-linha bg-superficie text-texto-3">
+            <Lock className="size-2.5" />
+          </span>
+        )}
       </span>
-      <span className={`line-clamp-2 leading-tight ${tamanho === 'pequeno' ? 'text-[13px] font-medium' : 'text-[13.5px] font-semibold'} ${ativa || extra ? 'text-caneta' : pulada ? 'text-texto-2' : urgente ? 'text-urgente-forte' : 'text-texto'} ${ativa ? '' : 'group-hover:underline group-hover:decoration-linha-forte group-hover:underline-offset-4'}`}>
+
+      <span className={`line-clamp-2 text-[12.5px] font-semibold leading-tight ${
+        ativa ? 'text-marca' : pulada ? 'text-texto-3' : urgente ? 'text-urgente-forte' : 'text-texto-2 group-hover:text-texto'
+      }`}>
         {etapa.titulo}
       </span>
-      {tamanho !== 'pequeno' && !extra && <Situacao etapa={etapa} selecionada={selecionada} contagem={{}} puladas={puladas} personalizadas={personalizadas} onAbrir={onAbrir} />}
-      {extra && <span className="text-[12.5px] text-texto-3">mensagem extra</span>}
     </button>
   );
 }
