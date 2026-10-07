@@ -140,6 +140,21 @@
   --color-whats-enviada: #d9fdd3;
 }
 
+:root {
+  --marca: var(--color-marca);
+  --urgente: var(--color-urgente);
+  --texto: var(--color-texto);
+  --texto-2: var(--color-texto-2);
+  --texto-3: var(--color-texto-3);
+  --linha: var(--color-linha);
+  --linha-forte: var(--color-linha-forte);
+  --superficie: var(--color-superficie);
+  --elevada: var(--color-elevada);
+  --fundo: var(--color-fundo);
+  --caneta: var(--color-caneta);
+  --acao: var(--color-acao);
+}
+
 /* ==========================================================================
    Estilos Globais e Tipografia
    ========================================================================== */

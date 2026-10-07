@@ -231,7 +231,7 @@ function Fluxo({ ctx, unidades, irPara }: { ctx: Contexto; unidades: UnidadeResu
             <GitFork className="size-5" />
             <h3 className="titulo text-[18px] text-texto">Mapa Interativo de Execução</h3>
           </div>
-          <span className="mono text-[11px] text-texto-3">Arraste os blocos para reorganizar o desenho</span>
+          <span className="mono text-[11.5px] font-medium text-texto-2">Arraste os blocos para reorganizar o desenho</span>
         </div>
 
         {larga ? (

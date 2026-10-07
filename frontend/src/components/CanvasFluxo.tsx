@@ -195,10 +195,10 @@ export function CanvasFluxo(estado: EstadoCanvas) {
           <svg className="pointer-events-none absolute inset-0 size-full overflow-visible" aria-hidden>
             <defs>
               <marker id="seta-neon" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--marca)" />
+                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--color-marca)" />
               </marker>
               <marker id="seta-urgente" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--urgente)" />
+                <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--color-urgente)" />
               </marker>
             </defs>
             {ligacoes.map((l) => {
@@ -210,19 +210,19 @@ export function CanvasFluxo(estado: EstadoCanvas) {
                   <path
                     d={d.caminho}
                     fill="none"
-                    stroke={l.urgente ? 'var(--urgente)' : 'var(--marca)'}
+                    stroke={l.urgente ? 'var(--color-urgente)' : 'var(--color-marca)'}
                     strokeWidth={l.urgente ? 2.5 : 2}
                     strokeDasharray={l.urgente ? '4 4' : 'none'}
                     markerEnd={`url(#${l.urgente ? 'seta-urgente' : 'seta-neon'})`}
-                    className="opacity-80 transition-all duration-200"
+                    className="opacity-75 transition-all duration-200"
                   />
                   {l.rotulo && (
                     <text
                       x={d.meio.x}
                       y={d.meio.y - 6}
                       textAnchor="middle"
-                      fill="var(--texto-3)"
-                      className="text-[11px] font-mono select-none"
+                      fill="var(--color-texto-2)"
+                      className="text-[12px] font-semibold select-none"
                     >
                       {l.rotulo}
                     </text>
