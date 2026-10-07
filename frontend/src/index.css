@@ -415,3 +415,123 @@
   background: var(--color-whats-balao);
   clip-path: polygon(0 0, 100% 0, 100% 100%);
 }
+
+/* Mapa de demandas (Indicadores): bolinha com o número de casos do bairro e marca do CRAS */
+.mapa-demanda {
+  background: var(--color-elevada);
+  font-family: inherit;
+}
+.mapa-bairro {
+  display: grid;
+  place-items: center;
+  width: var(--tam, 14px);
+  height: var(--tam, 14px);
+  border-radius: 999px;
+  background: var(--cor);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border: 2px solid var(--color-superficie);
+  box-shadow: 0 2px 6px -2px rgb(15 25 35 / 0.5);
+  cursor: pointer;
+}
+.mapa-legenda {
+  cursor: default;
+  border-width: 1.5px;
+}
+.mapa-cras {
+  display: block;
+  width: 14px;
+  height: 14px;
+  transform: rotate(45deg);
+  background: var(--color-superficie);
+  border: 3px solid var(--color-texto);
+}
+.mapa-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 200px;
+  font-size: 13px;
+  color: var(--color-texto);
+}
+.mapa-popup ul {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.mapa-popup li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mapa-popup li span {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+}
+.mapa-popup li b {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.mapa-popup em {
+  color: var(--color-texto-3);
+  font-size: 12px;
+}
+.mapa-demanda .leaflet-popup-content-wrapper,
+.mapa-demanda .leaflet-popup-tip {
+  background: var(--color-superficie);
+  color: var(--color-texto);
+}
+/* No escuro as cores das necessidades são claras: número em tinta escura */
+:root[data-tema="escuro"] .mapa-bairro {
+  color: var(--color-fundo);
+}
+/* No escuro, o mapa claro do OpenStreetMap é invertido para não ofuscar */
+:root[data-tema="escuro"] .mapa-demanda .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);
+}
+
+/* Relatório do mês impresso ou salvo em PDF: só a folha, sem faixa, abas, botões nem alertas */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 12mm;
+  }
+  body {
+    background: #fff;
+  }
+  .topo,
+  nav,
+  .nao-imprimir {
+    display: none !important;
+  }
+  main,
+  .folha {
+    max-width: none;
+    margin: 0;
+    padding: 0 !important;
+    border: 0;
+    box-shadow: none !important;
+    min-height: 0;
+  }
+  .min-h-dvh {
+    padding-bottom: 0 !important;
+  }
+  .relatorio-secao {
+    break-inside: avoid-page;
+  }
+  .relatorio tr,
+  .relatorio h2 {
+    break-inside: avoid;
+    break-after: avoid;
+  }
+  .relatorio .overflow-x-auto {
+    overflow: visible;
+  }
+  .relatorio table {
+    min-width: 0;
+  }
+}

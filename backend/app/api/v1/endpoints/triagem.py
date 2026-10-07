@@ -1,6 +1,5 @@
 from collections import Counter
 from datetime import datetime, timedelta, timezone
-from statistics import median
 from typing import Any, Dict, List, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -14,7 +13,7 @@ from app.db import get_session
 from app.models import Conversa, DocumentoAnexo, Mensagem, Triagem, UnidadeAtendimento, iso, local
 from app.services import unidades
 from app.models import FUSO_LOCAL
-from app.services import agenda, catalogo, documentos
+from app.services import agenda, catalogo, documentos, mapa_demanda, relatorio
 from app.services.avisos import avisar_andamento
 from app.services.channels.envio import enviar_pelo_canal
 from app.services.llm.traducao import traduzir
@@ -357,7 +356,7 @@ async def indicadores(dias: int = 30, usuario: Dict[str, Any] = Depends(usuario_
             "sugestao_aceita": sum(t.categoria == t.categoria_modelo for t in confirmadas),
         },
         "horas_ate_primeiro_atendimento": round(sum(horas) / len(horas), 1) if horas else None,
-        "tempo_resposta": await _tempo_resposta(session, itens),
+        "tempo_resposta": await relatorio.tempo_resposta(session, itens),
         "avaliacao": {
             "respostas": len(notas := [t.avaliacao for t in itens if t.avaliacao]),
             "media": round(sum(notas) / len(notas), 1) if notas else None,
@@ -366,22 +365,35 @@ async def indicadores(dias: int = 30, usuario: Dict[str, Any] = Depends(usuario_
     }
 
 
-async def _tempo_resposta(session: AsyncSession, itens: List[Triagem]) -> List[Dict[str, Any]]:
-    """Minutos entre a chegada e a primeira resposta da equipe, por CRAS, separando urgentes dos demais (mediana)."""
-    def minutos(t: Triagem) -> float:
-        return (t.atendido_em.replace(tzinfo=timezone.utc) - t.criado_em.replace(tzinfo=timezone.utc)).total_seconds() / 60
+@router.get("/relatorio")
+async def relatorio_do_mes(mes: Optional[str] = None, usuario: Dict[str, Any] = Depends(usuario_logado),
+                           session: AsyncSession = Depends(get_session)):
+    """Relatório de um mês ("2026-09"; sem mês, o mês corrente) para ver na tela e imprimir/salvar em PDF."""
+    return await relatorio.montar(session, *_mes_ou_422(mes), escopo(usuario))
 
-    grupos: Dict[Optional[str], List[Triagem]] = {}
-    for t in itens:
-        grupos.setdefault(t.unidade_id, []).append(t)
-    nomes = {u.id: u.nome for u in (await session.execute(select(UnidadeAtendimento))).scalars()}
-    saida = []
-    for unidade_id, casos in grupos.items():
-        linha: Dict[str, Any] = {"unidade_id": unidade_id, "nome": nomes.get(unidade_id, "Sem CRAS definido (coordenação)")}
-        for chave, filtro in (("urgentes", lambda t: t.prioridade == "URGENTE_VIOLENCIA"), ("demais", lambda t: t.prioridade != "URGENTE_VIOLENCIA")):
-            do_grupo = [t for t in casos if filtro(t)]
-            atendidos = [minutos(t) for t in do_grupo if t.atendido_em]
-            linha[chave] = {"casos": len(do_grupo), "atendidos": len(atendidos),
-                            "mediana_min": round(median(atendidos)) if atendidos else None}
-        saida.append(linha)
-    return sorted(saida, key=lambda x: x["nome"])
+
+@router.get("/relatorio.xlsx")
+async def relatorio_planilha(mes: Optional[str] = None, usuario: Dict[str, Any] = Depends(usuario_logado),
+                             session: AsyncSession = Depends(get_session)):
+    """O mesmo relatório como planilha, uma aba por assunto."""
+    dados = await relatorio.montar(session, *_mes_ou_422(mes), escopo(usuario))
+    return Response(relatorio.planilha(dados), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f'attachment; filename="{relatorio.nome_arquivo(dados)}"'})
+
+
+def _mes_ou_422(mes: Optional[str]) -> tuple:
+    try:
+        return relatorio.mes_valido(mes)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Mês inválido. Use o formato 2026-09.")
+
+
+@router.get("/indicadores/mapa")
+async def mapa_de_demandas(dias: int = 30, usuario: Dict[str, Any] = Depends(usuario_logado), session: AsyncSession = Depends(get_session)):
+    """Casos do período agrupados por bairro, com um ponto por bairro (nunca por pessoa). Ignora os exemplos de demonstração."""
+    desde = datetime.now(timezone.utc) - timedelta(days=dias)
+    consulta = select(Triagem).where(Triagem.criado_em >= desde, Triagem.canal != "demo")
+    if escopo(usuario):
+        consulta = consulta.where(Triagem.unidade_id == escopo(usuario))
+    itens = (await session.execute(consulta)).scalars().all()
+    return {"periodo_dias": dias, **await mapa_demanda.montar(session, itens, escopo(usuario))}

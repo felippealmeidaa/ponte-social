@@ -101,5 +101,25 @@ export async function arquivoProtegido(caminho: string): Promise<string> {
   return URL.createObjectURL(await resposta.blob());
 }
 
+/** Baixa um arquivo protegido (planilha do relatório) com o login e salva com o nome dado pelo servidor. */
+export async function baixarArquivo(caminho: string, nomePadrao: string): Promise<void> {
+  const cabecalhos = new Headers();
+  if (tokenEmMemoria) cabecalhos.set('Authorization', `Bearer ${tokenEmMemoria}`);
+  let resposta: Response;
+  try {
+    resposta = await fetch(`${API_URL}${caminho}`, { headers: cabecalhos });
+  } catch {
+    throw new ErroApi(0, 'Sem conexão com o servidor. Verifique se o backend está rodando.');
+  }
+  if (!resposta.ok) throw new ErroApi(resposta.status, 'Não foi possível gerar o arquivo.');
+  const nome = resposta.headers.get('Content-Disposition')?.match(/filename="([^"]+)"/)?.[1] ?? nomePadrao;
+  const endereco = URL.createObjectURL(await resposta.blob());
+  const link = Object.assign(document.createElement('a'), { href: endereco, download: nome });
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(endereco), 1000);
+}
+
 export const enviar = (corpo: unknown) => ({ method: 'POST', body: JSON.stringify(corpo) });
 export const atualizar = (corpo: unknown, metodo = 'PATCH') => ({ method: metodo, body: JSON.stringify(corpo) });

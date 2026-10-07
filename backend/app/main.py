@@ -51,6 +51,8 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # Nome do arquivo da planilha do relatório
+    expose_headers=["Content-Disposition"],
 )
 
 # Inclusão das rotas da API

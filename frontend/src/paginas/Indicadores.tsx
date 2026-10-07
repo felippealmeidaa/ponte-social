@@ -1,13 +1,17 @@
-import { useCallback, useState } from 'react';
-import { BarChart3, ShieldAlert, Table2 } from 'lucide-react';
+import { lazy, Suspense, useCallback, useState } from 'react';
+import { BarChart3, FileText, ShieldAlert, Table2 } from 'lucide-react';
 import { api } from '../api';
 import { Aviso, Esqueleto, Vazio } from '../components/ui';
 import { useAtualizacao } from '../useAtualizacao';
-import { CANAIS, corCategoria, ESTADOS, nomeCategoria, ORDEM_ESTADOS } from '../vocabulario';
+import { Relatorio } from './Relatorio';
+import { CANAIS, corCategoria, duracao, ESTADOS, nomeCategoria, ORDEM_ESTADOS } from '../vocabulario';
 
 // Série única na cor da marca; a barra em foco ganha a cor do texto
 const COR_SERIE = 'var(--color-acao)';
 const COR_FOCO = 'var(--color-texto)';
+
+// O mapa (Leaflet) só é baixado quando a página de Indicadores abre
+const MapaDemanda = lazy(() => import('../components/MapaDemanda').then((m) => ({ default: m.MapaDemanda })));
 
 interface Resumo {
   periodo_dias: number;
@@ -28,17 +32,15 @@ interface Resumo {
 interface GrupoTempo { casos: number; atendidos: number; mediana_min: number | null }
 interface TempoCras { unidade_id: string | null; nome: string; urgentes: GrupoTempo; demais: GrupoTempo }
 
-function duracao(min: number) {
-  if (min < 60) return `${min} min`;
-  if (min < 1440) return `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}`;
-  const d = Math.round(min / 1440);
-  return `${d} dia${d > 1 ? 's' : ''}`;
-}
-
 const PERIODOS = [7, 30, 90];
 const diaCurto = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 
-export function Indicadores() {
+export function Indicadores({ parametro }: { parametro?: string }) {
+  if (parametro === 'relatorio') return <Relatorio />;
+  return <Painel />;
+}
+
+function Painel() {
   const [dias, setDias] = useState(30);
   const { dados, erro } = useAtualizacao(useCallback(() => api<Resumo>(`/triagem/indicadores/resumo?dias=${dias}`), [dias]), 30000);
 
@@ -49,6 +51,10 @@ export function Indicadores() {
           <h1 className="titulo text-[35px] leading-[1.05]">Indicadores</h1>
           <p className="mt-2 max-w-[75ch] text-texto-2">O que chegou à fila no período. Os exemplos de demonstração não entram na conta.</p>
         </div>
+        <div className="flex flex-wrap items-center gap-3">
+        <a href="#/indicadores/relatorio" className="inline-flex h-10 items-center gap-2 rounded-[5px] border border-linha-forte bg-superficie px-4 text-[14.5px] hover:border-texto-3 hover:bg-elevada">
+          <FileText className="size-4" aria-hidden />Relatório do mês
+        </a>
         <div role="group" aria-label="Período" className="flex rounded-[5px] border border-linha-forte p-1">
           {PERIODOS.map((p) => (
             <button key={p} aria-pressed={dias === p} onClick={() => setDias(p)}
@@ -56,6 +62,7 @@ export function Indicadores() {
               {p} dias
             </button>
           ))}
+        </div>
         </div>
       </header>
 
@@ -101,6 +108,8 @@ export function Indicadores() {
               {Object.keys(dados.por_bairro).length > 0 && <Lista titulo="Bairros com mais casos" itens={Object.entries(dados.por_bairro)} />}
             </div>
           </div>
+
+          <Suspense fallback={<Esqueleto className="h-[420px]" />}><MapaDemanda dias={dias} /></Suspense>
 
           {dados.tempo_resposta.length > 0 && <TempoResposta linhas={dados.tempo_resposta} />}
 

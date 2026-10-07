@@ -134,7 +134,7 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
           <AlertaUrgente triagens={triagens} minutos={minutosAlerta} />
           {rota === 'fila' && <Fila fila={fila} filtroEstado={parametro} />}
           {rota === 'conversas' && <Conversas conversas={conversas} selecionada={parametro} />}
-          {rota === 'indicadores' && <Indicadores />}
+          {rota === 'indicadores' && <Indicadores parametro={parametro} />}
           {rota === 'servicos' && <ServicosMensagens />}
           {rota === 'configuracoes' && <Configuracoes aba={parametro} />}
         </div>

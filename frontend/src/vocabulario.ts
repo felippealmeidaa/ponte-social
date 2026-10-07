@@ -95,3 +95,11 @@ export const COR_CATEGORIA: Record<string, string> = {
 };
 
 export const corCategoria = (c: string) => COR_CATEGORIA[c] ?? 'var(--color-cat-outro)';
+
+/** Minutos como "45 min", "2 h 10 min" ou "3 dias". */
+export function duracao(min: number) {
+  if (min < 60) return `${min} min`;
+  if (min < 1440) return `${Math.floor(min / 60)} h${min % 60 ? ` ${min % 60} min` : ''}`;
+  const d = Math.round(min / 1440);
+  return `${d} dia${d > 1 ? 's' : ''}`;
+}
