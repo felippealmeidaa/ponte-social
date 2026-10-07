@@ -26,30 +26,8 @@ const ABAS = [
 
 export function Configuracoes({ aba }: { aba?: string }) {
   const atual = ABAS.some((a) => a.id === aba) ? aba : 'whatsapp';
-  // Ao trocar de aba, mostra a aba escolhida dentro da barra (celular), rolando só a barra, nunca a página.
-  // (Antes isso rodava a cada atualização automática dos dados e puxava a página de volta para o topo.)
-  const barra = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = barra.current, botao = el?.querySelector<HTMLElement>('[aria-selected="true"]');
-    if (!el || !botao) return;
-    if (botao.offsetLeft < el.scrollLeft || botao.offsetLeft + botao.offsetWidth > el.scrollLeft + el.clientWidth) {
-      el.scrollLeft = botao.offsetLeft - 16;
-    }
-  }, [atual]);
   return (
     <>
-      <header className="mb-6">
-        <h1 className="titulo text-[28px] leading-[1.05]">Configurações</h1>
-        <p className="mt-2 text-texto-2">Conexão do WhatsApp, teste do bot, qualidade do modelo e contas da equipe.</p>
-      </header>
-      <div ref={barra} role="tablist" aria-label="Configurações" className="relative mb-8 flex gap-1 overflow-x-auto border-b border-linha">
-        {ABAS.map((a) => (
-          <button key={a.id} role="tab" aria-selected={atual === a.id} onClick={() => irPara('configuracoes', a.id)}
-            className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm ${atual === a.id ? 'border-caneta text-texto font-semibold' : 'border-transparent text-texto-2 hover:text-texto'}`}>
-            {a.rotulo}
-          </button>
-        ))}
-      </div>
       {atual === 'whatsapp' && <ConexaoWhatsApp />}
       {atual === 'testar' && <TestarBot />}
       {atual === 'agentes' && <Agentes />}

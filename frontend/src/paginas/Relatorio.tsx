@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { ArrowLeft, FileSpreadsheet, Printer, ShieldAlert } from 'lucide-react';
+import { FileSpreadsheet, Printer, ShieldAlert } from 'lucide-react';
 import { api, baixarArquivo, ErroApi } from '../api';
 import { Aviso, Botao, Esqueleto } from '../components/ui';
 import { useAtualizacao } from '../useAtualizacao';
@@ -75,10 +75,7 @@ export function Relatorio() {
 
   return (
     <article className="relatorio">
-      <div className="nao-imprimir mb-6 flex flex-wrap items-center justify-between gap-3">
-        <a href="#/indicadores" className="inline-flex items-center gap-1.5 text-[14px] text-texto-2 hover:text-texto">
-          <ArrowLeft className="size-4" aria-hidden />Indicadores
-        </a>
+      <div className="nao-imprimir mb-6 flex flex-wrap items-center justify-end gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <label className="sr-only" htmlFor="mes-relatorio">Mês do relatório</label>
           <select id="mes-relatorio" value={mes} onChange={(e) => setMes(e.target.value)}

@@ -61,17 +61,17 @@ export function ServicosMensagens({ aba: abaPedida }: { aba?: string }) {
   const aba: Aba = abas.some(([id]) => id === abaPedida) ? (abaPedida as Aba) : 'fluxo';
   const setAba = (id: Aba) => irParaRota('servicos', id);
 
+  // Unidades de atendimento é da Gestão: aparece sozinha, sem o seletor e os avisos do bot
+  if (aba === 'unidades' && conta.geral) return <Unidades />;
+
   return (
     <>
-      <header className="mb-6 flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
-        <div>
-          <h1 className="titulo text-[28px] leading-[1.05]">Serviços e mensagens</h1>
-          <p className="mt-2 max-w-[75ch] text-texto-2">
-            O que o bot responde no WhatsApp. As mudanças valem na hora para as próximas conversas, sem precisar de programador.
-          </p>
-        </div>
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+        <p className="max-w-[75ch] text-[14.5px] text-texto-2">
+          O que o bot responde no WhatsApp. As mudanças valem na hora para as próximas conversas, sem precisar de programador.
+        </p>
         <SeletorUnidade unidades={unidades.dados} unidade={unidade} fixa={Boolean(conta.unidadeId)} onMudar={setEscolhida} />
-      </header>
+      </div>
 
       {unidade ? (
         <p className="mb-5 max-w-[90ch] text-[13px] text-texto-2">
@@ -90,18 +90,8 @@ export function ServicosMensagens({ aba: abaPedida }: { aba?: string }) {
         </p>
       )}
 
-      <div role="tablist" aria-label="O que ver ou editar" className="mb-6 flex gap-1 overflow-x-auto border-b border-linha">
-        {abas.map(([id, rotulo]) => (
-          <button key={id} role="tab" aria-selected={aba === id} onClick={() => setAba(id)}
-            className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm ${aba === id ? 'border-caneta text-texto font-semibold' : 'border-transparent text-texto-2 hover:text-texto'}`}>
-            {rotulo}
-          </button>
-        ))}
-      </div>
-
       {aba === 'fluxo' && <Fluxo key={`f-${unidade}`} ctx={ctx} unidades={unidades.dados} irPara={setAba} />}
       {aba === 'respostas' && <Respostas key={`r-${unidade}`} ctx={ctx} />}
-      {aba === 'unidades' && conta.geral && <Unidades />}
     </>
   );
 }

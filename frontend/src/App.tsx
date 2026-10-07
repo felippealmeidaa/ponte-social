@@ -14,6 +14,7 @@ import { useAtualizacao } from './useAtualizacao';
 import { nomeUnidade, useUnidades } from './unidades';
 import type { Rota } from './navegacao';
 import { GavetaMenu } from './components/MenuPrincipal';
+import { CabecalhoGrupo } from './components/CabecalhoGrupo';
 import { itemAtual, montarMenu } from './menu';
 import { contaAtual } from './unidades';
 
@@ -130,6 +131,7 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
 
       <main className="mx-auto max-w-[1440px] md:px-8">
         <div className="folha min-h-[70vh] px-4 py-5 md:px-0 md:py-6">
+          {rota !== 'fila' && rota !== 'conversas' && <CabecalhoGrupo grupos={menu} aqui={aqui} />}
           {rota === 'fila' && <Fila fila={fila} filtroEstado={parametro} />}
           {rota === 'conversas' && <Conversas conversas={conversas} selecionada={parametro} />}
           {rota === 'indicadores' && <Indicadores parametro={parametro} />}

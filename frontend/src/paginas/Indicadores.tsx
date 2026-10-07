@@ -1,5 +1,5 @@
 import { lazy, Suspense, useCallback, useState } from 'react';
-import { BarChart3, FileText, ShieldAlert, Table2 } from 'lucide-react';
+import { BarChart3, ShieldAlert, Table2 } from 'lucide-react';
 import { api } from '../api';
 import { Aviso, Esqueleto, FaixaLeitura, Leitura, Painel, Vazio } from '../components/ui';
 import { useAtualizacao } from '../useAtualizacao';
@@ -46,15 +46,9 @@ function PaginaIndicadores() {
 
   return (
     <>
-      <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="titulo text-[28px] leading-[1.05]">Indicadores</h1>
-          <p className="mt-2 max-w-[75ch] text-texto-2">O que chegou à fila no período. Os exemplos de demonstração não entram na conta.</p>
-        </div>
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+        <p className="max-w-[75ch] text-[14.5px] text-texto-2">O que chegou à fila no período. Os exemplos de demonstração não entram na conta.</p>
         <div className="flex flex-wrap items-center gap-3">
-        <a href="#/indicadores/relatorio" className="inline-flex h-10 items-center gap-2 rounded-[3px] border border-linha-forte bg-superficie px-4 text-[14.5px] hover:border-texto-3 hover:bg-elevada">
-          <FileText className="size-4" aria-hidden />Relatório do mês
-        </a>
         <div role="group" aria-label="Período" className="flex rounded-[3px] border border-linha-forte p-1">
           {PERIODOS.map((p) => (
             <button key={p} aria-pressed={dias === p} onClick={() => setDias(p)}
@@ -64,7 +58,7 @@ function PaginaIndicadores() {
           ))}
         </div>
         </div>
-      </header>
+      </div>
 
       {erro && <Aviso>{erro}</Aviso>}
       {!dados && !erro && <div className="flex flex-col gap-6" aria-busy="true"><Esqueleto className="h-16" /><Esqueleto className="h-72" /></div>}
