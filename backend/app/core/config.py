@@ -83,6 +83,9 @@ class Settings(BaseSettings):
     # Google Gemini LLM API
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-3.5-flash-lite"
+    # Base de conhecimento (Configurações › Base de conhecimento): vetores para a busca por significado
+    GEMINI_EMBED_MODEL: str = "gemini-embedding-001"
+    EMBED_DIMENSOES: int = 768
     # Áudio do WhatsApp: transcreve (Gemini ou Whisper local) para o bot entender quem fala em vez de escrever
     TRANSCREVER_AUDIO: bool = True
     AUDIO_MAX_SEGUNDOS: int = 180

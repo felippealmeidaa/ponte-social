@@ -1,25 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ChevronDown, Pin, X } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 import type { Rota } from '../navegacao';
 import { endereco, itemAtual, type GrupoMenu } from '../menu';
 
 // Gaveta do menu principal, aberta pelo botão ☰ do cabeçalho. Os grupos e itens estão em menu.ts.
-// Na gaveta ficam só os tópicos; as opções abrem embaixo do tópico. Com mouse, passar por cima abre
-// e clicar deixa fixo (pode haver mais de um fixo). No celular (sem mouse), o toque abre e fecha.
-
-const COM_MOUSE = '(hover: hover) and (pointer: fine) and (min-width: 768px)';
-
-function useComMouse() {
-  const [sim, setSim] = useState(() => { try { return window.matchMedia(COM_MOUSE).matches; } catch { return false; } });
-  useEffect(() => {
-    let mq: MediaQueryList;
-    try { mq = window.matchMedia(COM_MOUSE); } catch { return; }
-    const mudou = () => setSim(mq.matches);
-    mq.addEventListener('change', mudou);
-    return () => mq.removeEventListener('change', mudou);
-  }, []);
-  return sim;
-}
+// Na gaveta ficam só os tópicos; clicar num tópico abre as opções embaixo dele e clicar de novo fecha.
 
 function Contagem({ n, urgente }: { n?: number; urgente?: boolean }) {
   if (!n) return null;
@@ -86,24 +71,14 @@ export function GavetaMenu({ aberto, onFechar, grupos, rota, parametro, rodape }
 }) {
   const ref = useRef<HTMLElement>(null);
   const atual = itemAtual(grupos, rota, parametro);
-  const comMouse = useComMouse();
-  // Tópicos fixados por clique e o tópico sob o mouse (só abre se o mouse parar um instante nele)
-  const [fixados, setFixados] = useState<Set<string>>(() => new Set());
-  const [sobMouse, setSobMouse] = useState<string | null>(null);
-  const espera = useRef<number | undefined>(undefined);
-  const exibido = (titulo: string) => fixados.has(titulo) || (comMouse && sobMouse === titulo);
-
-  const passar = (titulo: string | null) => {
-    window.clearTimeout(espera.current);
-    espera.current = window.setTimeout(() => setSobMouse(titulo), titulo ? 140 : 260);
-  };
+  // Tópicos abertos por clique (pode haver mais de um); cada clique no tópico abre ou fecha
+  const [abertos, setAbertos] = useState<Set<string>>(() => new Set());
   const alternar = (titulo: string) => {
-    setFixados((atual) => {
+    setAbertos((atual) => {
       const novo = new Set(atual);
       if (novo.has(titulo)) novo.delete(titulo); else novo.add(titulo);
       return novo;
     });
-    setSobMouse(null);
   };
 
   useEffect(() => {
@@ -119,7 +94,6 @@ export function GavetaMenu({ aberto, onFechar, grupos, rota, parametro, rodape }
       window.removeEventListener('keydown', aoTeclar);
       window.removeEventListener('hashchange', onFechar);
       document.body.style.overflow = '';
-      window.clearTimeout(espera.current);
       anterior?.focus();
     };
   }, [aberto, onFechar]);
@@ -149,11 +123,10 @@ export function GavetaMenu({ aberto, onFechar, grupos, rota, parametro, rodape }
             {grupos.map((g) => {
               const Icone = g.icone;
               const aqui = atual?.grupo === g.titulo;
-              const aberto = exibido(g.titulo);
-              const fixo = fixados.has(g.titulo);
+              const aberto = abertos.has(g.titulo);
               const { n, urgente } = alerta(g);
               return (
-                <li key={g.titulo} onMouseEnter={() => comMouse && passar(g.titulo)} onMouseLeave={() => comMouse && passar(null)}>
+                <li key={g.titulo}>
                   <button type="button" aria-expanded={aberto} aria-controls={`opcoes-${g.titulo}`}
                     data-topico-atual={aqui || undefined}
                     onClick={() => alternar(g.titulo)}
@@ -165,7 +138,6 @@ export function GavetaMenu({ aberto, onFechar, grupos, rota, parametro, rodape }
                       <span className="block text-[12.5px] leading-snug text-texto-3">{aqui && atual ? `Você está em: ${atual.sub ?? atual.item}` : g.resumo}</span>
                     </span>
                     {n > 0 && <Contagem n={n} urgente={urgente} />}
-                    {fixo && comMouse && <Pin className="size-3.5 shrink-0 text-caneta" aria-label="fixado aberto" />}
                     <ChevronDown className={`size-4 shrink-0 text-texto-3 transition-transform duration-150 ${aberto ? 'rotate-180 text-texto' : ''}`} aria-hidden />
                   </button>
                   {aberto && (

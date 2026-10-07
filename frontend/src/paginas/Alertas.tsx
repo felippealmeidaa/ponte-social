@@ -1,12 +1,12 @@
 import { useCallback, useState } from 'react';
-import { Bell, Save, ShieldAlert } from 'lucide-react';
+import { Save, ShieldAlert } from 'lucide-react';
 import { api, atualizar, ErroApi } from '../api';
 import { Aviso, Botao, classeEntrada, Esqueleto } from '../components/ui';
 import { contaAtual } from '../unidades';
 import { useAtualizacao } from '../useAtualizacao';
 
-// Configurações → Alertas: quanto tempo um caso de violência pode esperar sem ninguém atender antes de o
-// painel inteiro acender o alerta (e avisar no computador de quem ligou os avisos).
+// Configurações → Alertas: quanto tempo um caso de violência pode esperar sem ninguém atender antes de
+// aparecer o aviso na barra do topo.
 
 interface Opcoes { opcoes: { alerta_urgente_min: number } }
 
@@ -44,8 +44,8 @@ export function Alertas() {
           <ShieldAlert className="size-5 text-urgente" aria-hidden />Caso de violência sem atendimento
         </h2>
         <p className="text-[15px] text-texto-2">
-          Quando um caso de violência espera mais que este tempo sem ninguém marcar “Em atendimento”, uma faixa vermelha aparece
-          no topo de todas as telas, com som opcional, e quem ligou os avisos recebe uma notificação no computador.
+          Quando um caso de violência espera mais que este tempo sem ninguém marcar “Em atendimento”, aparece um aviso
+          vermelho pequeno na barra do topo de todas as telas e no título da aba, com som opcional (o sininho ao lado do aviso).
         </p>
         <div className="flex flex-wrap items-end gap-3">
           <label className="flex flex-col gap-1">
@@ -65,13 +65,6 @@ export function Alertas() {
         {!valido && <p className="text-[13px] text-urgente-forte">Use um número de 1 a 240.</p>}
         {!podeEditar && <p className="text-[13px] text-texto-3">Só a coordenação muda este tempo.</p>}
         {falha && <Aviso>{falha}</Aviso>}
-      </section>
-      <section aria-labelledby="t-avisos" className="flex flex-col gap-2">
-        <h2 id="t-avisos" className="flex items-center gap-2 titulo text-[22px] leading-[1.1]"><Bell className="size-5 text-caneta" aria-hidden />Avisos no computador</h2>
-        <p className="text-[15px] text-texto-2">
-          Cada pessoa da equipe liga no botão <strong className="text-texto">Ligar avisos</strong>, no topo do painel. O navegador pede permissão uma vez;
-          depois, chega uma notificação quando entra um caso de violência e quando ele fica parado, mesmo com o painel em outra aba.
-        </p>
       </section>
     </div>
   );

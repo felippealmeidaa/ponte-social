@@ -719,11 +719,6 @@
         "purpose": "Subitens do menu e conteúdo trocado assentam subindo 6px."
       },
       {
-        "name": "abrir-topico",
-        "value": "140ms / 260ms",
-        "purpose": "Espera do mouse para abrir e para fechar um tópico da gaveta."
-      },
-      {
         "name": "movimento-reduzido",
         "value": "0.01ms",
         "purpose": "Com prefers-reduced-motion, toda transição e animação é anulada."
@@ -737,7 +732,7 @@
       {
         "name": "md",
         "value": "768px",
-        "note": "tabela da fila no lugar da lista; gaveta com abertura por mouse"
+        "note": "tabela da fila no lugar da lista"
       },
       {
         "name": "lg",

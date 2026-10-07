@@ -1,5 +1,5 @@
 import {
-  BarChart3, Bell, Bot, BrainCircuit, Inbox, LineChart, MessageCircle, Settings2, Building2, FileText, ListOrdered, MessagesSquare, NotebookPen, Smartphone, UsersRound, Workflow,
+  BarChart3, Bell, Bot, BrainCircuit, Database, GitBranch, Library, Inbox, LineChart, MessageCircle, Settings2, Building2, FileText, ListOrdered, MessagesSquare, NotebookPen, Smartphone, Sparkles, UsersRound, Workflow,
   type LucideIcon,
 } from 'lucide-react';
 import type { Rota } from './navegacao';
@@ -48,19 +48,23 @@ export function montarMenu(c: Contagens, geral: boolean): GrupoMenu[] {
       ],
     },
     {
-      titulo: 'Acompanhamento', resumo: 'Indicadores, relatório e IA', icone: LineChart,
+      titulo: 'Acompanhamento', resumo: 'Indicadores, relatório, IA, dados e documentos', icone: LineChart,
       itens: [
         { rota: 'indicadores', rotulo: 'Indicadores', icone: BarChart3 },
         { rota: 'indicadores', parametro: 'relatorio', rotulo: 'Relatório do mês', icone: FileText },
         { rota: 'configuracoes', parametro: 'modelo', rotulo: 'Modelo de IA', icone: BrainCircuit },
+        { rota: 'configuracoes', parametro: 'dados', rotulo: 'Dados de treino', icone: Database },
+        { rota: 'configuracoes', parametro: 'base', rotulo: 'Base de conhecimento', icone: Library },
       ],
     },
     {
-      titulo: 'Bot do WhatsApp', resumo: 'Fluxo, respostas e conexão', icone: MessageCircle,
+      titulo: 'Bot do WhatsApp', resumo: 'Fluxo, respostas, agentes e conexão', icone: MessageCircle,
       itens: [
         { rota: 'servicos', parametro: 'fluxo', rotulo: 'Fluxo da conversa', icone: Workflow },
         { rota: 'servicos', parametro: 'respostas', rotulo: 'Respostas por necessidade', icone: NotebookPen },
         { rota: 'configuracoes', parametro: 'testar', rotulo: 'Testar o bot', icone: Bot },
+        { rota: 'configuracoes', parametro: 'agentes', rotulo: 'Agentes de IA', icone: Sparkles },
+        { rota: 'configuracoes', parametro: 'fluxos', rotulo: 'Fluxos (simulador)', icone: GitBranch },
         { rota: 'configuracoes', parametro: 'whatsapp', rotulo: 'Conexão do WhatsApp', icone: Smartphone },
       ],
     },

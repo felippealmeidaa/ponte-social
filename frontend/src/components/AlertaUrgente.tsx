@@ -3,7 +3,7 @@ import { BellOff, BellRing, ShieldAlert } from 'lucide-react';
 import type { Triagem } from '../tipos';
 
 // Caso de violência sem ninguém atendendo há mais que o tempo do alerta (configurável pela coordenação, padrão 10 min):
-// o painel inteiro avisa (princípio 1: urgência primeiro)
+// uma etiqueta discreta na barra do topo, o título da aba e, se a pessoa ligar, um som curto. Sem faixa e sem popups.
 const REPETIR_SOM_MIN = 3;
 const CHAVE_SOM = 'alerta_urgente_som';
 
@@ -28,11 +28,11 @@ function tocar() {
     });
     setTimeout(() => ctx.close(), 1000);
   } catch {
-    /* sem áudio no navegador: fica só o aviso na tela */
+    /* sem áudio no navegador: fica só a etiqueta */
   }
 }
 
-/** Faixa no topo de todas as telas quando um caso de violência espera demais, com som opcional. */
+/** Etiqueta na barra do topo: quantos casos de violência passaram do tempo sem ninguém atendendo. */
 export function AlertaUrgente({ triagens, minutos = 10 }: { triagens: Triagem[]; minutos?: number }) {
   const [agora, setAgora] = useState(() => Date.now());
   const [som, setSom] = useState(lerSom);
@@ -80,28 +80,21 @@ export function AlertaUrgente({ triagens, minutos = 10 }: { triagens: Triagem[];
   if (!n) return null;
   const maisAntigo = parados[0].minutos;
   const espera = maisAntigo >= 60 ? `${Math.floor(maisAntigo / 60)} h ${maisAntigo % 60} min` : `${maisAntigo} min`;
+  const descricao = `${n === 1 ? '1 caso de violência passou' : `${n} casos de violência passaram`} de ${minutos} min sem ninguém atendendo; o mais antigo espera há ${espera}`;
 
   return (
-    <div role="alert" className="nao-imprimir mb-7 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-[4px] bg-alerta px-4 py-3 text-sobre-alerta md:px-5">
-      <p className="flex min-w-0 grow basis-[26rem] items-center gap-3 text-[15px] leading-snug">
-        <ShieldAlert className="size-5 shrink-0" aria-hidden />
-        <span>
-          <strong className="font-semibold">
-            {n === 1 ? '1 caso de violência passou' : `${n} casos de violência passaram`} de {minutos} min sem ninguém atendendo
-          </strong>
-          {n === 1 ? ` há ${espera}.` : ` (o mais antigo há ${espera}).`} Abra a ficha e marque “Em atendimento” quando alguém assumir.
-        </span>
-      </p>
-      <div className="flex items-center gap-2">
-        <button type="button" onClick={alternarSom} aria-pressed={som}
-          className="inline-flex h-9 items-center gap-1.5 rounded-[3px] px-3 text-[13.5px] text-sobre-alerta/90 transition-colors duration-150 hover:bg-sobre-alerta/15 hover:text-sobre-alerta">
-          {som ? <BellRing className="size-4" aria-hidden /> : <BellOff className="size-4" aria-hidden />}
-          {som ? 'Som ligado' : 'Ligar som'}
-        </button>
-        <a href="#/fila" className="inline-flex h-9 items-center rounded-[3px] bg-superficie px-3.5 text-[14px] font-semibold text-urgente transition-colors duration-150 hover:bg-urgente-fundo">
-          Ver na fila
-        </a>
-      </div>
-    </div>
+    <span className="flex shrink-0 items-center gap-0.5">
+      <a href="#/fila/URGENTE_CREAS" title={descricao} aria-label={`${descricao}. Ver na fila`}
+        className="inline-flex h-7 items-center gap-1.5 rounded-[3px] border border-urgente/50 bg-urgente-fundo px-2 text-[12.5px] font-semibold text-urgente hover:border-urgente">
+        <ShieldAlert className="size-3.5 shrink-0" aria-hidden />
+        <span className="dado">{n}</span>
+        <span className="hidden sm:inline">parado{n > 1 ? 's' : ''} +{minutos} min</span>
+      </a>
+      <button type="button" onClick={alternarSom} aria-pressed={som} title={som ? 'Som do alerta ligado' : 'Ligar som do alerta'}
+        aria-label={som ? 'Desligar som do alerta' : 'Ligar som do alerta'}
+        className={`rounded-[3px] p-1.5 hover:bg-sobre-topo/10 ${som ? 'text-urgente' : 'text-sobre-topo-2 hover:text-sobre-topo'}`}>
+        {som ? <BellRing className="size-4" aria-hidden /> : <BellOff className="size-4" aria-hidden />}
+      </button>
+    </span>
   );
 }

@@ -293,3 +293,89 @@ class OpcoesFluxo(Base):
     opcoes: Mapped[dict] = mapped_column(JSON, default=dict)
     atualizado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     atualizado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+
+
+class ExemploTreino(Base):
+    """Exemplo de treino escrito pela equipe (Configurações › Dados de treino): uma frase e a necessidade certa.
+    Entra no retreino junto com os relatos simulados e os casos reais confirmados; nunca entra no teste fixo."""
+    __tablename__ = "exemplos_treino"
+
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    texto: Mapped[str] = mapped_column(Text)  # já anonimizado
+    categoria: Mapped[str] = mapped_column(String(40), index=True)
+    origem: Mapped[str] = mapped_column(String(20), default="manual")  # manual | importacao
+    ativo: Mapped[bool] = mapped_column(default=True)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=agora)
+    criado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    atualizado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    atualizado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+
+
+class DocumentoBase(Base):
+    """Documento da base de conhecimento (lei, decreto, manual, tabela de critérios). O texto extraído fica guardado
+    para comparar com os trechos; o arquivo original não. Ainda não é usado nas respostas do WhatsApp."""
+    __tablename__ = "base_documentos"
+
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    titulo: Mapped[str] = mapped_column(String(200))
+    nome_arquivo: Mapped[str] = mapped_column(String(200))
+    tipo: Mapped[str] = mapped_column(String(10))  # pdf | docx | txt | md
+    fonte: Mapped[str] = mapped_column(Text, default="")  # de onde veio (órgão, link oficial, número da lei)
+    tags: Mapped[list] = mapped_column(JSON, default=list)
+    versao: Mapped[int] = mapped_column(Integer, default=1)
+    texto: Mapped[str] = mapped_column(Text, default="")
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=agora)
+    criado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    atualizado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    atualizado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+
+
+class TrechoDocumento(Base):
+    """Pedaço de um documento, cortado respeitando títulos, listas e tabelas. O vetor serve à busca por significado."""
+    __tablename__ = "base_trechos"
+
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    documento_id: Mapped[str] = mapped_column(String(16), index=True)
+    indice: Mapped[int] = mapped_column(Integer)
+    conteudo: Mapped[str] = mapped_column(Text)
+    secao: Mapped[str] = mapped_column(String(200), default="")
+    pagina: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    editado_manualmente: Mapped[bool] = mapped_column(default=False)
+    embedding: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    modelo_embedding: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
+    atualizado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    atualizado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+
+
+class AgentePersonalizado(Base):
+    """Agente criado pela coordenação (Configurações › Agentes): instruções, temperatura e as ferramentas de consulta
+    que ele pode usar. Roda só no teste do painel; não responde no WhatsApp e nunca passa por cima da regra de violência."""
+    __tablename__ = "agentes"
+
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    nome: Mapped[str] = mapped_column(String(80))
+    descricao: Mapped[str] = mapped_column(Text, default="")
+    instrucoes: Mapped[str] = mapped_column(Text)
+    temperatura: Mapped[float] = mapped_column(Float, default=0.2)
+    ferramentas: Mapped[list] = mapped_column(JSON, default=list)
+    ativo: Mapped[bool] = mapped_column(default=True)
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=agora)
+    criado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    atualizado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    atualizado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+
+
+class FluxoPersonalizado(Base):
+    """Fluxo montado pela coordenação (Configurações › Fluxos): etapas ligadas sem ciclo. Roda só no simulador do
+    painel; o bot do WhatsApp continua com o fluxo fixo do CRAS e a regra de violência vale em toda mensagem."""
+    __tablename__ = "fluxos_personalizados"
+
+    id: Mapped[str] = mapped_column(String(16), primary_key=True)
+    nome: Mapped[str] = mapped_column(String(80))
+    descricao: Mapped[str] = mapped_column(Text, default="")
+    etapas: Mapped[list] = mapped_column(JSON, default=list)    # [{id, tipo, titulo, ...campos do tipo}]
+    ligacoes: Mapped[list] = mapped_column(JSON, default=list)  # [{de, saida, para}]
+    criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=agora)
+    criado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    atualizado_em: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    atualizado_por: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)

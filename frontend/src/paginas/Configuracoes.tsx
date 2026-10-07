@@ -6,28 +6,45 @@ import { irPara } from '../navegacao';
 import { useAtualizacao } from '../useAtualizacao';
 import { EquipeEAcesso } from './Equipe';
 import { ModeloIA } from './ModeloIA';
+import { DadosTreino } from './DadosTreino';
+import { Agentes } from './Agentes';
+import { Fluxos } from './Fluxos';
+import { BaseConhecimento } from './BaseConhecimento';
 import { Alertas } from './Alertas';
 
 const ABAS = [
   { id: 'whatsapp', rotulo: 'WhatsApp' },
   { id: 'testar', rotulo: 'Testar o bot' },
+  { id: 'agentes', rotulo: 'Agentes' },
+  { id: 'fluxos', rotulo: 'Fluxos' },
   { id: 'modelo', rotulo: 'Modelo de IA' },
+  { id: 'dados', rotulo: 'Dados de treino' },
+  { id: 'base', rotulo: 'Base de conhecimento' },
   { id: 'alertas', rotulo: 'Alertas' },
   { id: 'equipe', rotulo: 'Equipe e acesso' },
 ] as const;
 
 export function Configuracoes({ aba }: { aba?: string }) {
   const atual = ABAS.some((a) => a.id === aba) ? aba : 'whatsapp';
+  // Ao trocar de aba, mostra a aba escolhida dentro da barra (celular), rolando só a barra, nunca a página.
+  // (Antes isso rodava a cada atualização automática dos dados e puxava a página de volta para o topo.)
+  const barra = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = barra.current, botao = el?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!el || !botao) return;
+    if (botao.offsetLeft < el.scrollLeft || botao.offsetLeft + botao.offsetWidth > el.scrollLeft + el.clientWidth) {
+      el.scrollLeft = botao.offsetLeft - 16;
+    }
+  }, [atual]);
   return (
     <>
       <header className="mb-6">
         <h1 className="titulo text-[28px] leading-[1.05]">Configurações</h1>
         <p className="mt-2 text-texto-2">Conexão do WhatsApp, teste do bot, qualidade do modelo e contas da equipe.</p>
       </header>
-      <div role="tablist" aria-label="Configurações" className="mb-8 flex gap-1 overflow-x-auto border-b border-linha">
+      <div ref={barra} role="tablist" aria-label="Configurações" className="relative mb-8 flex gap-1 overflow-x-auto border-b border-linha">
         {ABAS.map((a) => (
           <button key={a.id} role="tab" aria-selected={atual === a.id} onClick={() => irPara('configuracoes', a.id)}
-            ref={(el) => { if (atual === a.id) el?.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }}
             className={`-mb-px shrink-0 whitespace-nowrap border-b-2 px-4 py-2.5 text-sm ${atual === a.id ? 'border-caneta text-texto font-semibold' : 'border-transparent text-texto-2 hover:text-texto'}`}>
             {a.rotulo}
           </button>
@@ -35,7 +52,11 @@ export function Configuracoes({ aba }: { aba?: string }) {
       </div>
       {atual === 'whatsapp' && <ConexaoWhatsApp />}
       {atual === 'testar' && <TestarBot />}
+      {atual === 'agentes' && <Agentes />}
+      {atual === 'fluxos' && <Fluxos />}
       {atual === 'modelo' && <ModeloIA />}
+      {atual === 'dados' && <DadosTreino />}
+      {atual === 'base' && <BaseConhecimento />}
       {atual === 'alertas' && <Alertas />}
       {atual === 'equipe' && <EquipeEAcesso />}
     </>

@@ -9,8 +9,6 @@ import { ServicosMensagens } from './paginas/ServicosMensagens';
 import { Configuracoes } from './paginas/Configuracoes';
 import type { ResumoConversa, Triagem } from './tipos';
 import { AlertaUrgente } from './components/AlertaUrgente';
-import { useAvisosLigados, useAvisosUrgentes } from './avisosUrgentes';
-import { BotaoAvisos } from './components/AvisosNavegador';
 import { BotaoTema } from './components/Tema';
 import { useAtualizacao } from './useAtualizacao';
 import { nomeUnidade, useUnidades } from './unidades';
@@ -65,11 +63,9 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
   const conversas = useAtualizacao(useCallback(() => api<ResumoConversa[]>('/atendimento/conversas'), []), 4000);
 
   const triagens = fila.dados ?? [];
-  // Tempo do alerta de urgência (Configurações → Alertas) e avisos no computador
+  // Tempo do alerta de urgência (Configurações → Alertas)
   const opcoesPainel = useAtualizacao(useCallback(() => api<{ opcoes: { alerta_urgente_min?: number } }>('/configuracao/fluxo/opcoes'), []), 60000);
   const minutosAlerta = opcoesPainel.dados?.opcoes.alerta_urgente_min ?? 10;
-  const [avisosLigados, setAvisosLigados] = useAvisosLigados();
-  useAvisosUrgentes(triagens, minutosAlerta, avisosLigados);
   // Mesma regra da Fila: violência que ainda espera alguém (urgente ou aguardando com prioridade de violência)
   const urgentes = triagens.filter((t) => t.status === 'URGENTE_CREAS' || (t.prioridade === 'URGENTE_VIOLENCIA' && t.status === 'PENDENTE')).length;
   const aguardando = triagens.filter((t) => t.status === 'PENDENTE').length;
@@ -109,7 +105,9 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
         )}
         {aqui && <p className="min-w-0 truncate text-[13.5px] font-semibold text-sobre-topo md:hidden">{aqui.sub ?? aqui.item}</p>}
 
-        <dl className="ml-auto hidden items-center gap-5 xl:flex">
+        <span className="ml-auto" />
+        <AlertaUrgente triagens={triagens} minutos={minutosAlerta} />
+        <dl className="hidden items-center gap-5 2xl:flex">
           <CampoCabecalho rotulo="Unidade">{usuario.unidade_id ? nomeUnidade(unidades.dados, usuario.unidade_id) : 'Todas as unidades'}</CampoCabecalho>
           <CampoCabecalho rotulo={papel}>{usuario.name}</CampoCabecalho>
           <CampoCabecalho rotulo="Na fila">
@@ -121,8 +119,7 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
             ) : '–'}
           </CampoCabecalho>
         </dl>
-        <div className="ml-auto flex shrink-0 items-center gap-1 xl:ml-3 xl:border-l xl:border-linha xl:pl-3">
-          <span className="hidden md:inline-flex"><BotaoAvisos ligado={avisosLigados} onMudar={setAvisosLigados} /></span>
+        <div className="flex shrink-0 items-center gap-1 2xl:ml-1 2xl:border-l 2xl:border-linha 2xl:pl-3">
           <BotaoTema compacto naFaixa className="p-2" />
           <button onClick={onSair} className="rounded-[3px] p-2 text-sobre-topo-2 hover:bg-sobre-topo/10 hover:text-sobre-topo" aria-label="Sair do sistema" title="Sair">
             <LogOut className="size-[18px]" aria-hidden />
@@ -133,7 +130,6 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
 
       <main className="mx-auto max-w-[1440px] md:px-8">
         <div className="folha min-h-[70vh] px-4 py-5 md:px-0 md:py-6">
-          <AlertaUrgente triagens={triagens} minutos={minutosAlerta} />
           {rota === 'fila' && <Fila fila={fila} filtroEstado={parametro} />}
           {rota === 'conversas' && <Conversas conversas={conversas} selecionada={parametro} />}
           {rota === 'indicadores' && <Indicadores parametro={parametro} />}

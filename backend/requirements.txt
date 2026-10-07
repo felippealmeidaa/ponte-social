@@ -33,3 +33,7 @@ pytest-asyncio>=0.23
 # Notebook de análise (opcional)
 matplotlib>=3.8
 seaborn>=0.13
+
+# Base de conhecimento: leitura de PDF e DOCX
+pypdf>=5.0
+python-docx>=1.1

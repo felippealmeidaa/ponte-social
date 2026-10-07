@@ -18,6 +18,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Triagem
+from app.services.ml import exemplos as exemplos_equipe
 from app.services.ml.classifier_service import SocialClassifierService
 from app.services.ml.train_evaluator import (BASE_DIR, CATEGORIAS, DATASET_PATH, MODEL_OUTPUT, REPORT_OUTPUT,
                                              train_and_evaluate)
@@ -87,7 +88,7 @@ def _treinar(reais: List[Dict[str, str]], usuario: str) -> dict:
         item = {
             "em": datetime.now(timezone.utc).isoformat(), "por": usuario, "antes": atual, "depois": novo,
             "trocou": trocou, "motivo": "; ".join(motivos) if motivos else "não piorou: o modelo novo está em uso",
-            "reais_por_fonte": {f: sum(1 for e in reais if e["fonte"] == f) for f in ("pessoa", "equipe")},
+            "reais_por_fonte": {f: sum(1 for e in reais if e["fonte"] == f) for f in ("pessoa", "equipe", "exemplos")},
         }
         _guardar_historico(item)
         return item
@@ -102,6 +103,9 @@ async def retreinar(session: AsyncSession, usuario: str) -> Optional[dict]:
     _estado["rodando"] = True
     try:
         reais = await exemplos_reais(session)
+        # Exemplos escritos ou importados pela equipe em Dados de treino (só os ativos)
+        reais += [{"texto": e.texto, "categoria": e.categoria, "fonte": "exemplos"}
+                  for e in await exemplos_equipe.da_equipe(session, so_ativos=True)]
         return await asyncio.to_thread(_treinar, reais, usuario)
     finally:
         _estado["rodando"] = False

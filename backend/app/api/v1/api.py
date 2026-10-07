@@ -8,6 +8,10 @@ from app.api.v1.endpoints import (
     atendimento,
     configuracao,
     equipe,
+    base_conhecimento,
+    agentes,
+    fluxos,
+    copiloto,
 )
 
 # ------------------------------------------------------------------------------
@@ -31,6 +35,10 @@ api_router.include_router(whatsapp_webhooks.router, prefix="/webhooks", tags=["W
 
 # MLOps & Datasets
 api_router.include_router(ml_studio.router, prefix="/ml", tags=["MLOps & Métricas de IA"])
+api_router.include_router(base_conhecimento.router, prefix="/base", tags=["Base de conhecimento (documentos e busca)"])
+api_router.include_router(agentes.router, prefix="/agentes", tags=["Agentes de IA (teste no painel)"])
+api_router.include_router(fluxos.router, prefix="/fluxos", tags=["Fluxos de etapas (simulador)"])
+api_router.include_router(copiloto.router, prefix="/copiloto", tags=["Copiloto construtor"])
 
 # Instâncias WhatsApp & QR Code
 api_router.include_router(whatsapp_instances.router, prefix="/whatsapp", tags=["Instâncias WhatsApp & QR Code"])
