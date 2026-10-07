@@ -1,0 +1,892 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-07T13:01:43.282Z",
+  "title": "Design System: Ponte Social",
+  "extensions": {
+    "themes": {
+      "default": "escuro",
+      "note": "Os valores canônicos (frontmatter e canonical) são do tema escuro, :root[data-tema=\"escuro\"]; o campo light traz o valor do mesmo token no @theme claro de frontend/src/index.css."
+    },
+    "colorMeta": {
+      "fundo": {
+        "role": "neutral",
+        "displayName": "Grafite de Fundo",
+        "canonical": "#161718",
+        "canonicalOklch": "oklch(20.4% 0.003 248.0)",
+        "light": "#e8e7e3",
+        "cssVar": "--color-fundo",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#232425",
+          "#3f4041",
+          "#5c5e5f",
+          "#7f8082",
+          "#a0a2a3",
+          "#c6c7c9",
+          "#eeeeef"
+        ]
+      },
+      "superficie": {
+        "role": "neutral",
+        "displayName": "Grafite de Painel",
+        "canonical": "#1d1e20",
+        "canonicalOklch": "oklch(23.5% 0.004 264.5)",
+        "light": "#f6f5f2",
+        "cssVar": "--color-superficie",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#232426",
+          "#3f4042",
+          "#5c5e60",
+          "#7f8083",
+          "#a0a1a4",
+          "#c6c7ca",
+          "#eeeeef"
+        ]
+      },
+      "elevada": {
+        "role": "neutral",
+        "displayName": "Grafite Elevado",
+        "canonical": "#252628",
+        "canonicalOklch": "oklch(26.8% 0.004 264.5)",
+        "light": "#eeede9",
+        "cssVar": "--color-elevada",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#232426",
+          "#3f4042",
+          "#5c5e60",
+          "#7f8083",
+          "#a0a1a4",
+          "#c6c7ca",
+          "#eeeeef"
+        ]
+      },
+      "realce": {
+        "role": "neutral",
+        "displayName": "Realce",
+        "canonical": "#2c2d30",
+        "canonicalOklch": "oklch(29.7% 0.006 271.2)",
+        "light": "#e3e2dd",
+        "cssVar": "--color-realce",
+        "tonalRamp": [
+          "#0b0b0d",
+          "#232427",
+          "#3f4043",
+          "#5c5d61",
+          "#7f8084",
+          "#a0a1a5",
+          "#c6c7cb",
+          "#eeeef0"
+        ]
+      },
+      "linha": {
+        "role": "neutral",
+        "displayName": "Traço",
+        "canonical": "#2f3134",
+        "canonicalOklch": "oklch(31.2% 0.006 258.4)",
+        "light": "#d5d3cd",
+        "cssVar": "--color-linha",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#222427",
+          "#3e4043",
+          "#5b5e61",
+          "#7e8084",
+          "#9fa2a5",
+          "#c5c7cb",
+          "#edeef0"
+        ]
+      },
+      "linha-forte": {
+        "role": "neutral",
+        "displayName": "Traço Forte",
+        "canonical": "#4a4c50",
+        "canonicalOklch": "oklch(41.6% 0.007 264.5)",
+        "light": "#a9a7a0",
+        "cssVar": "--color-linha-forte",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#222428",
+          "#3e4044",
+          "#5c5e62",
+          "#7e8085",
+          "#9fa1a6",
+          "#c5c7cc",
+          "#edeef0"
+        ]
+      },
+      "texto": {
+        "role": "neutral",
+        "displayName": "Tinta",
+        "canonical": "#ecebe7",
+        "canonicalOklch": "oklch(94.0% 0.005 95.1)",
+        "light": "#17181a",
+        "cssVar": "--color-texto",
+        "tonalRamp": [
+          "#0c0b0a",
+          "#252421",
+          "#40403d",
+          "#5e5e5a",
+          "#81807d",
+          "#a2a19e",
+          "#c8c7c3",
+          "#efeeed"
+        ]
+      },
+      "texto-2": {
+        "role": "neutral",
+        "displayName": "Tinta Secundária",
+        "canonical": "#aeaca6",
+        "canonicalOklch": "oklch(74.4% 0.009 91.5)",
+        "light": "#4a4b4e",
+        "cssVar": "--color-texto-2",
+        "tonalRamp": [
+          "#0c0b09",
+          "#25241f",
+          "#41403b",
+          "#5f5d58",
+          "#82807a",
+          "#a3a19b",
+          "#c9c7c1",
+          "#efeeec"
+        ]
+      },
+      "texto-3": {
+        "role": "neutral",
+        "displayName": "Tinta de Apoio",
+        "canonical": "#8d8b85",
+        "canonicalOklch": "oklch(63.7% 0.009 91.5)",
+        "light": "#5f605f",
+        "cssVar": "--color-texto-3",
+        "tonalRamp": [
+          "#0c0b09",
+          "#26241f",
+          "#41403a",
+          "#5f5d58",
+          "#82807a",
+          "#a3a19b",
+          "#c9c7c1",
+          "#efeeec"
+        ]
+      },
+      "acao": {
+        "role": "primary",
+        "displayName": "Vermelhão de Turno",
+        "canonical": "#f0602a",
+        "canonicalOklch": "oklch(66.7% 0.189 39.2)",
+        "light": "#c4461a",
+        "cssVar": "--color-acao",
+        "tonalRamp": [
+          "#230000",
+          "#510000",
+          "#741b00",
+          "#983d1d",
+          "#c06141",
+          "#e58362",
+          "#ffa987",
+          "#ffe5d8"
+        ]
+      },
+      "acao-hover": {
+        "role": "primary",
+        "displayName": "Vermelhão de Turno (hover)",
+        "canonical": "#ff7a45",
+        "canonicalOklch": "oklch(72.7% 0.176 41.2)",
+        "light": "#a8390f",
+        "cssVar": "--color-acao-hover",
+        "tonalRamp": [
+          "#230000",
+          "#510000",
+          "#741c00",
+          "#983e18",
+          "#bf623e",
+          "#e5845f",
+          "#ffaa84",
+          "#ffe5d7"
+        ]
+      },
+      "sobre-acao": {
+        "role": "primary",
+        "displayName": "Tinta sobre Vermelhão",
+        "canonical": "#170a04",
+        "canonicalOklch": "oklch(16.2% 0.027 50.3)",
+        "light": "#ffffff",
+        "cssVar": "--color-sobre-acao",
+        "tonalRamp": [
+          "#110906",
+          "#2f2018",
+          "#4c3c33",
+          "#6b5950",
+          "#8e7c72",
+          "#b09d93",
+          "#d7c3b8",
+          "#f4ede9"
+        ]
+      },
+      "caneta": {
+        "role": "primary",
+        "displayName": "Vermelhão de Seleção",
+        "canonical": "#ff7a45",
+        "canonicalOklch": "oklch(72.7% 0.176 41.2)",
+        "light": "#b83d12",
+        "cssVar": "--color-caneta",
+        "tonalRamp": [
+          "#230000",
+          "#510000",
+          "#741c00",
+          "#983e18",
+          "#bf623e",
+          "#e5845f",
+          "#ffaa84",
+          "#ffe5d7"
+        ]
+      },
+      "caneta-fundo": {
+        "role": "primary",
+        "displayName": "Brasa Apagada",
+        "canonical": "#33221b",
+        "canonicalOklch": "oklch(27.1% 0.029 43.3)",
+        "light": "#f6e3da",
+        "cssVar": "--color-caneta-fundo",
+        "tonalRamp": [
+          "#120906",
+          "#301f18",
+          "#4d3b33",
+          "#6c5951",
+          "#907b72",
+          "#b29c93",
+          "#d9c2b8",
+          "#f5ece9"
+        ]
+      },
+      "urgente": {
+        "role": "secondary",
+        "displayName": "Vermelho Frio",
+        "canonical": "#ff5c6c",
+        "canonicalOklch": "oklch(69.4% 0.198 18.3)",
+        "light": "#c3162f",
+        "cssVar": "--color-urgente",
+        "tonalRamp": [
+          "#230001",
+          "#520008",
+          "#751424",
+          "#993841",
+          "#c15c62",
+          "#e77e82",
+          "#ffa3a7",
+          "#ffe3e3"
+        ]
+      },
+      "urgente-fundo": {
+        "role": "secondary",
+        "displayName": "Fundo de Violência",
+        "canonical": "#3a1c21",
+        "canonicalOklch": "oklch(27.0% 0.047 10.1)",
+        "light": "#f8e1e4",
+        "cssVar": "--color-urgente-fundo",
+        "tonalRamp": [
+          "#150608",
+          "#371a1f",
+          "#56353a",
+          "#765357",
+          "#9a757a",
+          "#bd969b",
+          "#e4bbc0",
+          "#f9eaec"
+        ]
+      },
+      "alerta": {
+        "role": "secondary",
+        "displayName": "Faixa de Alerta",
+        "canonical": "#b3172d",
+        "canonicalOklch": "oklch(49.3% 0.186 21.7)",
+        "light": "#c3162f",
+        "cssVar": "--color-alerta",
+        "tonalRamp": [
+          "#230000",
+          "#520003",
+          "#75151e",
+          "#99383b",
+          "#c25d5d",
+          "#e77e7d",
+          "#ffa4a1",
+          "#ffe3e1"
+        ]
+      },
+      "sobre-alerta": {
+        "role": "secondary",
+        "displayName": "Tinta sobre Alerta",
+        "canonical": "#ffffff",
+        "canonicalOklch": "oklch(100.0% 0.000 89.9)",
+        "light": "#ffffff",
+        "cssVar": "--color-sobre-alerta",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#242424",
+          "#404040",
+          "#5d5d5d",
+          "#808080",
+          "#a1a1a1",
+          "#c7c7c7",
+          "#eeeeee"
+        ]
+      },
+      "ok": {
+        "role": "secondary",
+        "displayName": "Verde de Ordem",
+        "canonical": "#3ccf6e",
+        "canonicalOklch": "oklch(75.6% 0.184 150.3)",
+        "light": "#17733f",
+        "cssVar": "--color-ok",
+        "tonalRamp": [
+          "#001300",
+          "#003300",
+          "#005113",
+          "#037133",
+          "#3a9555",
+          "#5fb876",
+          "#85df9a",
+          "#daf8df"
+        ]
+      },
+      "ok-fundo": {
+        "role": "secondary",
+        "displayName": "Fundo de Ordem",
+        "canonical": "#163020",
+        "canonicalOklch": "oklch(28.3% 0.044 155.3)",
+        "light": "#dfefe4",
+        "cssVar": "--color-ok-fundo",
+        "tonalRamp": [
+          "#030e07",
+          "#102a1b",
+          "#2c4736",
+          "#4a6553",
+          "#6c8875",
+          "#8caa96",
+          "#b2d0bb",
+          "#e7f2ea"
+        ]
+      },
+      "alta": {
+        "role": "tertiary",
+        "displayName": "Âmbar de Prioridade",
+        "canonical": "#f0a24f",
+        "canonicalOklch": "oklch(77.4% 0.135 65.0)",
+        "light": "#9a5300",
+        "cssVar": "--color-alta",
+        "tonalRamp": [
+          "#1f0100",
+          "#4a0700",
+          "#6b2a00",
+          "#8e4a00",
+          "#b46d10",
+          "#d98f3f",
+          "#ffb567",
+          "#ffe9cf"
+        ]
+      },
+      "alta-fundo": {
+        "role": "tertiary",
+        "displayName": "Fundo de Prioridade",
+        "canonical": "#33281c",
+        "canonicalOklch": "oklch(28.6% 0.026 68.9)",
+        "light": "#f5e9d8",
+        "cssVar": "--color-alta-fundo",
+        "tonalRamp": [
+          "#100a05",
+          "#2c2216",
+          "#493d31",
+          "#685b4e",
+          "#8b7e70",
+          "#ad9f90",
+          "#d3c5b5",
+          "#f3ede8"
+        ]
+      },
+      "info": {
+        "role": "tertiary",
+        "displayName": "Azul de Encaminhamento",
+        "canonical": "#7fb0f5",
+        "canonicalOklch": "oklch(75.0% 0.113 257.0)",
+        "light": "#2a5aa8",
+        "cssVar": "--color-info",
+        "tonalRamp": [
+          "#000827",
+          "#001f59",
+          "#103e7a",
+          "#305d9c",
+          "#5281c3",
+          "#73a3e7",
+          "#98caff",
+          "#def0ff"
+        ]
+      },
+      "info-fundo": {
+        "role": "tertiary",
+        "displayName": "Fundo de Encaminhamento",
+        "canonical": "#1a2638",
+        "canonicalOklch": "oklch(26.7% 0.038 258.3)",
+        "light": "#e2e9f5",
+        "cssVar": "--color-info-fundo",
+        "tonalRamp": [
+          "#060b15",
+          "#182436",
+          "#334054",
+          "#515e73",
+          "#738197",
+          "#93a3ba",
+          "#b9c9e0",
+          "#e9eff8"
+        ]
+      },
+      "marca": {
+        "role": "tertiary",
+        "displayName": "Ouro de Chegada",
+        "canonical": "#e6b84a",
+        "canonicalOklch": "oklch(80.4% 0.136 85.8)",
+        "light": "#b98500",
+        "cssVar": "--color-marca",
+        "tonalRamp": [
+          "#190600",
+          "#3f1800",
+          "#5e3600",
+          "#7e5500",
+          "#a37900",
+          "#c69b2e",
+          "#edc15a",
+          "#fcedcd"
+        ]
+      },
+      "marca-fundo": {
+        "role": "tertiary",
+        "displayName": "Fundo de Chegada",
+        "canonical": "#2e2818",
+        "canonicalOklch": "oklch(27.9% 0.029 89.8)",
+        "light": "#f3ead0",
+        "cssVar": "--color-marca-fundo",
+        "tonalRamp": [
+          "#0e0b04",
+          "#292314",
+          "#463f2e",
+          "#645d4b",
+          "#87806d",
+          "#a8a18e",
+          "#cec7b3",
+          "#f1eee7"
+        ]
+      },
+      "cat-renda": {
+        "role": "tertiary",
+        "displayName": "Necessidade: Renda e benefícios",
+        "canonical": "#4fd08a",
+        "canonicalOklch": "oklch(76.9% 0.152 156.1)",
+        "light": "#1f7a4d",
+        "cssVar": "--color-cat-renda",
+        "tonalRamp": [
+          "#001300",
+          "#003401",
+          "#00521f",
+          "#00723d",
+          "#28975e",
+          "#52b97f",
+          "#7ae1a4",
+          "#d7f8e2"
+        ]
+      },
+      "cat-cadastro": {
+        "role": "tertiary",
+        "displayName": "Necessidade: Cadastro Único",
+        "canonical": "#7fb0f5",
+        "canonicalOklch": "oklch(75.0% 0.113 257.0)",
+        "light": "#2459a8",
+        "cssVar": "--color-cat-cadastro",
+        "tonalRamp": [
+          "#000827",
+          "#001f59",
+          "#103e7a",
+          "#305d9c",
+          "#5281c3",
+          "#73a3e7",
+          "#98caff",
+          "#def0ff"
+        ]
+      },
+      "cat-moradia": {
+        "role": "tertiary",
+        "displayName": "Necessidade: Moradia",
+        "canonical": "#c9a27c",
+        "canonicalOklch": "oklch(73.8% 0.069 65.7)",
+        "light": "#a3561c",
+        "cssVar": "--color-cat-moradia",
+        "tonalRamp": [
+          "#160700",
+          "#3a1b00",
+          "#583712",
+          "#785531",
+          "#9d7853",
+          "#c09973",
+          "#e7bf98",
+          "#faecde"
+        ]
+      },
+      "cat-documentos": {
+        "role": "tertiary",
+        "displayName": "Necessidade: Documentos",
+        "canonical": "#ab9cf5",
+        "canonicalOklch": "oklch(74.0% 0.127 290.7)",
+        "light": "#5b4bb5",
+        "cssVar": "--color-cat-documentos",
+        "tonalRamp": [
+          "#0d0228",
+          "#280c5b",
+          "#422e7c",
+          "#5f4d9f",
+          "#8171c6",
+          "#a292eb",
+          "#c7b8ff",
+          "#eeeaff"
+        ]
+      },
+      "cat-alimentacao": {
+        "role": "tertiary",
+        "displayName": "Necessidade: Alimentação",
+        "canonical": "#e6c04f",
+        "canonicalOklch": "oklch(82.0% 0.136 90.3)",
+        "light": "#8a6200",
+        "cssVar": "--color-cat-alimentacao",
+        "tonalRamp": [
+          "#170700",
+          "#3c1b00",
+          "#5a3900",
+          "#7a5800",
+          "#9e7b00",
+          "#c19d2e",
+          "#e8c35a",
+          "#faeecd"
+        ]
+      },
+      "cat-idosa": {
+        "role": "tertiary",
+        "displayName": "Necessidade: Pessoa idosa ou com deficiência",
+        "canonical": "#e08fd8",
+        "canonicalOklch": "oklch(75.6% 0.135 330.4)",
+        "light": "#8a3f86",
+        "cssVar": "--color-cat-idosa",
+        "tonalRamp": [
+          "#1b001a",
+          "#430040",
+          "#631d5f",
+          "#853e7f",
+          "#ab61a4",
+          "#cf82c7",
+          "#f7a8ef",
+          "#ffe4fd"
+        ]
+      },
+      "cat-trabalho": {
+        "role": "tertiary",
+        "displayName": "Necessidade: Trabalho e cursos",
+        "canonical": "#45c8bd",
+        "canonicalOklch": "oklch(75.9% 0.114 187.1)",
+        "light": "#0e6b67",
+        "cssVar": "--color-cat-trabalho",
+        "tonalRamp": [
+          "#001310",
+          "#00332d",
+          "#00514a",
+          "#007168",
+          "#00958c",
+          "#2fb8ad",
+          "#60dfd4",
+          "#d2f8f3"
+        ]
+      },
+      "cat-violencia": {
+        "role": "tertiary",
+        "displayName": "Necessidade: Violência ou ameaça",
+        "canonical": "#ff5c6c",
+        "canonicalOklch": "oklch(69.4% 0.198 18.3)",
+        "light": "#c3162f",
+        "cssVar": "--color-cat-violencia",
+        "tonalRamp": [
+          "#230001",
+          "#520008",
+          "#751424",
+          "#993841",
+          "#c15c62",
+          "#e77e82",
+          "#ffa3a7",
+          "#ffe3e3"
+        ]
+      },
+      "cat-outro": {
+        "role": "tertiary",
+        "displayName": "Necessidade: Não identificado",
+        "canonical": "#9b9993",
+        "canonicalOklch": "oklch(68.3% 0.009 91.5)",
+        "light": "#5f605f",
+        "cssVar": "--color-cat-outro",
+        "tonalRamp": [
+          "#0c0b09",
+          "#26241f",
+          "#41403a",
+          "#5f5d58",
+          "#82807a",
+          "#a3a19b",
+          "#c9c7c1",
+          "#efeeec"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Título da tela",
+        "purpose": "Título de cada tela (26 a 28px), à esquerda, com as ações à direita."
+      },
+      "title": {
+        "displayName": "Título de painel",
+        "purpose": "Barra de título dos painéis (16px); 18px na cabeça da ficha."
+      },
+      "body": {
+        "displayName": "Texto",
+        "purpose": "Texto corrido e células da tabela (14px na fila)."
+      },
+      "label": {
+        "displayName": "Rótulo",
+        "purpose": "Cabeçalhos de coluna, rótulos da faixa de leitura e detalhes de painel, em caixa normal."
+      },
+      "data": {
+        "displayName": "Dado",
+        "purpose": "Guia, espera, contagens e datas em Plex Mono tabular com zero cortado."
+      },
+      "data-reading": {
+        "displayName": "Leitura",
+        "purpose": "Valor de cada célula da faixa de leitura."
+      }
+    },
+    "shadows": [
+      {
+        "name": "gaveta",
+        "value": "20px 0 40px -20px rgb(27 39 51 / 0.45)",
+        "purpose": "Só a gaveta do menu, aberta sobre o véu."
+      },
+      {
+        "name": "pino",
+        "value": "0 1px 2px rgb(27 39 51 / 0.35)",
+        "purpose": "Pino da chave liga/desliga."
+      },
+      {
+        "name": "segmento",
+        "value": "0 1px 2px rgb(27 39 51 / 0.18)",
+        "purpose": "Opção escolhida no segmentado."
+      },
+      {
+        "name": "ponto-mapa",
+        "value": "0 2px 6px -2px rgb(15 25 35 / 0.5)",
+        "purpose": "Bolinha de bairro sobre o mapa."
+      },
+      {
+        "name": "traco-selecao",
+        "value": "inset 3px 0 0 var(--color-acao)",
+        "purpose": "Borda esquerda da linha aberta na fila."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-saida",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Curva de todas as entradas (gaveta, folha lateral, assentar, chave)."
+      },
+      {
+        "name": "cor",
+        "value": "150ms",
+        "purpose": "Troca de cor em hover e estado de botões, linhas e campos."
+      },
+      {
+        "name": "gaveta",
+        "value": "200ms",
+        "purpose": "Gaveta do menu entra pela esquerda (28px, opacidade de 0.6 a 1)."
+      },
+      {
+        "name": "folha-lateral",
+        "value": "220ms",
+        "purpose": "Ficha em folha lateral entra pela direita (28px)."
+      },
+      {
+        "name": "assentar",
+        "value": "200ms",
+        "purpose": "Subitens do menu e conteúdo trocado assentam subindo 6px."
+      },
+      {
+        "name": "abrir-topico",
+        "value": "140ms / 260ms",
+        "purpose": "Espera do mouse para abrir e para fechar um tópico da gaveta."
+      },
+      {
+        "name": "movimento-reduzido",
+        "value": "0.01ms",
+        "purpose": "Com prefers-reduced-motion, toda transição e animação é anulada."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px",
+        "note": "tabela da fila no lugar da lista; gaveta com abertura por mouse"
+      },
+      {
+        "name": "lg",
+        "value": "1024px",
+        "note": "faixa de leitura em 5 colunas; grade de Indicadores em 2"
+      },
+      {
+        "name": "xl",
+        "value": "1280px",
+        "note": "ficha encaixada ao lado da fila; contadores na barra do topo"
+      },
+      {
+        "name": "max",
+        "value": "1440px",
+        "note": "largura máxima do conteúdo"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botão principal",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "A única ação principal da tela, em vermelhão cheio.",
+      "html": "<button class=\"ds-btn-primario\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"/></svg>Registrar atendimento</button>",
+      "css": ".ds-btn-primario{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 16px;border:0;border-radius:3px;background:var(--color-acao,#f0602a);color:var(--color-sobre-acao,#170a04);font:600 14.5px/1 \"IBM Plex Sans Variable\",\"IBM Plex Sans\",system-ui,sans-serif;cursor:pointer;transition:background-color 150ms}.ds-btn-primario:hover{background:var(--color-acao-hover,#ff7a45)}.ds-btn-primario:focus-visible{outline:2px solid var(--color-caneta,#ff7a45);outline-offset:2px}"
+    },
+    {
+      "name": "Botão secundário",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Ações de apoio; não compete com a principal.",
+      "html": "<button class=\"ds-btn-sec\">Meus casos</button>",
+      "css": ".ds-btn-sec{height:40px;padding:0 16px;border:1px solid var(--color-linha-forte,#4a4c50);border-radius:3px;background:var(--color-superficie,#1d1e20);color:var(--color-texto,#ecebe7);font:400 14.5px/1 \"IBM Plex Sans Variable\",\"IBM Plex Sans\",system-ui,sans-serif;cursor:pointer;transition:background-color 150ms,border-color 150ms}.ds-btn-sec:hover{border-color:var(--color-texto-3,#8d8b85);background:var(--color-elevada,#252628)}.ds-btn-sec:focus-visible{outline:2px solid var(--color-caneta,#ff7a45);outline-offset:2px}"
+    },
+    {
+      "name": "Botão perigo",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Ação destrutiva ou de urgência.",
+      "html": "<button class=\"ds-btn-perigo\">Arquivar caso</button>",
+      "css": ".ds-btn-perigo{height:40px;padding:0 16px;border:1px solid color-mix(in oklab,var(--color-urgente,#ff5c6c) 45%,transparent);border-radius:3px;background:var(--color-superficie,#1d1e20);color:var(--color-urgente,#ff5c6c);font:400 14.5px/1 \"IBM Plex Sans Variable\",\"IBM Plex Sans\",system-ui,sans-serif;cursor:pointer;transition:background-color 150ms}.ds-btn-perigo:hover{background:var(--color-urgente-fundo,#3a1c21)}.ds-btn-perigo:focus-visible{outline:2px solid var(--color-caneta,#ff7a45);outline-offset:2px}"
+    },
+    {
+      "name": "Campo",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo de texto com rótulo curto em cima.",
+      "html": "<label class=\"ds-campo\"><span>Buscar na fila</span><input placeholder=\"Buscar relato, bairro, assunto\"></label>",
+      "css": ".ds-campo{display:flex;flex-direction:column;gap:6px;font-family:\"IBM Plex Sans Variable\",\"IBM Plex Sans\",system-ui,sans-serif}.ds-campo span{font-size:13.5px;font-weight:600;color:var(--color-texto-2,#aeaca6)}.ds-campo input{height:40px;padding:8px 12px;border:1px solid var(--color-linha-forte,#4a4c50);border-radius:3px;background:var(--color-superficie,#1d1e20);color:var(--color-texto,#ecebe7);font:inherit;font-size:15px;caret-color:var(--color-caneta,#ff7a45);transition:border-color 150ms}.ds-campo input:hover{border-color:var(--color-texto-3,#8d8b85)}.ds-campo input:focus{outline:none;border-color:var(--color-caneta,#ff7a45);box-shadow:0 0 0 2px color-mix(in oklab,var(--color-caneta,#ff7a45) 15%,transparent)}"
+    },
+    {
+      "name": "Selos de estado",
+      "kind": "chip",
+      "refersTo": "badge-urgent",
+      "description": "Situação do caso; violência sempre com escudo e rótulo.",
+      "html": "<span class=\"ds-selo ds-selo-urgente\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"/><path d=\"M12 8v4\"/><path d=\"M12 16h.01\"/></svg>Urgente</span> <span class=\"ds-selo ds-selo-ok\">Em atendimento</span>",
+      "css": ".ds-selo{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border:1px solid;border-radius:4px;font:600 12.5px/1.3 \"IBM Plex Sans Variable\",\"IBM Plex Sans\",system-ui,sans-serif;white-space:nowrap}.ds-selo-urgente{background:var(--color-urgente-fundo,#3a1c21);color:var(--color-urgente,#ff5c6c);border-color:color-mix(in oklab,var(--color-urgente,#ff5c6c) 35%,transparent)}.ds-selo-ok{background:var(--color-ok-fundo,#163020);color:var(--color-ok,#3ccf6e);border-color:color-mix(in oklab,var(--color-ok,#3ccf6e) 25%,transparent)}"
+    },
+    {
+      "name": "Painel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Bloco de trabalho com traço fino e barra de título.",
+      "html": "<section class=\"ds-painel\"><div class=\"ds-painel-cabeca\"><h2>Por necessidade<small>49 triagens</small></h2></div><div class=\"ds-painel-corpo\">Conteúdo do painel.</div></section>",
+      "css": ".ds-painel{background:var(--color-superficie,#1d1e20);border:1px solid var(--color-linha,#2f3134);border-radius:4px;color:var(--color-texto,#ecebe7);font:400 15px/1.55 \"IBM Plex Sans Variable\",\"IBM Plex Sans\",system-ui,sans-serif}.ds-painel-cabeca{display:flex;align-items:center;justify-content:space-between;min-height:46px;padding:10px 16px;border-bottom:1px solid var(--color-linha,#2f3134)}.ds-painel-cabeca h2{margin:0;font-size:16px;font-weight:600;font-stretch:94%;letter-spacing:-0.012em;line-height:1.12}.ds-painel-cabeca small{margin-left:10px;font-size:12.5px;font-weight:400;letter-spacing:normal;color:var(--color-texto-3,#8d8b85)}.ds-painel-corpo{padding:16px}"
+    },
+    {
+      "name": "Faixa de leitura",
+      "kind": "custom",
+      "refersTo": "reading-strip",
+      "description": "Mostradores no topo de cada tela; valores em mono.",
+      "html": "<dl class=\"ds-faixa\"><a href=\"#\" class=\"ds-leitura ds-urgente\"><dt><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"/><path d=\"M12 8v4\"/><path d=\"M12 16h.01\"/></svg>Violência aguardando</dt><dd>3</dd></a><div class=\"ds-leitura\"><dt>Aguardando</dt><dd>27</dd></div><div class=\"ds-leitura\"><dt>Espera mais longa</dt><dd>25 dias</dd><dd class=\"ds-det\">guia 4330</dd></div></dl>",
+      "css": ".ds-faixa{display:grid;grid-template-columns:repeat(3,1fr);margin:0;overflow:hidden;border:1px solid var(--color-linha,#2f3134);border-radius:4px;background:var(--color-superficie,#1d1e20);font-family:\"IBM Plex Sans Variable\",\"IBM Plex Sans\",system-ui,sans-serif}.ds-leitura{display:block;margin:0 -1px -1px 0;padding:8px 16px;border-right:1px solid var(--color-linha,#2f3134);border-bottom:1px solid var(--color-linha,#2f3134);text-decoration:none}a.ds-leitura:hover{background:var(--color-elevada,#252628)}a.ds-leitura:focus-visible{outline:2px solid var(--color-caneta,#ff7a45);outline-offset:2px}.ds-leitura dt{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--color-texto-2,#aeaca6)}.ds-urgente dt svg{color:var(--color-urgente,#ff5c6c)}.ds-leitura dd{margin:0;font:500 21px/1.25 \"IBM Plex Mono\",ui-monospace,monospace;font-variant-numeric:tabular-nums slashed-zero;letter-spacing:-0.01em;color:var(--color-texto,#ecebe7)}.ds-leitura dd.ds-det{font-size:12px;font-weight:400;color:var(--color-texto-3,#8d8b85)}.ds-urgente dd{color:var(--color-urgente,#ff5c6c)}"
+    },
+    {
+      "name": "Linha da fila",
+      "kind": "custom",
+      "refersTo": "queue-row",
+      "description": "Linha densa tipo log; a aberta leva traço vermelhão à esquerda.",
+      "html": "<table class=\"ds-fila\"><tbody><tr><td class=\"ds-guia\">5938</td><td class=\"ds-esp\">2 dias</td><td>Alimentação</td><td class=\"ds-rel\">Perdi meu emprego e estou sem conseguir colocar comida na mesa.</td></tr><tr class=\"ds-aberta\"><td class=\"ds-guia\">9135</td><td class=\"ds-esp\">2 dias</td><td>Alimentação</td><td class=\"ds-rel\">fome</td></tr></tbody></table>",
+      "css": ".ds-fila{width:100%;border-collapse:collapse;font:400 14px/1.4 \"IBM Plex Sans Variable\",\"IBM Plex Sans\",system-ui,sans-serif;color:var(--color-texto,#ecebe7);background:var(--color-superficie,#1d1e20)}.ds-fila tr{height:40px;border-bottom:1px solid var(--color-linha,#2f3134);cursor:pointer;transition:background-color 150ms}.ds-fila tr:hover{background:var(--color-elevada,#252628)}.ds-fila td{padding:6px 12px}.ds-guia,.ds-esp{font-family:\"IBM Plex Mono\",ui-monospace,monospace;font-variant-numeric:tabular-nums slashed-zero;letter-spacing:-0.01em}.ds-guia{font-weight:500}.ds-esp,.ds-rel{color:var(--color-texto-2,#aeaca6);font-size:13.5px}.ds-fila tr.ds-aberta{background:var(--color-caneta-fundo,#33221b)}.ds-aberta .ds-guia{color:var(--color-caneta,#ff7a45);box-shadow:inset 3px 0 0 var(--color-acao,#f0602a)}"
+    },
+    {
+      "name": "Item da gaveta",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Tópico da gaveta ☰ com as subcategorias embaixo; o atual leva barra vermelhão.",
+      "html": "<ul class=\"ds-nav\"><li><a href=\"#\" class=\"ds-ativo\">Fila de casos<span class=\"ds-cont\">3</span></a><ul><li><a href=\"#\">Atender primeiro</a></li><li><a href=\"#\">Meus casos</a></li></ul></li><li><a href=\"#\">Conversas</a></li></ul>",
+      "css": ".ds-nav{list-style:none;margin:0;padding:12px;width:280px;background:var(--color-superficie,#1d1e20);font-family:\"IBM Plex Sans Variable\",\"IBM Plex Sans\",system-ui,sans-serif}.ds-nav a{position:relative;display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:3px;color:var(--color-texto-2,#aeaca6);font-size:15px;text-decoration:none;transition:background-color 150ms}.ds-nav a:hover{background:var(--color-elevada,#252628);color:var(--color-texto,#ecebe7)}.ds-nav a:focus-visible{outline:2px solid var(--color-caneta,#ff7a45);outline-offset:2px}.ds-nav a.ds-ativo{background:var(--color-caneta-fundo,#33221b);color:var(--color-texto,#ecebe7);font-weight:600}.ds-nav a.ds-ativo::before{content:\"\";position:absolute;left:0;top:6px;bottom:6px;width:3px;border-radius:0 2px 2px 0;background:var(--color-acao,#f0602a)}.ds-nav ul{list-style:none;margin:2px 0 4px 21px;padding-left:12px;border-left:1px solid var(--color-linha,#2f3134)}.ds-nav ul a{padding:6px 12px;font-size:14px}.ds-cont{margin-left:auto;padding:0 8px;border-radius:999px;background:var(--color-urgente,#ff5c6c);color:#fff;font:700 12px/20px \"IBM Plex Mono\",ui-monospace,monospace}"
+    }
+  ],
+  "narrative": {
+    "northStar": "O Painel de Turno",
+    "overview": "O painel é um terminal de operação da rede socioassistencial, usado o expediente inteiro. Cada tela é uma grade de painéis com traço fino e barra de título, abre com uma faixa de leitura (contagens em mono, lado a lado, como mostradores) e mostra os casos em linhas densas tipo log. A direção foi fixada pelo dono do projeto com uma imagem de referência \"Industrial precision / high-tech terminal\": grafite, painéis de traço fino, faixa de métricas, tabelas tipo log, dados em mono, acento laranja-vermelhão.\n\nA densidade é alta e sem medo: linhas de 40px, colunas alinhadas, todo número em IBM Plex Mono com algarismos tabulares e zero cortado. A cor é rara e tem função: o vermelhão marca o que está ativo ou é a ação principal, o verde marca o que está em ordem, o vermelho frio marca só violência. O tema escuro é o padrão; o claro é o mesmo sistema sob luz do dia (papel acinzentado, tinta grafite), com os mesmos papéis e nomes de token.\n\nRejeições confirmadas: a pilha de cartões grandes, o painel de boas-vindas com métricas decorativas e o painel \"só preto e branco\" (rejeitado pelo dono em favor de uma cor por necessidade nas séries de dados).",
+    "keyCharacteristics": [
+      "Grafite neutro (não azulado), painéis com traço de 1px e cantos de 3 a 4px.",
+      "Faixa de leitura no topo de cada tela; tabelas densas tipo log.",
+      "IBM Plex Sans na interface, IBM Plex Mono em todo dado (guia, tempo, contagem, data).",
+      "Um acento (vermelhão) para o ativo e a ação principal; vermelho frio só para violência.",
+      "Escuro por padrão; claro como o mesmo sistema sob luz do dia."
+    ],
+    "rules": [
+      {
+        "name": "The Vermelhão Reservado Rule",
+        "body": "O vermelhão só aparece no que está ativo agora ou na ação principal da tela: item atual, linha aberta, foco, botão primário, série do gráfico. Nunca como decoração, título ou borda de enfeite.",
+        "section": "colors"
+      },
+      {
+        "name": "The Escudo e Rótulo Rule",
+        "body": "O vermelho frio é exclusivo de violência e urgência e nunca aparece sozinho: sempre com o ícone de escudo e um rótulo (\"Violência ou ameaça\", \"Urgente\", \"Atender primeiro\").",
+        "section": "colors"
+      },
+      {
+        "name": "The Cor Por Necessidade Rule",
+        "body": "As cores das necessidades vivem nas séries de dados (barras, filtros, pontos do mapa). Na tabela da Fila o ícone de necessidade é neutro (fundo elevada, tinta texto-2); só a violência ganha a sua cor.",
+        "section": "colors"
+      },
+      {
+        "name": "The Dado em Mono Rule",
+        "body": "Todo número que a equipe compara (guia, espera, contagem, data, porcentagem) sai em Plex Mono tabular com zero cortado. Texto de interface nunca sai em mono.",
+        "section": "typography"
+      },
+      {
+        "name": "The Caixa Normal Rule",
+        "body": "Rótulos e cabeçalhos ficam em caixa normal, sem letras espaçadas em maiúsculas.",
+        "section": "typography"
+      },
+      {
+        "name": "The Traço Não Sombra Rule",
+        "body": "Blocos de trabalho se separam por traço de 1px e degrau de grafite. Sombra macia só em camada que flutua sobre véu ou em peça que desliza.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do montar cada tela como cabeçalho, faixa de leitura e grade de painéis com barra de título, traço de 1px e canto de 4px.",
+      "Do escrever todo número, tempo, guia e contagem em Plex Mono tabular com zero cortado.",
+      "Do reservar o vermelhão ao item ativo, à linha aberta, ao foco e à única ação principal da tela.",
+      "Do mostrar violência sempre com escudo, rótulo escrito e vermelho frio, no topo da fila.",
+      "Do usar a cor de cada necessidade só nas séries de dados (barras, filtros, mapa) e no ícone da violência.",
+      "Do definir cada cor nos dois temas, escuro (padrão) e claro, com o mesmo nome de token."
+    ],
+    "donts": [
+      "Don't empilhar cartões grandes nem fazer painel de boas-vindas com métricas decorativas.",
+      "Don't fazer o painel só em preto e branco: as necessidades têm cor nas séries de dados.",
+      "Don't colorir os ícones de necessidade na tabela da Fila (exceto violência).",
+      "Don't usar o vermelho frio para outra coisa que não violência e urgência, nem sem escudo e rótulo.",
+      "Don't pôr sombra macia em painéis, tabelas ou ficha encaixada; separe por traço e degrau de grafite.",
+      "Don't trocar a gaveta ☰ por barra lateral fixa."
+    ]
+  }
+}
