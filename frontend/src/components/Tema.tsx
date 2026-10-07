@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
 
+// Modo escuro: segue o computador até a pessoa escolher; a escolha fica neste navegador.
+// O index.html aplica o tema antes de a página aparecer (sem piscar branco ao abrir).
 const CHAVE = 'ponte_tema';
 type Tema = 'claro' | 'escuro';
 
@@ -13,42 +15,51 @@ function escolhido(): Tema | null {
   }
 }
 
+function doSistema(): Tema {
+  try { return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro'; } catch { return 'claro'; }
+}
+
 function aplicar(tema: Tema) {
   document.documentElement.dataset.tema = tema;
 }
 
 function useTema() {
-  const [tema, setTema] = useState<Tema>(() => (document.documentElement.dataset.tema as Tema) || escolhido() || 'escuro');
+  const [tema, setTema] = useState<Tema>(() => (document.documentElement.dataset.tema as Tema) || escolhido() || doSistema());
 
+  // Sem escolha feita, acompanha o computador se ele mudar (ex.: modo noturno automático)
   useEffect(() => {
-    aplicar(tema);
-  }, [tema]);
+    let mq: MediaQueryList;
+    try { mq = window.matchMedia('(prefers-color-scheme: dark)'); } catch { return; }
+    const mudou = () => {
+      if (escolhido()) return;
+      const novo = mq.matches ? 'escuro' : 'claro';
+      aplicar(novo);
+      setTema(novo);
+    };
+    mq.addEventListener('change', mudou);
+    return () => mq.removeEventListener('change', mudou);
+  }, []);
 
   const alternar = () => {
     const novo: Tema = tema === 'escuro' ? 'claro' : 'escuro';
     aplicar(novo);
     setTema(novo);
-    try { localStorage.setItem(CHAVE, novo); } catch { /* silêncio */ }
+    try { localStorage.setItem(CHAVE, novo); } catch { /* vale só até recarregar */ }
   };
   return { tema, alternar };
 }
 
-export function BotaoTema({ className = '', compacto = false }: { className?: string; compacto?: boolean; naFaixa?: boolean }) {
+export function BotaoTema({ className = '', compacto = false, naFaixa = false }: { className?: string; compacto?: boolean; naFaixa?: boolean }) {
   const { tema, alternar } = useTema();
   const escuro = tema === 'escuro';
-
   return (
-    <button
-      type="button"
-      onClick={alternar}
-      aria-pressed={escuro}
-      title={escuro ? 'Mudar para o Modo Claro' : 'Mudar para o Modo Escuro'}
-      className={`flex h-9 items-center justify-center rounded-xl border border-linha bg-elevada/60 text-texto-2 hover:border-marca/40 hover:bg-marca-bg hover:text-texto transition-all duration-200 cursor-pointer shadow-sm ${
-        compacto ? 'w-9' : 'px-3 gap-1.5 text-[13px] font-medium'
-      } ${className}`}
-    >
-      {escuro ? <Sun className="size-4 text-amber-400" aria-hidden /> : <Moon className="size-4 text-marca" aria-hidden />}
-      {!compacto && <span>{escuro ? 'Claro' : 'Escuro'}</span>}
+    <button type="button" onClick={alternar} aria-pressed={escuro}
+      title={escuro ? 'Voltar para o modo claro' : 'Usar o modo escuro'}
+      className={`inline-flex items-center gap-1.5 rounded-[5px] px-2 py-1.5 text-[13.5px] transition-colors duration-150 ${naFaixa
+        ? 'text-sobre-topo-2 hover:bg-sobre-topo/10 hover:text-sobre-topo'
+        : 'text-texto-2 hover:bg-superficie hover:text-texto'} ${className}`}>
+      {escuro ? <Sun className={compacto ? 'size-5' : 'size-4'} aria-hidden /> : <Moon className={compacto ? 'size-5' : 'size-4'} aria-hidden />}
+      <span className={compacto ? 'sr-only' : ''}>{escuro ? 'Modo claro' : 'Modo escuro'}</span>
     </button>
   );
 }

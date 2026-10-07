@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { BellOff, BellRing, ChevronRight, ShieldAlert } from 'lucide-react';
+import { BellOff, BellRing, ShieldAlert } from 'lucide-react';
 import type { Triagem } from '../tipos';
 
-export const ALERTA_URGENTE_MIN = 10;
+// Caso de violência sem ninguém atendendo há mais que o tempo do alerta (configurável pela coordenação, padrão 10 min):
+// o painel inteiro avisa (princípio 1: urgência primeiro)
 const REPETIR_SOM_MIN = 3;
 const CHAVE_SOM = 'alerta_urgente_som';
 
@@ -10,6 +11,7 @@ function lerSom() {
   try { return localStorage.getItem(CHAVE_SOM) === '1'; } catch { return false; }
 }
 
+/** Dois toques curtos, sem arquivo de som (o navegador só deixa tocar depois de um clique na página). */
 function tocar() {
   try {
     const ctx = new AudioContext();
@@ -26,7 +28,7 @@ function tocar() {
     });
     setTimeout(() => ctx.close(), 1000);
   } catch {
-    /* sem áudio no navegador */
+    /* sem áudio no navegador: fica só o aviso na tela */
   }
 }
 
@@ -49,12 +51,14 @@ export function AlertaUrgente({ triagens, minutos = 10 }: { triagens: Triagem[];
     .sort((a, b) => b.minutos - a.minutos);
   const n = parados.length;
 
+  // Título da aba avisa mesmo com o painel em segundo plano
   useEffect(() => {
     const original = document.title.replace(/^\(\d+\) Urgente parado · /, '');
     document.title = n ? `(${n}) Urgente parado · ${original}` : original;
     return () => { document.title = original; };
   }, [n]);
 
+  // Som: quando aparece um caso novo parado e, enquanto houver, de tempos em tempos
   useEffect(() => {
     if (!som || !n) { quantosAntes.current = n; return; }
     const novo = n > quantosAntes.current;
@@ -69,58 +73,34 @@ export function AlertaUrgente({ triagens, minutos = 10 }: { triagens: Triagem[];
   const alternarSom = () => {
     const novo = !som;
     setSom(novo);
-    try { localStorage.setItem(CHAVE_SOM, novo ? '1' : '0'); } catch { /* silêncio */ }
-    if (novo) tocar();
+    try { localStorage.setItem(CHAVE_SOM, novo ? '1' : '0'); } catch { /* fica só nesta aba */ }
+    if (novo) tocar(); // confirma que o som funciona (e libera o áudio no navegador)
   };
 
   if (!n) return null;
   const maisAntigo = parados[0].minutos;
-  const espera = maisAntigo >= 60 ? `${Math.floor(maisAntigo / 60)}h ${maisAntigo % 60}m` : `${maisAntigo} min`;
+  const espera = maisAntigo >= 60 ? `${Math.floor(maisAntigo / 60)} h ${maisAntigo % 60} min` : `${maisAntigo} min`;
 
   return (
-    <div 
-      role="alert" 
-      className="mb-8 relative overflow-hidden rounded-2xl border border-rose-500/30 bg-superficie p-4 md:px-6 md:py-4 shadow-sm transition-all duration-300 ring-1 ring-rose-500/10"
-    >
-      <div className="absolute top-0 left-0 h-full w-1.5 bg-rose-600" />
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-600 dark:text-rose-400">
-            <ShieldAlert className="size-5 shrink-0" aria-hidden />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[15px] font-bold text-texto tracking-tight">
-                {n === 1 ? '1 Caso Crítico de Violência' : `${n} Casos Críticos de Violência`} Aguardando Atendimento
-              </span>
-              <span className="mono text-[11px] font-semibold bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 px-2.5 py-0.5 rounded-full">
-                Espera: {espera}
-              </span>
-            </div>
-            <p className="text-[13px] text-texto-2 mt-0.5">
-              Protocolo de segurança: assuma o atendimento para iniciar acolhimento imediato e silenciar a IA.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button 
-            type="button" 
-            onClick={alternarSom} 
-            aria-pressed={som}
-            className="inline-flex h-9 items-center gap-2 rounded-xl px-3.5 text-[13px] font-medium border border-linha bg-superficie text-texto-2 hover:bg-elevada hover:text-texto transition-all duration-150 cursor-pointer shadow-xs"
-          >
-            {som ? <BellRing className="size-3.5 text-rose-600 dark:text-rose-400" aria-hidden /> : <BellOff className="size-3.5 text-texto-3" aria-hidden />}
-            {som ? 'Som ativo' : 'Ativar som'}
-          </button>
-          <a 
-            href="#/fila" 
-            className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 px-4 text-[13.5px] font-semibold text-white shadow-sm active:scale-95 transition-all duration-150"
-          >
-            Atender Agora
-            <ChevronRight className="size-4" />
-          </a>
-        </div>
+    <div role="alert" className="mb-7 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-[6px] bg-alerta px-4 py-3 text-sobre-alerta md:px-5">
+      <p className="flex min-w-0 grow basis-[26rem] items-center gap-3 text-[15px] leading-snug">
+        <ShieldAlert className="size-5 shrink-0" aria-hidden />
+        <span>
+          <strong className="font-semibold">
+            {n === 1 ? '1 caso de violência' : `${n} casos de violência`} sem ninguém atendendo
+          </strong>
+          {n === 1 ? ` há ${espera}.` : ` (o mais antigo há ${espera}).`} Abra a ficha e marque “Em atendimento” quando alguém assumir.
+        </span>
+      </p>
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={alternarSom} aria-pressed={som}
+          className="inline-flex h-9 items-center gap-1.5 rounded-[5px] px-3 text-[13.5px] text-sobre-alerta/90 transition-colors duration-150 hover:bg-sobre-alerta/15 hover:text-sobre-alerta">
+          {som ? <BellRing className="size-4" aria-hidden /> : <BellOff className="size-4" aria-hidden />}
+          {som ? 'Som ligado' : 'Ligar som'}
+        </button>
+        <a href="#/fila" className="inline-flex h-9 items-center rounded-[5px] bg-superficie px-3.5 text-[14px] font-semibold text-urgente transition-colors duration-150 hover:bg-urgente-fundo">
+          Ver na fila
+        </a>
       </div>
     </div>
   );

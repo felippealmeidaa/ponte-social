@@ -1,25 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
-import { 
-  Activity, 
-  Brain, 
-  CheckCircle2, 
-  CircleX, 
-  GraduationCap, 
-  Play, 
-  Scale, 
-  Zap 
-} from 'lucide-react';
+import { Brain, CheckCircle2, CircleX, GraduationCap, Play, Scale } from 'lucide-react';
 import { api, ErroApi } from '../api';
 import { Aviso, Botao, Esqueleto } from '../components/ui';
 import { contaAtual } from '../unidades';
 import { useAtualizacao } from '../useAtualizacao';
 import { dataHora } from '../vocabulario';
 
+// Aba "Modelo de IA": o que a banca e a coordenação precisam ver da IA, com números honestos.
+// 1) LLM x modelo local no mesmo teste; 2) o modelo local em detalhe; 3) aprender com os casos reais.
+
 interface Metricas {
-  f1_macro: number;
-  f1_macro_ic95?: [number, number];
-  acuracia: number;
-  recall_violencia: number;
+  f1_macro: number; acuracia: number; recall_violencia: number; f1_macro_ic95?: [number, number]; taxa_nao_identificado?: number;
 }
 interface Relatorio {
   timestamp: string;
@@ -54,16 +45,14 @@ const ms = (v?: number) => (v === undefined ? '–' : v < 1000 ? `${Math.round(v
 export function ModeloIA() {
   const relatorio = useAtualizacao(useCallback(() => api<Relatorio>('/ml/metrics'), []), 0);
   return (
-    <div className="flex flex-col gap-10">
+    <div className="flex flex-col gap-12">
       <ComparacaoLLM />
-      
-      <section aria-labelledby="t-local" className="flex flex-col gap-4 rounded-2xl border border-linha glass-card p-6">
-        <Titulo id="t-local" icone={Brain}>Benchmark Supervisionado do Modelo Local (MLOps)</Titulo>
+      <section aria-labelledby="t-local" className="flex flex-col gap-4">
+        <Titulo id="t-local" icone={Brain}>Modelo local em detalhe</Titulo>
         {relatorio.erro && <Aviso>{relatorio.erro}</Aviso>}
         {!relatorio.dados && !relatorio.erro && <Esqueleto className="h-60" />}
         {relatorio.dados && <TabelaLocal dados={relatorio.dados} />}
       </section>
-
       <AprenderComCasos onTreinou={relatorio.recarregar} />
     </div>
   );
@@ -71,10 +60,8 @@ export function ModeloIA() {
 
 function Titulo({ id, icone: Icone, children }: { id: string; icone: typeof Brain; children: string }) {
   return (
-    <h2 id={id} className="flex items-center gap-3 titulo text-[19px] md:text-[21px] text-texto">
-      <span className="flex size-8.5 items-center justify-center rounded-xl bg-marca-fundo border border-marca/20 text-marca">
-        <Icone className="size-4.5" aria-hidden />
-      </span>
+    <h2 id={id} className="flex items-center gap-2.5 titulo text-[22px] leading-[1.1]">
+      <span className="flex size-8 items-center justify-center rounded-[7px] bg-caneta-fundo text-caneta"><Icone className="size-[18px]" aria-hidden /></span>
       {children}
     </h2>
   );
@@ -86,6 +73,7 @@ function ComparacaoLLM() {
   const [falha, setFalha] = useState<string | null>(null);
   const rodando = Boolean(dados?.estado.rodando);
 
+  // Enquanto roda, acompanha o andamento
   useEffect(() => {
     if (!rodando) return;
     const id = setInterval(recarregar, 4000);
@@ -99,7 +87,7 @@ function ComparacaoLLM() {
       await api('/ml/comparacao', { method: 'POST' });
       recarregar();
     } catch (e) {
-      setFalha(e instanceof ErroApi ? e.message : 'Falha ao iniciar benchmark.');
+      setFalha(e instanceof ErroApi ? e.message : 'Não foi possível iniciar.');
     } finally {
       setDisparando(false);
     }
@@ -107,90 +95,66 @@ function ComparacaoLLM() {
 
   const r = dados?.resultado;
   const linhas = r ? ([
-    ['Modelo Local Clássico (scikit-learn / SVM)', r.abordagens.modelo_local, false],
-    [`LLM Generativo (${r.modelo_llm})`, r.abordagens.llm, false],
-    ['Motor Híbrido Oficial (Produção WhatsApp)', r.abordagens.hibrido, true],
+    ['Modelo local (scikit-learn)', r.abordagens.modelo_local, false],
+    [`LLM sozinho (${r.modelo_llm})`, r.abordagens.llm, false],
+    ['Híbrido: o que roda no WhatsApp', r.abordagens.hibrido, true],
   ] as [string, Abordagem, boolean][]) : [];
   const m = r?.mcnemar_local_x_llm;
 
   return (
-    <section aria-labelledby="t-comp" className="flex flex-col gap-4 rounded-2xl border border-linha glass-card p-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <Titulo id="t-comp" icone={Scale}>Comparativo Científico: LLM Generativo x Modelo Local</Titulo>
-          <p className="mt-1.5 max-w-[75ch] text-[14px] text-texto-2 leading-relaxed">
-            Avaliação comparativa no conjunto de teste independente (80 relatos). O motor híbrido de produção orquestra a interpretação semântica com os guardrails determinísticos de proteção integral.
-          </p>
-        </div>
-
-        {contaAtual().coordenacao && dados?.llm_disponivel && (
-          <Botao 
-            variante="primario" 
-            icone={Play} 
-            carregando={disparando || rodando} 
-            onClick={rodar} 
-            disabled={rodando}
-          >
-            {rodando ? `Executando: ${dados?.estado.feitos ?? 0}/${dados?.estado.total ?? 0}` : r ? 'Reexecutar Benchmark' : 'Executar Comparação'}
-          </Botao>
-        )}
-      </div>
-
+    <section aria-labelledby="t-comp" className="flex flex-col gap-4">
+      <Titulo id="t-comp" icone={Scale}>LLM x modelo local, no mesmo teste</Titulo>
+      <p className="max-w-[75ch] text-[15px] text-texto-2">
+        Os mesmos {r ? r.conjunto.split(' ')[0] : '80'} relatos de teste (nunca usados no treino) passam pelo modelo local e pela IA generativa.
+        O sistema do WhatsApp usa os dois: a IA lê o relato pelo sentido, e se a regra ou o modelo local virem violência, vale violência.
+      </p>
       {erro && <Aviso>{erro}</Aviso>}
       {!dados && !erro && <Esqueleto className="h-48" />}
-      {dados && !r && !rodando && <p className="text-[14px] text-texto-3 italic">O teste comparativo ainda não foi executado nesta instância.</p>}
-
+      {dados && !r && !rodando && <p className="text-[14px] text-texto-3">A comparação ainda não foi rodada.</p>}
       {r && (
-        <div className="overflow-x-auto rounded-xl border border-linha bg-superficie">
+        <div className="overflow-x-auto rounded-[6px] border border-linha">
           <table className="w-full min-w-[720px] text-sm">
-            <thead className="bg-elevada text-left text-texto-2 border-b border-linha">
+            <thead className="bg-elevada text-left text-texto-2">
               <tr>
-                <th className="px-4 py-3 font-semibold">Abordagem / Arquitetura</th>
-                <th className="px-4 py-3 text-right font-semibold">F1-Macro (IC 95%)</th>
-                <th className="px-4 py-3 text-right font-semibold">Acurácia</th>
-                <th className="px-4 py-3 text-right font-semibold text-rose-600 dark:text-rose-400">Recall Violência</th>
-                <th className="px-4 py-3 text-right font-semibold">Latência Média</th>
-                <th className="px-4 py-3 text-right font-semibold">Custo / Tokens</th>
+                <th className="px-4 py-2.5 font-medium">Abordagem</th>
+                <th className="px-4 py-2.5 text-right font-medium">F1 macro (IC 95%)</th>
+                <th className="px-4 py-2.5 text-right font-medium">Acerto</th>
+                <th className="px-4 py-2.5 text-right font-medium">Violência reconhecida</th>
+                <th className="px-4 py-2.5 text-right font-medium">Tempo por relato</th>
+                <th className="px-4 py-2.5 text-right font-medium">Custo</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-linha">
+            <tbody>
               {linhas.map(([nome, a, destaque]) => (
-                <tr key={nome} className={`transition-colors ${destaque ? 'bg-sky-500/10 font-medium' : 'hover:bg-elevada/50'}`}>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      {destaque && <Zap className="size-4 text-marca" />}
-                      <span className={`font-semibold ${destaque ? 'text-marca' : 'text-texto'}`}>{nome}</span>
-                    </div>
-                    <span className="block text-[12px] text-texto-3 mt-0.5">{a.descricao}</span>
-                  </td>
-                  <td className="mono px-4 py-3 text-right font-bold text-texto">
-                    {n2(a.f1_macro)}
-                    {a.f1_macro_ic95 && <span className="block text-[11px] text-texto-3 font-normal">({n2(a.f1_macro_ic95[0])}–{n2(a.f1_macro_ic95[1])})</span>}
-                  </td>
-                  <td className="mono px-4 py-3 text-right font-semibold text-emerald-600 dark:text-emerald-400">{pct(a.acuracia)}</td>
-                  <td className="mono px-4 py-3 text-right font-bold">
-                    <span className={`px-2 py-0.5 rounded-full ${a.recall_violencia >= 0.95 ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30'}`}>
-                      {pct(a.recall_violencia)}
-                    </span>
-                  </td>
-                  <td className="mono px-4 py-3 text-right text-texto-2">{a.tempo_medio_ms !== undefined ? ms(a.tempo_medio_ms) : 'Local + API'}</td>
-                  <td className="mono px-4 py-3 text-right text-texto-3">{a.tokens_medios ? `~${Math.round(a.tokens_medios)} tokens` : nome.startsWith('Modelo') ? '0 tokens (offline)' : 'API tokens'}</td>
+                <tr key={nome} className={`border-t border-linha ${destaque ? 'bg-caneta-fundo/50 font-medium' : ''}`}>
+                  <td className="px-4 py-2.5">{nome}<span className="block text-[12px] font-normal text-texto-3">{a.descricao}</span></td>
+                  <td className="px-4 py-2.5 text-right tabular">{n2(a.f1_macro)}{a.f1_macro_ic95 && <span className="ml-1 text-xs text-texto-3">({n2(a.f1_macro_ic95[0])}–{n2(a.f1_macro_ic95[1])})</span>}</td>
+                  <td className="px-4 py-2.5 text-right tabular">{pct(a.acuracia)}</td>
+                  <td className={`px-4 py-2.5 text-right tabular ${a.recall_violencia < 0.9 ? 'text-urgente' : ''}`}>{pct(a.recall_violencia)}</td>
+                  <td className="px-4 py-2.5 text-right tabular">{a.tempo_medio_ms !== undefined ? ms(a.tempo_medio_ms) : 'IA + local'}</td>
+                  <td className="px-4 py-2.5 text-right tabular text-texto-2">{a.tokens_medios ? `~${Math.round(a.tokens_medios)} tokens` : nome.startsWith('Modelo') ? 'grátis, sem internet' : 'tokens da IA'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
-
       {r && m && (
-        <div className="rounded-xl border border-linha bg-elevada p-4 text-[13.5px] text-texto flex items-start gap-3">
-          <Activity className="size-4 text-marca shrink-0 mt-0.5" />
-          <div>
-            <strong>Significância Estatística (Teste de McNemar):</strong> Em {m.a_certo_b_errado} relatos apenas o modelo local acertou; em {m.a_errado_b_certo}, apenas a LLM. p-valor = <span className="mono font-bold text-marca">{m.p_valor < 0.001 ? '< 0.001' : n2(m.p_valor)}</span> ({m.p_valor < 0.05 ? 'Diferença estatisticamente significante' : 'Diferença sem significância estatística'}).
-          </div>
-        </div>
+        <p className="max-w-[80ch] text-[14px] text-texto-2">
+          Em {m.a_certo_b_errado} relatos só o modelo local acertou; em {m.a_errado_b_certo}, só a IA.{' '}
+          {m.p_valor < 0.05 ? `A diferença é estatisticamente significativa (teste de McNemar, p = ${m.p_valor < 0.001 ? '< 0,001' : n2(m.p_valor)}).`
+            : `A diferença não é estatisticamente significativa (teste de McNemar, p = ${n2(m.p_valor)}).`}
+          {(r.abordagens.llm.falhas ?? 0) > 0 && ` Atenção: ${r.abordagens.llm.falhas} chamadas à IA falharam e contaram como erro.`}
+        </p>
       )}
-
+      <div className="flex flex-wrap items-center gap-3">
+        {contaAtual().coordenacao && dados?.llm_disponivel && (
+          <Botao icone={Play} carregando={disparando || rodando} onClick={rodar} disabled={rodando}>
+            {rodando ? `Rodando: ${dados?.estado.feitos ?? 0} de ${dados?.estado.total ?? 0} relatos` : r ? 'Rodar a comparação de novo' : 'Rodar a comparação'}
+          </Botao>
+        )}
+        {r && <span className="text-[13px] text-texto-3">Rodada em {dataHora(r.timestamp)}. Leva uns 6 minutos: o plano gratuito do Gemini aceita 15 pedidos por minuto.</span>}
+      </div>
       {(falha || dados?.estado.erro) && <Aviso>{falha ?? dados?.estado.erro}</Aviso>}
     </section>
   );
@@ -199,40 +163,46 @@ function ComparacaoLLM() {
 function TabelaLocal({ dados }: { dados: Relatorio }) {
   const s = dados.modelo_final.teste_sistema_completo;
   const linhas: [string, Metricas, boolean][] = [
-    ['Baseline: Classe Majoritária', dados.baselines.classe_majoritaria.teste_informal, false],
-    ['Baseline Heurístico: Regras e Palavras-Chave', dados.baselines.regras_palavras_chave.teste_informal, false],
-    ...Object.entries(dados.modelos_avaliados_cv5).map(([nome, m]) => [`Modelo Supervisionado: ${nome}`, m.teste_informal, false] as [string, Metricas, boolean]),
-    ['Sistema Local Completo em Produção (Guardrails + SVM)', s, true],
+    ['Sempre a categoria mais comum', dados.baselines.classe_majoritaria.teste_informal, false],
+    ['Só palavras-chave', dados.baselines.regras_palavras_chave.teste_informal, false],
+    ...Object.entries(dados.modelos_avaliados_cv5).map(([nome, m]) => [`${nome} (sozinho)`, m.teste_informal, false] as [string, Metricas, boolean]),
+    ['Sistema local em uso (regra de violência + modelo + palavras-chave)', s, true],
   ];
-
   return (
     <>
-      <div className="rounded-xl border border-sky-500/20 bg-sky-50 dark:bg-sky-950/20 p-3.5 text-[13px] text-sky-900 dark:text-sky-200">
-        ℹ️ {dados.metodologia.limitacao} Validação Cruzada Estratificada (k=5) com dataset de {dados.dataset_size} exemplos.
-      </div>
-
-      <div className="overflow-x-auto rounded-xl border border-linha bg-superficie">
+      <Aviso tom="info">{dados.metodologia.limitacao}. Os números abaixo são de relatos simulados.</Aviso>
+      <p className="max-w-[75ch] text-texto-2">
+        No teste com {dados.test_size} relatos escritos como no WhatsApp, o sistema local acertou a necessidade em{' '}
+        <strong className="text-texto">{pct(s.acuracia)}</strong> dos casos e reconheceu{' '}
+        <strong className={s.recall_violencia < 0.9 ? 'text-urgente' : 'text-texto'}>{pct(s.recall_violencia)}</strong> das situações de violência.
+        Em {pct(s.taxa_nao_identificado ?? 0)} ele preferiu não arriscar e indicou o Disque Social 121.
+      </p>
+      <div className="overflow-x-auto rounded-[6px] border border-linha">
         <table className="w-full min-w-[560px] text-sm">
-          <thead className="bg-elevada text-left text-texto-2 border-b border-linha">
+          <thead className="bg-elevada text-left text-texto-2">
             <tr>
-              <th className="px-4 py-3 font-semibold">Modelo / Abordagem</th>
-              <th className="px-4 py-3 text-right font-semibold">F1-Macro</th>
-              <th className="px-4 py-3 text-right font-semibold">Acurácia</th>
-              <th className="px-4 py-3 text-right font-semibold text-rose-600 dark:text-rose-400">Recall Violência</th>
+              <th className="px-4 py-2.5 font-medium">Abordagem</th>
+              <th className="px-4 py-2.5 text-right font-medium">F1 macro</th>
+              <th className="px-4 py-2.5 text-right font-medium">Acerto</th>
+              <th className="px-4 py-2.5 text-right font-medium">Violência reconhecida</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-linha">
+          <tbody>
             {linhas.map(([nome, m, destaque]) => (
-              <tr key={nome} className={`transition-colors ${destaque ? 'bg-sky-500/10 font-semibold text-marca' : 'hover:bg-elevada/50'}`}>
-                <td className="px-4 py-3 font-medium text-texto">{nome}</td>
-                <td className="mono px-4 py-3 text-right font-bold text-texto">{n2(m.f1_macro)}</td>
-                <td className="mono px-4 py-3 text-right text-emerald-600 dark:text-emerald-400">{pct(m.acuracia)}</td>
-                <td className="mono px-4 py-3 text-right font-bold text-rose-600 dark:text-rose-300">{pct(m.recall_violencia)}</td>
+              <tr key={nome} className={`border-t border-linha ${destaque ? 'bg-caneta-fundo/50 font-medium' : ''}`}>
+                <td className="px-4 py-2.5">{nome}</td>
+                <td className="px-4 py-2.5 text-right tabular">{n2(m.f1_macro)}{m.f1_macro_ic95 && <span className="ml-1 text-xs text-texto-3">({n2(m.f1_macro_ic95[0])}–{n2(m.f1_macro_ic95[1])})</span>}</td>
+                <td className="px-4 py-2.5 text-right tabular">{pct(m.acuracia)}</td>
+                <td className="px-4 py-2.5 text-right tabular">{pct(m.recall_violencia)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      <p className="text-[13px] text-texto-3">
+        Relatório de {dataHora(dados.timestamp)}, modelo {dados.modelo_final.nome}, {dados.dataset_size} relatos de treino
+        {dados.exemplos_reais ? `, dos quais ${dados.exemplos_reais} reais` : ''}.
+      </p>
     </>
   );
 }
@@ -251,78 +221,57 @@ function AprenderComCasos({ onTreinou }: { onTreinou: () => void }) {
       recarregar();
       onTreinou();
     } catch (e) {
-      setFalha(e instanceof ErroApi ? e.message : 'Falha durante o retreino.');
+      setFalha(e instanceof ErroApi ? e.message : 'Não foi possível treinar.');
     } finally {
       setTreinando(false);
     }
   };
 
   return (
-    <section aria-labelledby="t-aprender" className="flex flex-col gap-4 rounded-2xl border border-linha glass-card p-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <Titulo id="t-aprender" icone={GraduationCap}>Aprendizado Contínuo & Feedback Humano (Active Learning)</Titulo>
-          <p className="mt-1.5 max-w-[75ch] text-[14px] text-texto-2 leading-relaxed">
-            Casos confirmados no WhatsApp ou corrigidos pela equipe social retroalimentam o pipeline de treino sob consentimento LGPD.
-          </p>
-        </div>
-
-        {contaAtual().coordenacao && (
-          <Botao variante="primario" icone={GraduationCap} carregando={treinando} onClick={treinar}>
-            {treinando ? 'Processando Retreino...' : 'Executar Retreino com Casos Reais'}
-          </Botao>
-        )}
-      </div>
-
+    <section aria-labelledby="t-aprender" className="flex flex-col gap-4">
+      <Titulo id="t-aprender" icone={GraduationCap}>Aprender com os casos reais</Titulo>
+      <p className="max-w-[75ch] text-[15px] text-texto-2">
+        Cada caso em que a pessoa confirmou a necessidade no WhatsApp, ou em que a equipe corrigiu a necessidade na ficha, vira um exemplo
+        para treinar o modelo local (só com o consentimento dado no aceite). O modelo novo é medido no mesmo teste e só substitui o atual
+        se não piorar: o reconhecimento de violência não pode cair.
+      </p>
       {erro && <Aviso>{erro}</Aviso>}
-      {falha && <Aviso tom="urgente">{falha}</Aviso>}
-      
       {dados && (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border border-linha bg-elevada p-4">
-            <span className="text-[12px] font-semibold text-texto-3 uppercase">Casos Reais Disponíveis</span>
-            <p className="mono titulo text-[26px] text-marca mt-1">{dados.exemplos_reais}</p>
-          </div>
-          <div className="rounded-xl border border-linha bg-elevada p-4">
-            <span className="text-[12px] font-semibold text-texto-3 uppercase">Confirmados pelo Cidadão</span>
-            <p className="mono titulo text-[26px] text-emerald-600 dark:text-emerald-400 mt-1">{dados.por_fonte.pessoa}</p>
-          </div>
-          <div className="rounded-xl border border-linha bg-elevada p-4">
-            <span className="text-[12px] font-semibold text-texto-3 uppercase">Corrigidos pelos Técnicos</span>
-            <p className="mono titulo text-[26px] text-sky-600 dark:text-sky-400 mt-1">{dados.por_fonte.equipe}</p>
-          </div>
+        <p className="text-[15px]">
+          <strong className="titulo text-[26px] tabular">{dados.exemplos_reais}</strong>{' '}
+          <span className="text-texto-2">casos reais prontos para ensinar ({dados.por_fonte.pessoa} confirmados pela pessoa, {dados.por_fonte.equipe} corrigidos pela equipe)</span>
+        </p>
+      )}
+      {contaAtual().coordenacao && (
+        <div className="flex flex-wrap items-center gap-3">
+          <Botao variante="primario" icone={GraduationCap} carregando={treinando} onClick={treinar}>
+            {treinando ? 'Treinando e avaliando (cerca de 30 s)' : 'Treinar com os casos reais'}
+          </Botao>
         </div>
       )}
-
+      {falha && <Aviso>{falha}</Aviso>}
       {resultado && <ResultadoTreino t={resultado} />}
-
       {dados && dados.historico.length > 0 && (
-        <div className="overflow-x-auto rounded-xl border border-linha bg-superficie">
+        <div className="overflow-x-auto rounded-[6px] border border-linha">
           <table className="w-full min-w-[640px] text-sm">
-            <thead className="bg-elevada text-left text-texto-2 border-b border-linha">
+            <caption className="px-4 pt-3 text-left text-[13.5px] font-semibold text-texto-2">Treinos anteriores</caption>
+            <thead className="text-left text-texto-2">
               <tr>
-                <th className="px-4 py-2.5 font-semibold">Data / Autor</th>
-                <th className="px-4 py-2.5 text-right font-semibold">Exemplos Reais</th>
-                <th className="px-4 py-2.5 text-right font-semibold">F1 Macro</th>
-                <th className="px-4 py-2.5 text-right font-semibold text-rose-600 dark:text-rose-400">Recall Violência</th>
-                <th className="px-4 py-2.5 font-semibold">Status de Troca</th>
+                <th className="px-4 py-2 font-medium">Quando</th>
+                <th className="px-4 py-2 text-right font-medium">Casos reais</th>
+                <th className="px-4 py-2 text-right font-medium">F1 antes → depois</th>
+                <th className="px-4 py-2 text-right font-medium">Violência antes → depois</th>
+                <th className="px-4 py-2 font-medium">Resultado</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-linha">
+            <tbody>
               {dados.historico.map((h) => (
-                <tr key={h.em} className="hover:bg-elevada/50">
-                  <td className="px-4 py-2.5 font-medium text-texto">
-                    {dataHora(h.em)}
-                    <span className="block text-[11.5px] text-texto-3">{h.por}</span>
-                  </td>
-                  <td className="mono px-4 py-2.5 text-right text-texto">{h.depois.exemplos_reais}</td>
-                  <td className="mono px-4 py-2.5 text-right font-bold text-texto">{n2(h.antes.f1_macro)} → {n2(h.depois.f1_macro)}</td>
-                  <td className="mono px-4 py-2.5 text-right font-bold text-rose-600 dark:text-rose-300">{pct(h.antes.recall_violencia)} → {pct(h.depois.recall_violencia)}</td>
-                  <td className="px-4 py-2.5 font-semibold">
-                    <span className={`px-2 py-0.5 rounded-full text-xs ${h.trocou ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30' : 'bg-elevada text-texto-3'}`}>
-                      {h.trocou ? 'Novo Modelo Adotado' : 'Mantido Anterior'}
-                    </span>
-                  </td>
+                <tr key={h.em} className="border-t border-linha">
+                  <td className="px-4 py-2">{dataHora(h.em)}<span className="block text-[12px] text-texto-3">{h.por}</span></td>
+                  <td className="px-4 py-2 text-right tabular">{h.depois.exemplos_reais}</td>
+                  <td className="px-4 py-2 text-right tabular">{n2(h.antes.f1_macro)} → {n2(h.depois.f1_macro)}</td>
+                  <td className="px-4 py-2 text-right tabular">{pct(h.antes.recall_violencia)} → {pct(h.depois.recall_violencia)}</td>
+                  <td className={`px-4 py-2 ${h.trocou ? 'text-ok' : 'text-texto-2'}`}>{h.trocou ? 'Modelo novo em uso' : 'Mantido o anterior'}</td>
                 </tr>
               ))}
             </tbody>
@@ -336,12 +285,13 @@ function AprenderComCasos({ onTreinou }: { onTreinou: () => void }) {
 function ResultadoTreino({ t }: { t: Treino }) {
   const Icone = t.trocou ? CheckCircle2 : CircleX;
   return (
-    <div role="status" className={`flex items-start gap-3 rounded-xl border p-4 ${t.trocou ? 'border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200' : 'border-linha bg-elevada text-texto'}`}>
-      <Icone className={`mt-0.5 size-5 shrink-0 ${t.trocou ? 'text-emerald-600 dark:text-emerald-400' : 'text-texto-3'}`} aria-hidden />
-      <div>
-        <p className="font-bold text-texto text-[15px]">{t.trocou ? 'Novo Modelo Supervisionado Validado e em Produção!' : 'Modelo Anterior Mantido (Critério de Segurança).'}</p>
-        <p className="text-[13.5px] text-texto-2 mt-0.5">
-          Com {t.depois.exemplos_reais} casos reais: F1 {n2(t.antes.f1_macro)} → {n2(t.depois.f1_macro)}, Recall de Violência {pct(t.antes.recall_violencia)} → {pct(t.depois.recall_violencia)}. {t.trocou ? '' : `Motivo: ${t.motivo}.`}
+    <div role="status" className={`flex items-start gap-3 rounded-[6px] border px-4 py-3 ${t.trocou ? 'border-ok/30 bg-ok-fundo' : 'border-linha bg-elevada'}`}>
+      <Icone className={`mt-0.5 size-5 shrink-0 ${t.trocou ? 'text-ok' : 'text-texto-2'}`} aria-hidden />
+      <div className="text-[14.5px]">
+        <p className="font-semibold">{t.trocou ? 'O modelo novo está em uso.' : 'O modelo anterior foi mantido.'}</p>
+        <p className="text-texto-2">
+          Com {t.depois.exemplos_reais} casos reais: F1 {n2(t.antes.f1_macro)} → {n2(t.depois.f1_macro)}, violência reconhecida{' '}
+          {pct(t.antes.recall_violencia)} → {pct(t.depois.recall_violencia)}. {t.trocou ? '' : `Motivo: ${t.motivo}.`}
         </p>
       </div>
     </div>

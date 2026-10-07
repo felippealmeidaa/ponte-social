@@ -2,315 +2,416 @@
 @import "@fontsource-variable/archivo/wdth.css";
 @import "@fontsource-variable/atkinson-hyperlegible-next/wght.css";
 
-@custom-variant dark (&:where([data-tema="escuro"], [data-tema="escuro"] *));
-
-/* ==========================================================================
-   Ponte Social · Modern Civic Tech Design System (Linear / Stripe Style)
-   High Contrast, Mineral Slate Depth, Clean Porcelain Light Mode, Zero AI Clichés
-   ========================================================================== */
-
+/* Ponte Social · direção "Guia de encaminhamento":
+   a mesa (fundo frio), o papel (onde está o conteúdo), a tinta (texto e ação),
+   a pauta (linhas de formulário), a caneta (foco e seleção) e o carimbo (só urgência). */
 @theme {
-  --font-sans: "Atkinson Hyperlegible Next Variable", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Archivo Variable", "Plus Jakarta Sans", "Inter", sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-sans: "Atkinson Hyperlegible Next Variable", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Archivo Variable", "Atkinson Hyperlegible Next Variable", sans-serif;
 
-  /* Modo Escuro (Padrão: Mineral Slate & Deep Obsidian) */
-  --color-fundo: #0a0e14;
-  --color-superficie: #121822;
-  --color-elevada: #1a2230;
-  --color-realce: #232d3f;
-  --color-linha: rgba(255, 255, 255, 0.08);
-  --color-linha-forte: rgba(255, 255, 255, 0.16);
+  /* Base neutra e fria; um único acento (azul-petróleo). Cores fortes só nos status. */
+  --color-fundo: #eef1f4;        /* mesa */
+  --color-superficie: #ffffff;   /* papel */
+  --color-elevada: #f6f8fa;      /* papel sob a mão: hover, campo em destaque */
+  --color-realce: #e9edf1;
+  --color-linha: #dde3e9;        /* pauta */
+  --color-linha-forte: #b3bdc8;
 
-  --color-texto: #f8fafc;
-  --color-texto-2: #94a3b8;
-  --color-texto-3: #64748b;
+  --color-texto: #1b2733;        /* tinta ardósia */
+  --color-texto-2: #4a5868;
+  --color-texto-3: #5d6a79;
 
-  /* Acentos Sóbrios e Funcionais */
-  --color-caneta: #0284c7;
-  --color-caneta-fundo: rgba(2, 132, 199, 0.12);
-  --color-marca: #0284c7;
-  --color-marca-fundo: rgba(2, 132, 199, 0.12);
-  --color-acao: #0284c7;
-  --color-acao-hover: #0369a1;
+  --color-caneta: #0e6b67;       /* acento: foco, seleção e ação */
+  --color-caneta-fundo: #e7f2f1;
+  --color-urgente: #c4352e;      /* carimbo: só urgência */
+  --color-urgente-fundo: #fcedec;
+  --color-alta: #a85410;
+  --color-alta-fundo: #fcf1e6;
+  --color-media: #6d5a00;
+  --color-ok: #17733f;
+  --color-ok-fundo: #e6f4ec;
+  --color-info: #2559b8;
+  --color-info-fundo: #e9effb;
+
+  /* Faixa do topo na cor da marca: cabeçalho e abas */
+  --color-topo: #0d4a47;
+  --color-sobre-topo: #ffffff;
+  --color-sobre-topo-2: #b8d6d2;
+  --color-urgente-topo: #ffb8b0;
+
+  /* Uma cor por necessidade (ícones, barras): sóbrias, legíveis sobre o papel */
+  --color-cat-renda: #1f7a4d;
+  --color-cat-cadastro: #2459a8;
+  --color-cat-moradia: #a3561c;
+  --color-cat-documentos: #5b4bb5;
+  --color-cat-alimentacao: #8f6400;
+  --color-cat-idosa: #8a3f86;
+  --color-cat-trabalho: #0e6b67;
+  --color-cat-violencia: #c4352e;
+  --color-cat-outro: #5d6a79;
+
+  /* Caso ainda não aberto: um toque discreto no canhoto da guia */
+  --color-marca: #d99a00;
+  --color-marca-fundo: #fff7e0;
+
+  /* Ação principal (botão, marcas de etapa) */
+  --color-acao: #0e6b67;
+  --color-acao-hover: #0a5551;
   --color-sobre-acao: #ffffff;
 
-  --color-urgente: #e11d48;
-  --color-urgente-fundo: rgba(225, 29, 72, 0.15);
-  --color-urgente-forte: #fda4af;
-  --color-alerta: #e11d48;
+  /* Texto forte sobre os fundos de aviso, e texto sobre os preenchimentos de cor (selo, contador) */
+  --color-urgente-forte: #8e231d;
+  --color-info-forte: #1c4489;
+  --color-ok-forte: #135a33;
+  --color-sobre: #ffffff;
+  --color-tinta-hover: #0a5551;
+  --color-veu: #1b2733;
+  /* Faixa de caso urgente parado: preenchimento forte com texto claro */
+  --color-alerta: #c4352e;
   --color-sobre-alerta: #ffffff;
 
-  --color-alta: #d97706;
-  --color-alta-fundo: rgba(217, 119, 6, 0.15);
-  --color-media: #ca8a04;
-
-  --color-ok: #059669;
-  --color-ok-fundo: rgba(5, 150, 105, 0.15);
-  --color-ok-forte: #6ee7b7;
-
-  --color-info: #2563eb;
-  --color-info-fundo: rgba(37, 99, 235, 0.15);
-  --color-info-forte: #93c5fd;
-
-  /* Topbar e Navegação */
-  --color-topo: #0d121b;
-  --color-sobre-topo: #f8fafc;
-  --color-sobre-topo-2: #94a3b8;
-  --color-urgente-topo: #fda4af;
-
-  /* Categorias de Atendimento */
-  --color-cat-renda: #059669;
-  --color-cat-cadastro: #0284c7;
-  --color-cat-moradia: #ea580c;
-  --color-cat-documentos: #4f46e5;
-  --color-cat-alimentacao: #d97706;
-  --color-cat-idosa: #db2777;
-  --color-cat-trabalho: #0891b2;
-  --color-cat-violencia: #e11d48;
-  --color-cat-outro: #64748b;
-
-  --color-sobre: #ffffff;
-  --color-tinta-hover: #38bdf8;
-  --color-veu: #020617;
-
-  /* WhatsApp Preview */
-  --color-whats-fundo: #0b141a;
-  --color-whats-balao: #111b21;
-  --color-whats-texto: #e9edef;
-  --color-whats-2: #8696a0;
-  --color-whats-enviada: #005c4b;
-
-  --ease-saida: cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Modo Claro (Clean Porcelain & Titanium Slate) */
-:root[data-tema="claro"] {
-  color-scheme: light;
-  --color-fundo: #f8fafc;
-  --color-superficie: #ffffff;
-  --color-elevada: #f1f5f9;
-  --color-realce: #e2e8f0;
-  --color-linha: #e2e8f0;
-  --color-linha-forte: #cbd5e1;
-
-  --color-texto: #0f172a;
-  --color-texto-2: #334155;
-  --color-texto-3: #64748b;
-
-  --color-caneta: #0284c7;
-  --color-caneta-fundo: #e0f2fe;
-  --color-marca: #0284c7;
-  --color-marca-fundo: #e0f2fe;
-  --color-acao: #0284c7;
-  --color-acao-hover: #0369a1;
-  --color-sobre-acao: #ffffff;
-
-  --color-urgente: #e11d48;
-  --color-urgente-fundo: #ffe4e6;
-  --color-urgente-forte: #9f1239;
-  --color-alerta: #e11d48;
-  --color-sobre-alerta: #ffffff;
-
-  --color-alta: #d97706;
-  --color-alta-fundo: #fef3c7;
-  --color-media: #ca8a04;
-
-  --color-ok: #059669;
-  --color-ok-fundo: #d1fae5;
-  --color-ok-forte: #065f46;
-
-  --color-info: #2563eb;
-  --color-info-fundo: #dbeafe;
-  --color-info-forte: #1e40af;
-
-  --color-topo: #ffffff;
-  --color-sobre-topo: #0f172a;
-  --color-sobre-topo-2: #64748b;
-  --color-urgente-topo: #e11d48;
-
-  --color-sobre: #ffffff;
-  --color-tinta-hover: #0284c7;
-  --color-veu: #0f172a;
-
+  /* Prévia do WhatsApp, nas cores do próprio WhatsApp */
   --color-whats-fundo: #efeae2;
   --color-whats-balao: #ffffff;
   --color-whats-texto: #111b21;
   --color-whats-2: #54656f;
   --color-whats-enviada: #d9fdd3;
+
+  --ease-saida: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-:root {
-  --marca: var(--color-marca);
-  --urgente: var(--color-urgente);
-  --texto: var(--color-texto);
-  --texto-2: var(--color-texto-2);
-  --texto-3: var(--color-texto-3);
-  --linha: var(--color-linha);
-  --linha-forte: var(--color-linha-forte);
-  --superficie: var(--color-superficie);
-  --elevada: var(--color-elevada);
-  --fundo: var(--color-fundo);
-  --caneta: var(--color-caneta);
-  --acao: var(--color-acao);
+/* Títulos: Archivo largo e pesado, como cabeçalho de formulário impresso */
+/* Modo escuro: a mesma guia, à noite. A mesa fica quase preta azulada, o papel um pouco mais claro,
+   a tinta clara; a caneta e o carimbo clareiam para manter o contraste (AA) sobre o fundo escuro. */
+:root[data-tema="escuro"] {
+  color-scheme: dark;
+  /* À noite: ardósia, não preto; o acento clareia para manter o contraste */
+  --color-fundo: #111821;
+  --color-superficie: #18212c;
+  --color-elevada: #1e2935;
+  --color-realce: #253242;
+  --color-linha: #2a3746;
+  --color-linha-forte: #435367;
+
+  --color-texto: #e6ebf0;
+  --color-texto-2: #a9b5c2;
+  --color-texto-3: #8e9bab;
+
+  --color-caneta: #4fbfb5;
+  --color-caneta-fundo: #17302f;
+  --color-urgente: #f2786d;
+  --color-urgente-fundo: #36201f;
+  --color-alta: #e9a35c;
+  --color-alta-fundo: #33281c;
+  --color-media: #dcc463;
+  --color-ok: #5fcb8d;
+  --color-ok-fundo: #173126;
+  --color-info: #85b4f2;
+  --color-info-fundo: #1b2b44;
+
+  --color-marca: #e2b33f;
+  --color-marca-fundo: #2a2a21;
+
+  --color-topo: #0f3236;
+  --color-sobre-topo: #e8f3f1;
+  --color-sobre-topo-2: #9fc3be;
+  --color-urgente-topo: #ff9d93;
+
+  --color-cat-renda: #6fcf9a;
+  --color-cat-cadastro: #86b2f0;
+  --color-cat-moradia: #eba366;
+  --color-cat-documentos: #aea1f2;
+  --color-cat-alimentacao: #e1b44e;
+  --color-cat-idosa: #d993d3;
+  --color-cat-trabalho: #4fbfb5;
+  --color-cat-violencia: #f2786d;
+  --color-cat-outro: #9aa7b5;
+
+  --color-acao: #4fbfb5;
+  --color-acao-hover: #77d0c8;
+  --color-sobre-acao: #0a1c1b;
+
+  --color-urgente-forte: #ffb0a8;
+  --color-info-forte: #bad5fb;
+  --color-ok-forte: #9be2b8;
+  --color-sobre: #0a1c1b;
+  --color-tinta-hover: #77d0c8;
+  --color-veu: #05080c;
+  --color-alerta: #a8342d;
+  --color-sobre-alerta: #ffffff;
+
+  --color-whats-fundo: #0b141a;
+  --color-whats-balao: #202c33;
+  --color-whats-texto: #e9edef;
+  --color-whats-2: #8696a0;
+  --color-whats-enviada: #005c4b;
 }
 
-/* ==========================================================================
-   Estilos Globais e Tipografia
-   ========================================================================== */
-
-body {
-  font-family: var(--font-sans);
-  background-color: var(--color-fundo);
-  color: var(--color-texto);
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-/* Fundo sutil para Dark Mode (textura elegante, sem halos bizarros) */
-:root:not([data-tema="claro"]) body {
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(2, 132, 199, 0.04) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(5, 150, 105, 0.03) 0px, transparent 50%);
-  background-attachment: fixed;
-}
-
-:root[data-tema="claro"] body {
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(2, 132, 199, 0.03) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(5, 150, 105, 0.02) 0px, transparent 50%);
-  background-attachment: fixed;
-}
-
-.titulo {
+@utility titulo {
   font-family: var(--font-display);
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-stretch: 118%;
+  font-weight: 780;
+  letter-spacing: -0.012em;
+  line-height: 1.02;
 }
 
-.mono {
-  font-family: var(--font-mono);
+@layer base {
+  html {
+    color-scheme: light;
+    background: var(--color-fundo);
+  }
+  html[data-tema="escuro"] {
+    color-scheme: dark;
+  }
+
+  body {
+    background: var(--color-fundo);
+    color: var(--color-texto);
+    font-family: var(--font-sans);
+    font-size: 15.5px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-caneta) 22%, transparent);
+    color: var(--color-texto);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-caneta);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  input,
+  textarea,
+  select {
+    caret-color: var(--color-caneta);
+  }
+
+  ::placeholder {
+    color: var(--color-texto-3);
+    opacity: 0.85;
+  }
+
+  a {
+    text-underline-offset: 3px;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-linha-forte) transparent;
+  }
+
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
-.tabular {
-  font-variant-numeric: tabular-nums;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
-/* ==========================================================================
-   Cartões e Painéis Adaptativos (Dark & Light)
-   ========================================================================== */
+@keyframes entrar {
+  from {
+    transform: translateX(28px);
+    opacity: 0.6;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
 
-.glass-card {
+/* O papel: folha branca sobre a mesa, com sombra deslocada e tingida de tinta */
+.folha {
   background: var(--color-superficie);
   border: 1px solid var(--color-linha);
-  color: var(--color-texto);
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 4px 12px -2px rgba(0, 0, 0, 0.05);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  border-radius: 6px;
+  box-shadow: 0 1px 0 rgb(27 39 51 / 0.04), 0 8px 24px -16px rgb(27 39 51 / 0.28);
+}
+:root[data-tema="escuro"] .folha {
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.3), 0 12px 30px -16px rgb(0 0 0 / 0.7);
 }
 
-:root:not([data-tema="claro"]) .glass-card {
-  background: rgba(18, 24, 34, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+/* Guia de encaminhamento: canhoto à esquerda, separado por picote com recortes */
+.guia {
+  --recorte: 9px;
+  position: relative;
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
 }
-
-:root[data-tema="claro"] .glass-card {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 6px 16px -2px rgba(0, 0, 0, 0.03);
+.guia-canhoto {
+  position: relative;
+  border-right: 2px dashed var(--color-linha-forte);
 }
-
-.glass-panel {
-  background: var(--color-superficie);
+.guia-canhoto::before,
+.guia-canhoto::after {
+  content: "";
+  position: absolute;
+  right: calc(var(--recorte) * -1 - 1px);
+  width: calc(var(--recorte) * 2);
+  height: calc(var(--recorte) * 2);
+  border-radius: 999px;
+  background: var(--color-fundo);
   border: 1px solid var(--color-linha);
 }
-
-:root:not([data-tema="claro"]) .glass-panel {
-  background: rgba(18, 24, 34, 0.95);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.guia-canhoto::before {
+  top: calc(var(--recorte) * -1 - 1px);
+  clip-path: inset(50% 0 0 0);
 }
-
-:root[data-tema="claro"] .glass-panel {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+.guia-canhoto::after {
+  bottom: calc(var(--recorte) * -1 - 1px);
+  clip-path: inset(0 0 50% 0);
 }
-
-/* Brilho Sutil de Foco / Alerta */
-.glow-marca {
-  box-shadow: 0 0 20px -3px rgba(2, 132, 199, 0.25);
-}
-
-.glow-urgente {
-  box-shadow: 0 0 25px -3px rgba(225, 29, 72, 0.35);
-  animation: pulse-urgente 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes pulse-urgente {
-  0%, 100% {
-    box-shadow: 0 0 15px -2px rgba(225, 29, 72, 0.25);
+@media (max-width: 639px) {
+  .guia {
+    grid-template-columns: 1fr;
   }
-  50% {
-    box-shadow: 0 0 28px 0px rgba(225, 29, 72, 0.5);
+  .guia-canhoto {
+    border-right: 0;
+    border-bottom: 2px dashed var(--color-linha-forte);
+  }
+  .guia-canhoto::before,
+  .guia-canhoto::after {
+    display: none;
   }
 }
 
-/* Gradientes Tipográficos Sóbrios */
-.text-gradient-marca {
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+/* Carimbo: a única ousadia do painel. Só em violência/urgência. */
+.carimbo {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 860;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+  color: var(--color-urgente);
+  border: 3px double var(--color-urgente);
+  border-radius: 4px;
+  padding: 2px 10px 1px;
+  transform: rotate(-7deg);
+  mix-blend-mode: multiply;
+  opacity: 0.92;
+  animation: carimbar 260ms var(--ease-saida) both;
 }
-
-:root:not([data-tema="claro"]) .text-gradient-marca {
-  background: linear-gradient(135deg, #38bdf8 0%, #0284c7 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+/* "multiply" some com o vermelho no escuro: o carimbo fica por cima, sem mistura */
+:root[data-tema="escuro"] .carimbo {
+  mix-blend-mode: normal;
 }
-
-/* Shimmer Loading */
-.shimmer {
-  background: linear-gradient(
-    90deg,
-    rgba(148, 163, 184, 0.08) 0%,
-    rgba(148, 163, 184, 0.18) 50%,
-    rgba(148, 163, 184, 0.08) 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.8s infinite linear;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
+@keyframes carimbar {
+  from {
+    transform: rotate(-7deg) scale(1.35);
+    opacity: 0;
   }
-  100% {
-    background-position: 200% 0;
+  to {
+    transform: rotate(-7deg) scale(1);
+    opacity: 0.92;
   }
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Caso que chegou e ainda não foi aberto: o canhoto da guia fica levemente destacado (o rótulo "Novo" diz o resto) */
+.caso-novo .guia-canhoto {
+  background: var(--color-marca-fundo);
 }
-::-webkit-scrollbar-track {
-  background: transparent;
+
+/* Faixa do topo: a marca em cor cheia; as abas ficam na borda de baixo e a ativa encaixa na folha */
+.topo {
+  background: var(--color-topo);
 }
-::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.25);
-  border-radius: 9999px;
+
+/* Chip de necessidade: ícone na cor da categoria sobre um fundo bem claro dela */
+.chip-cat {
+  color: var(--cat);
+  background: color-mix(in oklab, var(--cat) 13%, var(--color-superficie));
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.45);
+
+/* Abas de pasta: a aba ativa se funde com a folha logo abaixo */
+.aba-pasta {
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 6px 6px 0 0;
+}
+.aba-pasta[aria-current="page"] {
+  background: var(--color-superficie);
+  border-color: var(--color-superficie);
+  box-shadow: 0 1px 0 var(--color-superficie);
+}
+
+/* Fluxo do bot em canvas: pontos da prancheta, como no n8n, sobre o papel claro */
+.canvas-fluxo {
+  background-color: var(--color-elevada);
+  background-image: radial-gradient(circle, color-mix(in oklab, var(--color-linha-forte) 70%, transparent) 1.1px, transparent 1.3px);
+  background-size: 18px 18px;
+  background-position: 9px 9px;
+}
+
+/* Fluxo do bot: editor da etapa com uma orelha que aponta para a etapa escolhida no trilho */
+.editor-etapa {
+  position: relative;
+}
+.editor-etapa::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: var(--orelha, 50%);
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  background: var(--color-superficie);
+  border-left: 1px solid var(--color-linha-forte);
+  border-top: 1px solid var(--color-linha-forte);
+  transform: rotate(45deg);
+  transition: left 220ms var(--ease-saida);
+}
+.editor-etapa[data-sem-orelha]::before {
+  display: none;
+}
+@media (max-width: 1023px) {
+  .editor-etapa::before {
+    display: none;
+  }
+}
+/* Ao trocar de etapa, o conteúdo novo assenta no lugar (responde ao clique; some com movimento reduzido) */
+.assentar {
+  animation: assentar 200ms var(--ease-saida) both;
+}
+@keyframes assentar {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Balão do WhatsApp como a pessoa vê (mensagem recebida, com a pontinha) */
+.conversa-whats {
+  background-color: var(--color-whats-fundo);
+}
+.balao-whats {
+  position: relative;
+  background: var(--color-whats-balao);
+  color: var(--color-whats-texto);
+  border-radius: 0 7.5px 7.5px 7.5px;
+  box-shadow: 0 1px 0.5px rgb(11 20 26 / 0.13);
+}
+.balao-whats::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -8px;
+  width: 8px;
+  height: 13px;
+  background: var(--color-whats-balao);
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
 }
