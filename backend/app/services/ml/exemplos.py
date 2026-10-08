@@ -107,8 +107,60 @@ async def editar(session: AsyncSession, e: ExemploTreino, autor: str, texto: Opt
     return e
 
 
+# Nomes que a equipe vê no painel e na planilha modelo (docs/modelo_relatos_treino.xlsx): a importação aceita
+# tanto o código quanto o nome
+NOMES_CATEGORIA = {
+    "violencia_protecao": "Violência ou ameaça",
+    "renda_beneficio": "Renda e benefícios",
+    "cadastro_atualizacao": "Cadastro Único",
+    "moradia": "Moradia",
+    "documentacao": "Documentos",
+    "alimentacao": "Alimentação",
+    "pessoa_idosa_pcd": "Pessoa idosa ou com deficiência",
+    "trabalho_renda": "Trabalho e cursos",
+}
+_POR_NOME = {_chave(nome): codigo for codigo, nome in NOMES_CATEGORIA.items()}
+
+
+def _codigo(categoria: str) -> str:
+    categoria = (categoria or "").strip()
+    return _POR_NOME.get(_chave(categoria), categoria)
+
+
+def _ler_xlsx(conteudo: bytes) -> List[Tuple[str, str]]:
+    """Planilha modelo: aba 'Relatos' (ou a primeira), cabeçalho na primeira linha com texto e categoria."""
+    from openpyxl import load_workbook
+
+    try:
+        livro = load_workbook(io.BytesIO(conteudo), read_only=True, data_only=True)
+    except Exception as erro:  # arquivo corrompido ou que não é .xlsx de verdade
+        raise ExemploInvalido("Não consegui abrir a planilha. Salve como .xlsx (Pasta de Trabalho do Excel).") from erro
+    aba = livro["Relatos"] if "Relatos" in livro.sheetnames else livro.worksheets[0]
+    linhas = aba.iter_rows(values_only=True)
+    cabecalho = [str(c or "").strip().lower() for c in next(linhas, ())]
+    if "texto" not in cabecalho or "categoria" not in cabecalho:
+        raise ExemploInvalido("A planilha precisa das colunas 'texto' e 'categoria' na primeira linha.")
+    i_texto, i_cat = cabecalho.index("texto"), cabecalho.index("categoria")
+    saida = []
+    for linha in linhas:
+        texto = str(linha[i_texto] or "") if i_texto < len(linha) else ""
+        categoria = str(linha[i_cat] or "") if i_cat < len(linha) else ""
+        saida.append((texto, categoria))  # linhas vazias ficam: mantêm a numeração igual à do Excel
+    livro.close()
+    while saida and not any(v.strip() for v in saida[-1]):
+        saida.pop()  # o modelo tem centenas de linhas preparadas em branco no fim
+    return saida
+
+
 def ler_arquivo(conteudo: bytes, nome: str) -> List[Tuple[str, str]]:
-    """CSV (colunas texto e categoria, separador vírgula ou ponto e vírgula) ou JSON ([{texto, categoria}])."""
+    """Planilha .xlsx, CSV (colunas texto e categoria, separador vírgula ou ponto e vírgula) ou JSON
+    ([{texto, categoria}]). A categoria pode vir pelo código (moradia) ou pelo nome (Moradia)."""
+    if nome.lower().endswith(".xlsx"):
+        return [(t, _codigo(c)) for t, c in _ler_xlsx(conteudo)]
+    return [(t, _codigo(c)) for t, c in _ler_texto(conteudo, nome)]
+
+
+def _ler_texto(conteudo: bytes, nome: str) -> List[Tuple[str, str]]:
     bruto = conteudo.decode("utf-8-sig", errors="replace")
     if nome.lower().endswith(".json"):
         dados = json.loads(bruto)
@@ -127,6 +179,8 @@ async def importar(session: AsyncSession, linhas: List[Tuple[str, str]], autor: 
     existentes, teste = await _chaves_existentes(session), textos_do_teste()
     criados, recusados = 0, []
     for n, (texto, categoria) in enumerate(linhas, start=2):  # linha 1 é o cabeçalho
+        if not texto.strip() and not categoria.strip():
+            continue  # linha em branco no meio da planilha não é recusa
         try:
             limpo = validar(texto, categoria, existentes, teste)
         except ExemploInvalido as erro:

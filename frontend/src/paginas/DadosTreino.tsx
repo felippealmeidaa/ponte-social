@@ -192,9 +192,9 @@ function Importar({ onResultado, onErro }: { onResultado: (r: Importacao) => voi
   };
   return (
     <>
-      <input ref={campo} type="file" accept=".csv,.json,text/csv,application/json" className="sr-only" tabIndex={-1} aria-hidden
+      <input ref={campo} type="file" accept=".xlsx,.csv,.json,text/csv,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" className="sr-only" tabIndex={-1} aria-hidden
         onChange={(e) => aoEscolher(e.target.files?.[0])} />
-      <Botao tamanho="sm" icone={FileUp} carregando={enviando} onClick={() => campo.current?.click()} title="CSV com as colunas texto e categoria, ou JSON">
+      <Botao tamanho="sm" icone={FileUp} carregando={enviando} onClick={() => campo.current?.click()} title="Planilha modelo (.xlsx), CSV com as colunas texto e categoria, ou JSON">
         Importar
       </Botao>
     </>
@@ -226,7 +226,7 @@ function TabelaExemplos({ origem, linhas, categorias, pode, onMudou, onErro }: {
 }) {
   if (linhas.length === 0) {
     const vazio = origem === 'equipe'
-      ? 'Nenhum exemplo da equipe ainda. Escreva um acima ou importe um CSV com as colunas texto e categoria.'
+      ? 'Nenhum exemplo da equipe ainda. Escreva um acima ou importe a planilha modelo (docs/modelo_relatos_treino.xlsx).'
       : origem === 'reais'
         ? 'Nenhum caso real ainda: eles entram quando a pessoa confirma a necessidade no WhatsApp ou a equipe corrige na ficha (só com consentimento).'
         : 'Nenhuma frase com esse filtro.';

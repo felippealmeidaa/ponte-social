@@ -2,6 +2,7 @@
 import io
 import json
 import uuid
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -57,6 +58,33 @@ def test_importar_e_exportar_csv():
         assert planilha.status_code == 200 and "dados-de-treino-equipe.csv" in planilha.headers["content-disposition"]
         assert boa in planilha.content.decode("utf-8-sig")
 
+
+
+def test_importar_planilha_modelo_xlsx():
+    """A planilha do grupo (docs/modelo_relatos_treino.xlsx) importa direto, com a necessidade pelo nome."""
+    from openpyxl import load_workbook
+
+    caminho = Path(__file__).resolve().parents[2] / "docs" / "modelo_relatos_treino.xlsx"
+    livro = load_workbook(caminho)
+    aba = livro["Relatos"]
+    aba["A2"], aba["B2"] = _frase("a luz vai ser cortada amanha e nao tenho como pagar"), "Renda e benefícios"
+    aba["A3"], aba["B3"] = _frase("meu ex fica rondando o portao de noite"), "violencia_protecao"
+    aba["A5"], aba["B5"] = _frase("relato esquecido sem a necessidade"), ""  # linha 4 fica em branco
+    arquivo = io.BytesIO()
+    livro.save(arquivo)
+    with TestClient(app) as client:
+        autenticar(client)
+        r = client.post("/api/v1/ml/exemplos/importar", files={"arquivo": ("relatos.xlsx", io.BytesIO(arquivo.getvalue()),
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")})
+        assert r.status_code == 200, r.text
+        resultado = r.json()
+        assert resultado["criados"] == 2 and resultado["total_recusados"] == 1
+        assert resultado["recusados"][0]["linha"] == 5  # mesma linha que aparece no Excel
+        equipe = {e["texto"]: e["categoria"] for e in client.get("/api/v1/ml/exemplos").json()["equipe"]}
+        assert equipe[aba["A2"].value] == "renda_beneficio"
+
+        corrompida = client.post("/api/v1/ml/exemplos/importar", files={"arquivo": ("x.xlsx", io.BytesIO(b"nao e xlsx"), "application/octet-stream")})
+        assert corrompida.status_code == 422 and ".xlsx" in corrompida.json()["detail"]
 
 def test_retreino_usa_os_exemplos_ativos_da_equipe(monkeypatch):
     ativo, pausado = _frase("meu aluguel venceu e vou ser despejada"), _frase("nao tenho onde morar com as criancas")

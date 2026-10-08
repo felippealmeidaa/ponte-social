@@ -143,14 +143,14 @@ async def remover_exemplo(exemplo_id: str, usuario: Dict[str, Any] = Depends(ape
 @router.post("/exemplos/importar")
 async def importar_exemplos(arquivo: UploadFile = File(...), usuario: Dict[str, Any] = Depends(apenas_coordenacao),
                             session: AsyncSession = Depends(get_session)):
-    """CSV (colunas texto e categoria) ou JSON. Cada linha passa pelas mesmas travas de um exemplo escrito à mão."""
+    """Planilha .xlsx, CSV (colunas texto e categoria) ou JSON. Cada linha passa pelas mesmas travas de um exemplo escrito à mão."""
     conteudo = await arquivo.read()
     if len(conteudo) > 2_000_000:
         raise HTTPException(status_code=413, detail="O arquivo pode ter no máximo 2 MB.")
     try:
         linhas = exemplos.ler_arquivo(conteudo, arquivo.filename or "")
     except (exemplos.ExemploInvalido, ValueError) as erro:
-        raise HTTPException(status_code=422, detail=str(erro) if isinstance(erro, exemplos.ExemploInvalido) else "Não consegui ler o arquivo. Use CSV com as colunas texto e categoria, ou JSON.")
+        raise HTTPException(status_code=422, detail=str(erro) if isinstance(erro, exemplos.ExemploInvalido) else "Não consegui ler o arquivo. Use a planilha modelo (.xlsx), CSV com as colunas texto e categoria, ou JSON.")
     if not linhas:
         raise HTTPException(status_code=422, detail="O arquivo não tem nenhuma linha de exemplo.")
     if len(linhas) > 5000:
