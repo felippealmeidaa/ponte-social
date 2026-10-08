@@ -1,0 +1,138 @@
+{
+  "municipio": "Anápolis/GO",
+  "fonte": "CadSUAS — consulta pública (https://aplicacoes.mds.gov.br/cadsuas/visualizarConsultaExterna.html)",
+  "consultado_em": "2026-10-08",
+  "observacao": "Cadastro oficial mantido pela própria prefeitura no CadSUAS. Telefones são ocultados pelo CadSUAS (LGPD). Lista de servidores não é coletada. Unidade sem horário = não informado no CadSUAS. Confirmar horários com a Secretaria antes de divulgar.",
+  "unidades": [
+    {
+      "codigo_cadsuas": "138580",
+      "identificador": "52011002242",
+      "tipo": "CRAS",
+      "nome": "CRAS Norte",
+      "implantacao": "01/01/2006",
+      "endereco": "AVENIDA Av. do Estado, Qd. B, 02, Vila Norte, CEP: 75.085-310, ANAPOLIS/GO",
+      "cep": "75085-310",
+      "email": "crasnorte@anapolis.go.gov.br",
+      "dias_atendimento": [
+        "Seg",
+        "Ter",
+        "Qua",
+        "Qui",
+        "Sex"
+      ],
+      "horario_inicio": "08:00",
+      "horario_fim": "17:00",
+      "area_atuacao": "Urbana Periférica"
+    },
+    {
+      "codigo_cadsuas": "138581",
+      "identificador": "52011002248",
+      "tipo": "CRAS",
+      "nome": "CRAS SUL",
+      "implantacao": "01/01/2005",
+      "endereco": "RUA Copa 23, Lt. 04, 0, Residencial Copa Cabana, CEP: 75.136-144, ANAPOLIS/GO",
+      "cep": "75136-144",
+      "email": "crassul@anapolis.go.gov.br",
+      "dias_atendimento": [],
+      "horario_inicio": null,
+      "horario_fim": null,
+      "area_atuacao": "Implantado com recursos da esfera:"
+    },
+    {
+      "codigo_cadsuas": "252864",
+      "identificador": "52011020284",
+      "tipo": "CRAS",
+      "nome": "CRAS LESTE",
+      "implantacao": "09/04/2010",
+      "endereco": "AVENIDA Juscelino Kubitschek, quadra 12, 0, Jardim Alvorada, CEP: 75.090-520, ANAPOLIS/GO",
+      "cep": "75090-520",
+      "email": "crasleste@anapolis.go.gov.br",
+      "dias_atendimento": [
+        "Seg",
+        "Ter",
+        "Qua",
+        "Qui",
+        "Sex"
+      ],
+      "horario_inicio": "08:00",
+      "horario_fim": "17:00",
+      "area_atuacao": "Urbana Periférica"
+    },
+    {
+      "codigo_cadsuas": "491308",
+      "identificador": "52011039587",
+      "tipo": "CRAS",
+      "nome": "CRAS Leste Unidade II",
+      "implantacao": "30/07/2021",
+      "endereco": "RUA Antonio de Souza França , 29, Filostro Machado, CEP: 75.091-045, ANAPOLIS/GO",
+      "cep": "75091-045",
+      "email": "novocrasleste@anapolis.go.gov.br",
+      "dias_atendimento": [
+        "Seg",
+        "Ter",
+        "Qua",
+        "Qui",
+        "Sex"
+      ],
+      "horario_inicio": "07:00",
+      "horario_fim": "17:00",
+      "area_atuacao": "Urbana Periférica"
+    },
+    {
+      "codigo_cadsuas": "215834",
+      "identificador": "",
+      "tipo": "CREAS",
+      "nome": "CREAS I",
+      "implantacao": "10/10/2006",
+      "endereco": "RUA General Joaquim Inacio, 196, CENTRO, CEP: 75.024-040, ANAPOLIS/GO",
+      "cep": "75024-040",
+      "email": null,
+      "dias_atendimento": [],
+      "horario_inicio": null,
+      "horario_fim": null,
+      "area_atuacao": null
+    },
+    {
+      "codigo_cadsuas": "279400",
+      "identificador": "",
+      "tipo": "CREAS",
+      "nome": "CREAS II",
+      "implantacao": "24/08/2010",
+      "endereco": "RUA General Joaquim Inacio, 206, Centro, CEP: 75.000-000, ANAPOLIS/GO",
+      "cep": "75000-000",
+      "email": "creas2@anapolis.go.gov.br",
+      "dias_atendimento": [],
+      "horario_inicio": null,
+      "horario_fim": null,
+      "area_atuacao": null
+    },
+    {
+      "codigo_cadsuas": "281259",
+      "identificador": "",
+      "tipo": "CENTRO_POP",
+      "nome": "CENTRO POP",
+      "implantacao": "",
+      "endereco": "RUA 14 DE JULHO C/ COUTO MAGALHÃES, 206, Centro, CEP: 75.024-050, ANAPOLIS/GO",
+      "cep": "75024-050",
+      "email": null,
+      "dias_atendimento": [],
+      "horario_inicio": null,
+      "horario_fim": null,
+      "area_atuacao": null
+    },
+    {
+      "codigo_cadsuas": "496342",
+      "identificador": "",
+      "tipo": "POSTO_CADUNICO",
+      "nome": "Posto de Cadastramento Único e unidade central",
+      "implantacao": "",
+      "endereco": "AVENIDA Visconde de Townay, 0, Jundiai, CEP: 75.110-730, ANAPOLIS/GO",
+      "cep": "75110-730",
+      "email": null,
+      "dias_atendimento": [],
+      "horario_inicio": null,
+      "horario_fim": null,
+      "area_atuacao": null
+    }
+  ]
+}

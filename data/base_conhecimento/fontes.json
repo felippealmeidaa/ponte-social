@@ -1,54 +1,210 @@
 {
   "consultado_em": "2026-10-08",
-  "observacao": "Leis do Planalto em texto compilado, convertidas por scripts/converter_lei_planalto.py: o texto revogado (riscado no site) foi retirado. Ao atualizar, baixe de novo a URL e converta.",
+  "observacao": "Leis do Planalto em texto compilado (scripts/converter_lei_planalto.py: sem o texto revogado, que o site mostra riscado). Páginas do gov.br convertidas por scripts/converter_pagina_govbr.py (só o miolo da página; cada pergunta vira um trecho). Ao atualizar, baixe de novo a URL e converta.",
   "documentos": [
     {
       "arquivo": "bolsa_familia_l14601.md",
       "titulo": "Lei nº 14.601/2023 — Programa Bolsa Família",
       "url": "https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2023/lei/l14601.htm",
-      "tags": ["bolsa_familia", "renda_beneficio", "lei"]
+      "tags": [
+        "bolsa_familia",
+        "renda_beneficio",
+        "lei"
+      ]
     },
     {
       "arquivo": "cadunico_d11016.md",
       "titulo": "Decreto nº 11.016/2022 — Cadastro Único",
       "url": "https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2022/decreto/D11016.htm",
-      "tags": ["cadunico", "cadastro_atualizacao", "decreto"]
+      "tags": [
+        "cadunico",
+        "cadastro_atualizacao",
+        "decreto"
+      ]
     },
     {
       "arquivo": "loas_l8742.md",
       "titulo": "Lei nº 8.742/1993 — Lei Orgânica da Assistência Social (LOAS)",
       "url": "https://www.planalto.gov.br/ccivil_03/leis/l8742.htm",
-      "tags": ["loas", "suas", "bpc", "lei"]
+      "tags": [
+        "loas",
+        "suas",
+        "bpc",
+        "lei"
+      ]
     },
     {
       "arquivo": "bpc_d6214.md",
       "titulo": "Decreto nº 6.214/2007 — Benefício de Prestação Continuada (BPC)",
       "url": "https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2007/decreto/d6214.htm",
-      "tags": ["bpc", "pessoa_idosa_pcd", "renda_beneficio", "decreto"]
+      "tags": [
+        "bpc",
+        "pessoa_idosa_pcd",
+        "renda_beneficio",
+        "decreto"
+      ]
     },
     {
       "arquivo": "tarifa_social_l12212.md",
       "titulo": "Lei nº 12.212/2010 — Tarifa Social de Energia Elétrica",
       "url": "https://www.planalto.gov.br/ccivil_03/_ato2007-2010/2010/lei/l12212.htm",
-      "tags": ["tarifa_social", "renda_beneficio", "lei"]
+      "tags": [
+        "tarifa_social",
+        "renda_beneficio",
+        "lei"
+      ]
     },
     {
       "arquivo": "auxilio_gas_l14237.md",
       "titulo": "Lei nº 14.237/2021 — Auxílio Gás",
       "url": "https://www.planalto.gov.br/ccivil_03/_ato2019-2022/2021/lei/L14237.htm",
-      "tags": ["auxilio_gas", "renda_beneficio", "lei"]
+      "tags": [
+        "auxilio_gas",
+        "renda_beneficio",
+        "lei"
+      ]
     },
     {
       "arquivo": "maria_da_penha_l11340.md",
       "titulo": "Lei nº 11.340/2006 — Lei Maria da Penha",
       "url": "https://www.planalto.gov.br/ccivil_03/_ato2004-2006/2006/lei/l11340.htm",
-      "tags": ["violencia_protecao", "lei"]
+      "tags": [
+        "violencia_protecao",
+        "lei"
+      ]
     },
     {
       "arquivo": "tipificacao_cnas_109.pdf",
       "titulo": "Tipificação Nacional de Serviços Socioassistenciais (Resolução CNAS nº 109/2009, ed. 2014)",
       "url": "https://www.mds.gov.br/webarquivos/publicacao/assistencia_social/Normativas/tipificacao.pdf",
-      "tags": ["suas", "cras", "creas", "servicos", "resolucao"]
+      "tags": [
+        "suas",
+        "cras",
+        "creas",
+        "servicos",
+        "resolucao"
+      ]
+    },
+    {
+      "arquivo": "calendario_bolsa_familia_2026.md",
+      "titulo": "Calendário de pagamento do Bolsa Família 2026",
+      "url": "https://www.gov.br/mds/pt-br/acoes-e-programas/bolsa-familia/pagamentos-e-beneficios",
+      "tags": [
+        "bolsa_familia",
+        "renda_beneficio",
+        "calendario",
+        "2026"
+      ]
+    },
+    {
+      "arquivo": "bolsa_familia_perguntas.md",
+      "titulo": "Bolsa Família — Perguntas e respostas (regras, pagamento, cartão, condicionalidades)",
+      "url": "https://www.gov.br/mds/pt-br/acoes-e-programas/bolsa-familia/conheca-as-regras",
+      "tags": [
+        "bolsa_familia",
+        "renda_beneficio",
+        "perguntas_frequentes"
+      ]
+    },
+    {
+      "arquivo": "bolsa_familia_pagamentos.md",
+      "titulo": "Bolsa Família — Pagamentos e benefícios",
+      "url": "https://www.gov.br/mds/pt-br/acoes-e-programas/bolsa-familia/pagamentos-e-beneficios",
+      "tags": [
+        "bolsa_familia",
+        "renda_beneficio",
+        "valores"
+      ]
+    },
+    {
+      "arquivo": "bolsa_familia_regra_protecao.md",
+      "titulo": "Bolsa Família — Regra de Proteção",
+      "url": "https://www.gov.br/mds/pt-br/acoes-e-programas/bolsa-familia/regra-de-protecao",
+      "tags": [
+        "bolsa_familia",
+        "renda_beneficio"
+      ]
+    },
+    {
+      "arquivo": "cadunico_perguntas.md",
+      "titulo": "Cadastro Único — Perguntas frequentes",
+      "url": "https://www.gov.br/mds/pt-br/acoes-e-programas/cadastro-unico/perguntas-frequentes-cadastro-unico",
+      "tags": [
+        "cadunico",
+        "cadastro_atualizacao",
+        "perguntas_frequentes"
+      ]
+    },
+    {
+      "arquivo": "estatuto_idoso_l10741.md",
+      "titulo": "Lei nº 10.741/2003 — Estatuto da Pessoa Idosa",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/2003/l10.741.htm",
+      "tags": [
+        "pessoa_idosa_pcd",
+        "lei"
+      ]
+    },
+    {
+      "arquivo": "autismo_l12764.md",
+      "titulo": "Lei nº 12.764/2012 — Direitos da pessoa com transtorno do espectro autista (inclui a CIPTEA)",
+      "url": "https://www.planalto.gov.br/ccivil_03/_ato2011-2014/2012/lei/l12764.htm",
+      "tags": [
+        "pessoa_idosa_pcd",
+        "autismo",
+        "ciptea",
+        "lei"
+      ]
+    },
+    {
+      "arquivo": "gratuidade_registro_l9534.md",
+      "titulo": "Lei nº 9.534/1997 — Gratuidade do registro civil de nascimento e óbito",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l9534.htm",
+      "tags": [
+        "documentacao",
+        "certidao",
+        "lei"
+      ]
+    },
+    {
+      "arquivo": "eca_l8069.md",
+      "titulo": "Lei nº 8.069/1990 — Estatuto da Criança e do Adolescente (ECA)",
+      "url": "https://www.planalto.gov.br/ccivil_03/leis/l8069.htm",
+      "tags": [
+        "violencia_protecao",
+        "crianca_adolescente",
+        "conselho_tutelar",
+        "lei"
+      ]
+    },
+    {
+      "arquivo": "ligue_180.md",
+      "titulo": "Ligue 180 — Central de Atendimento à Mulher",
+      "url": "https://www.gov.br/mulheres/pt-br/ligue180",
+      "tags": [
+        "violencia_protecao",
+        "emergencia",
+        "canal"
+      ]
+    },
+    {
+      "arquivo": "disque_100.md",
+      "titulo": "Disque 100 — Ouvidoria Nacional de Direitos Humanos",
+      "url": "https://www.gov.br/mdh/pt-br/ondh",
+      "tags": [
+        "violencia_protecao",
+        "emergencia",
+        "canal"
+      ]
+    },
+    {
+      "arquivo": "cvv_188.md",
+      "titulo": "CVV — Centro de Valorização da Vida (188)",
+      "url": "https://cvv.org.br/",
+      "tags": [
+        "emergencia",
+        "saude_mental",
+        "canal"
+      ]
     }
   ]
 }
