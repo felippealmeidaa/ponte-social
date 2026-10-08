@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { endereco, type GrupoMenu, type itemAtual } from '../menu';
 
-// Cabeçalho das telas de um grupo do menu (Acompanhamento, Bot do WhatsApp, Gestão): o título é o do grupo e as
+// Cabeçalho das telas de um grupo do menu (Indicadores, Bot do WhatsApp, Classificação, Laboratório de IA, Gestão): o título é o do grupo e as
 // abas são só os itens dele, as mesmas entradas do menu ☰. Assim Gestão não aparece misturada com o bot ou com a IA.
 export function CabecalhoGrupo({ grupos, aqui }: { grupos: GrupoMenu[]; aqui: ReturnType<typeof itemAtual> }) {
   const barra = useRef<HTMLElement>(null);
