@@ -14,7 +14,7 @@ from app.core.config import settings
 from app.core.deps import apenas_coordenacao, apenas_coordenacao_geral, escopo, resolver_unidade, usuario_logado
 from app.db import get_session
 from app.models import Conversa, Triagem, Usuario, agora
-from app.services import catalogo, desenho_fluxo, geo, unidades
+from app.services import catalogo, desenho_fluxo, funcionamento, geo, unidades
 from app.services.bot.fluxo_conversa import caminho_completo
 from app.services.ml.train_evaluator import KNOWLEDGE_SERVICES
 
@@ -145,6 +145,12 @@ async def salvar_desenho_fluxo(req: Dict[str, Any], unidade: Optional[str] = Non
 # ------------------------------------------------------------------------------
 # Unidades de atendimento (CRAS, CREAS, Centro POP) e os bairros que cada uma atende
 # ------------------------------------------------------------------------------
+class FaixaHorarioRequest(BaseModel):
+    dias: List[int] = Field(default_factory=list)  # 0 = segunda ... 6 = domingo
+    abre: str = Field(max_length=5)
+    fecha: str = Field(max_length=5)
+
+
 class UnidadeRequest(BaseModel):
     nome: str = Field(min_length=3, max_length=160)
     tipo: Literal["CRAS", "CREAS", "CENTRO_POP", "CADUNICO", "RESTAURANTE_POPULAR", "DOCUMENTOS", "SINE", "OUTRO"] = "CRAS"
@@ -154,6 +160,7 @@ class UnidadeRequest(BaseModel):
     categorias: List[str] = Field(default_factory=list)
     telefone: str = Field(default="", max_length=80)
     horario: str = Field(default="", max_length=160)
+    funcionamento: List[FaixaHorarioRequest] = Field(default_factory=list)
     bairros: List[str] = Field(default_factory=list)
     fonte: str = Field(default="", max_length=500)
     verificado_em: Optional[date] = None
@@ -174,6 +181,10 @@ async def _salvar_unidade(req: UnidadeRequest, usuario: Dict[str, Any], session:
         raise HTTPException(status_code=422, detail="Preencha latitude e longitude juntas, ou deixe as duas vazias.")
     if req.tipo == "OUTRO" and not req.categorias:
         raise HTTPException(status_code=422, detail="Marque as necessidades que este lugar atende.")
+    try:
+        funcionamento.validar(req.model_dump()["funcionamento"])
+    except funcionamento.FuncionamentoInvalido as e:
+        raise HTTPException(status_code=422, detail=str(e))
     try:
         return unidades.para_dict(await unidades.salvar(session, req.model_dump(), usuario.get("sub", ""), unidade_id))
     except ValueError as e:

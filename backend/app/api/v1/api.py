@@ -12,6 +12,7 @@ from app.api.v1.endpoints import (
     agentes,
     fluxos,
     copiloto,
+    demonstracao,
 )
 
 # ------------------------------------------------------------------------------
@@ -39,6 +40,7 @@ api_router.include_router(base_conhecimento.router, prefix="/base", tags=["Base 
 api_router.include_router(agentes.router, prefix="/agentes", tags=["Agentes de IA (teste no painel)"])
 api_router.include_router(fluxos.router, prefix="/fluxos", tags=["Fluxos de etapas (simulador)"])
 api_router.include_router(copiloto.router, prefix="/copiloto", tags=["Copiloto construtor"])
+api_router.include_router(demonstracao.router, prefix="/demonstracao", tags=["Modo demonstração"])
 
 # Instâncias WhatsApp & QR Code
 api_router.include_router(whatsapp_instances.router, prefix="/whatsapp", tags=["Instâncias WhatsApp & QR Code"])

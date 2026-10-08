@@ -1,5 +1,5 @@
 import {
-  BarChart3, Bell, Bot, BrainCircuit, Database, FlaskConical, GitBranch, Library, Inbox, LineChart, MessageCircle, Settings2, Building2, FileText, ListOrdered, MessagesSquare, NotebookPen, Smartphone, Sparkles, UsersRound, Workflow,
+  BarChart3, Bell, Layers, Bot, BrainCircuit, Database, FlaskConical, GitBranch, Library, Inbox, LineChart, MessageCircle, Settings2, Building2, FileText, ListOrdered, MessagesSquare, NotebookPen, Smartphone, Sparkles, UsersRound, Workflow,
   type LucideIcon,
 } from 'lucide-react';
 import type { Rota } from './navegacao';
@@ -48,9 +48,10 @@ export function montarMenu(c: Contagens, geral: boolean): GrupoMenu[] {
       ],
     },
     {
-      titulo: 'Indicadores', resumo: 'Números do atendimento e relatório do mês', icone: LineChart,
+      titulo: 'Indicadores', resumo: 'Números, temas dos relatos e relatório do mês', icone: LineChart,
       itens: [
         { rota: 'indicadores', rotulo: 'Painel de indicadores', icone: BarChart3 },
+        { rota: 'indicadores', parametro: 'temas', rotulo: 'Temas dos relatos', icone: Layers },
         { rota: 'indicadores', parametro: 'relatorio', rotulo: 'Relatório do mês', icone: FileText },
       ],
     },
@@ -79,11 +80,12 @@ export function montarMenu(c: Contagens, geral: boolean): GrupoMenu[] {
       ],
     },
     {
-      titulo: 'Gestão', resumo: 'Unidades, equipe e alertas', icone: Settings2,
+      titulo: 'Gestão', resumo: 'Unidades, equipe, alertas e demonstração', icone: Settings2,
       itens: [
         ...(geral ? [{ rota: 'servicos' as Rota, parametro: 'unidades', rotulo: 'Unidades de atendimento', icone: Building2 }] : []),
         { rota: 'configuracoes', parametro: 'equipe', rotulo: 'Equipe e acesso', icone: UsersRound },
         { rota: 'configuracoes', parametro: 'alertas', rotulo: 'Alertas', icone: Bell },
+        ...(geral ? [{ rota: 'configuracoes' as Rota, parametro: 'demonstracao', rotulo: 'Demonstração', icone: FlaskConical }] : []),
       ],
     },
   ];

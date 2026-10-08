@@ -167,7 +167,7 @@ def _normal(t: str) -> str:
 
 
 def _lugar_texto(u: Dict[str, Any]) -> str:
-    detalhes = ". ".join(x for x in (u.get("endereco"), u.get("horario"), f"Tel.: {u['telefone']}" if u.get("telefone") else "") if x)
+    detalhes = ". ".join(x for x in (u.get("endereco"), u.get("horario"), u.get("situacao_agora"), f"Tel.: {u['telefone']}" if u.get("telefone") else "") if x)
     return f"*{u.get('nome', '')}*" + (f"\n{detalhes}" if detalhes else "")
 
 

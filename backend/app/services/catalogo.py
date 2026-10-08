@@ -370,6 +370,7 @@ OPCOES_PADRAO: Dict[str, object] = {
     "lembrete_vespera": True,            # lembrete antes do atendimento marcado
     "lembrete_horas": 20,                # quantas horas antes vai o lembrete
     "retorno_dias": 3,                   # dias até o "conseguiu ir ao CRAS?" (perguntar_depois)
+    "modo_demonstracao": False,          # Gestão › Demonstração: indicadores, mapa e relatório contam os exemplos
 }
 # chave: (mínimo, máximo, unidade mostrada no erro)
 LIMITES_NUMERICOS = {
@@ -379,7 +380,7 @@ LIMITES_NUMERICOS = {
     "retorno_dias": (1, 30, "dias"),
 }
 VALORES_CONTATO = ("perguntar", "sempre", "nunca")
-SO_SECRETARIA = {"perguntar_bairro"}
+SO_SECRETARIA = {"perguntar_bairro", "modo_demonstracao"}
 
 _servicos: Dict[str, dict] = copy.deepcopy(KNOWLEDGE_SERVICES)
 _textos: Dict[str, str] = {k: v["texto"] for k, v in TEXTOS_PADRAO.items()}

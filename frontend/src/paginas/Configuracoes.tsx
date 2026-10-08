@@ -11,6 +11,7 @@ import { Agentes } from './Agentes';
 import { Fluxos } from './Fluxos';
 import { BaseConhecimento } from './BaseConhecimento';
 import { Alertas } from './Alertas';
+import { Demonstracao } from './Demonstracao';
 
 const ABAS = [
   { id: 'whatsapp', rotulo: 'WhatsApp' },
@@ -21,6 +22,7 @@ const ABAS = [
   { id: 'dados', rotulo: 'Dados de treino' },
   { id: 'base', rotulo: 'Base de conhecimento' },
   { id: 'alertas', rotulo: 'Alertas' },
+  { id: 'demonstracao', rotulo: 'Demonstração' },
   { id: 'equipe', rotulo: 'Equipe e acesso' },
 ] as const;
 
@@ -36,6 +38,7 @@ export function Configuracoes({ aba }: { aba?: string }) {
       {atual === 'dados' && <DadosTreino />}
       {atual === 'base' && <BaseConhecimento />}
       {atual === 'alertas' && <Alertas />}
+      {atual === 'demonstracao' && <Demonstracao />}
       {atual === 'equipe' && <EquipeEAcesso />}
     </>
   );

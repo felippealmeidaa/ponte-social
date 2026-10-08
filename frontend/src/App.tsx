@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronRight, LogOut, Menu } from 'lucide-react';
+import { ChevronRight, FlaskConical, LogOut, Menu } from 'lucide-react';
 import { api, encerrarSessao, sessaoSalva, type Usuario } from './api';
 import { LoginPage } from './components/LoginPage';
 import { Fila } from './paginas/Fila';
@@ -65,7 +65,16 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
 
   const triagens = fila.dados ?? [];
   // Tempos dos alertas da barra do topo (Gestão › Alertas)
-  const opcoesPainel = useAtualizacao(useCallback(() => api<{ opcoes: { alerta_urgente_min?: number; alerta_fila_horas?: number } }>('/configuracao/fluxo/opcoes'), []), 60000);
+  const opcoesPainel = useAtualizacao(useCallback(() => api<{ opcoes: { alerta_urgente_min?: number; alerta_fila_horas?: number; modo_demonstracao?: boolean } }>('/configuracao/fluxo/opcoes'), []), 60000);
+  const recarregarOpcoes = opcoesPainel.recarregar;
+  // Gestão › Demonstração avisa quando liga/desliga o modo, para a etiqueta do topo mudar na hora
+  useEffect(() => {
+    window.addEventListener('opcoes-painel', recarregarOpcoes);
+    return () => window.removeEventListener('opcoes-painel', recarregarOpcoes);
+  }, [recarregarOpcoes]);
+  const modoDemo = !!opcoesPainel.dados?.opcoes.modo_demonstracao;
+  // Exemplos de demonstração só acendem os alertas do topo com o modo ligado
+  const triagensAlerta = modoDemo ? triagens : triagens.filter((t) => t.canal !== 'demo');
   const minutosAlerta = opcoesPainel.dados?.opcoes.alerta_urgente_min ?? 10;
   const horasFila = opcoesPainel.dados?.opcoes.alerta_fila_horas ?? 0;
   // Mesma regra da Fila: violência que ainda espera alguém (urgente ou aguardando com prioridade de violência)
@@ -108,8 +117,14 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
         {aqui && <p className="min-w-0 truncate text-[13.5px] font-semibold text-sobre-topo md:hidden">{aqui.sub ?? aqui.item}</p>}
 
         <span className="ml-auto" />
-        <AlertaUrgente triagens={triagens} minutos={minutosAlerta} />
-        <AlertaFila triagens={triagens} horas={horasFila} />
+        {modoDemo && (
+          <a href="#/configuracoes/demonstracao" title="Modo demonstração ligado: os números incluem casos fictícios"
+            className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-[3px] border border-caneta/50 bg-caneta-fundo px-2 text-[12.5px] font-semibold uppercase tracking-wide text-caneta">
+            <FlaskConical className="size-3.5" aria-hidden /><span className="hidden sm:inline">Demonstração</span>
+          </a>
+        )}
+        <AlertaUrgente triagens={triagensAlerta} minutos={minutosAlerta} />
+        <AlertaFila triagens={triagensAlerta} horas={horasFila} />
         <dl className="hidden items-center gap-5 2xl:flex">
           <CampoCabecalho rotulo="Unidade">{usuario.unidade_id ? nomeUnidade(unidades.dados, usuario.unidade_id) : 'Todas as unidades'}</CampoCabecalho>
           <CampoCabecalho rotulo={papel}>{usuario.name}</CampoCabecalho>

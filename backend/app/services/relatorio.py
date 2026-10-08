@@ -18,6 +18,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import FUSO_LOCAL, Triagem, UnidadeAtendimento, local
+from app.services import demonstracao
 from app.services.ml.train_evaluator import REPORT_OUTPUT
 
 # Os mesmos nomes do painel (frontend/src/vocabulario.ts)
@@ -84,7 +85,8 @@ async def tempo_resposta(session: AsyncSession, itens: Sequence[Triagem]) -> Lis
 
 async def _casos(session: AsyncSession, ano: int, mes: int, unidade_id: Optional[str]) -> List[Triagem]:
     inicio, fim = limites_do_mes(ano, mes)
-    consulta = select(Triagem).where(Triagem.criado_em >= inicio, Triagem.criado_em < fim, Triagem.canal != "demo")
+    consulta = demonstracao.filtro_casos(select(Triagem).where(Triagem.criado_em >= inicio, Triagem.criado_em < fim),
+                                         demonstracao.ligado())
     if unidade_id:
         consulta = consulta.where(Triagem.unidade_id == unidade_id)
     return list((await session.execute(consulta)).scalars().all())
@@ -152,6 +154,7 @@ async def montar(session: AsyncSession, ano: int, mes: int, unidade_id: Optional
         "ano": ano, "mes": mes, "titulo": nome_mes(ano, mes),
         "unidade": nomes_unidade.get(unidade_id, "Todas as unidades") if unidade_id else "Todas as unidades",
         "gerado_em": local().isoformat(timespec="minutes"),
+        "demonstracao": demonstracao.ligado(),
         "resumo": {
             "casos": len(itens), "mes_anterior": len(anterior),
             "urgentes": sum(t.prioridade == URGENTE for t in itens),
@@ -216,7 +219,7 @@ def planilha(dados: Dict[str, Any]) -> bytes:
 
     ws = _aba(wb, "Resumo", titulo, [38, 16])
     ws["A2"] = (f"Gerado em {datetime.fromisoformat(dados['gerado_em']).strftime('%d/%m/%Y às %H:%M')} (horário de Brasília). "
-                "Exemplos de demonstração não entram.")
+                + ("MODO DEMONSTRAÇÃO: inclui casos fictícios." if dados.get("demonstracao") else "Exemplos de demonstração não entram."))
     ws["A2"].font = Font(italic=True, color="5D6A79")
     linhas = [["Casos no mês", r["casos"]], ["Casos no mês anterior", r["mes_anterior"]],
               ["Com sinal de violência", r["urgentes"]], ["Concluídos", r["concluidos"]], ["Ainda em aberto", r["em_aberto"]],

@@ -134,6 +134,9 @@ async def listar(session: AsyncSession, status: Optional[str] = None, prioridade
         q = q.where(Triagem.categoria == categoria)
     if unidade:
         q = q.where(Triagem.unidade_id == unidade)
+    # Exemplos de demonstração (canal "demo") só aparecem na fila com o modo demonstração ligado
+    if not catalogo.opcoes_fluxo(None)["modo_demonstracao"]:
+        q = q.where(Triagem.canal != "demo")
     return (await session.execute(q)).scalars().all()
 
 

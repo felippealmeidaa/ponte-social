@@ -56,7 +56,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.security import encrypt_secret, mask_phone
 from app.models import Conversa, Mensagem, Triagem, UnidadeAtendimento, agora, local
-from app.services import catalogo, desenho_fluxo, documentos, geo, unidades
+from app.services import calendario_bf, catalogo, desenho_fluxo, documentos, geo, unidades
 from app.services.anonimizacao import anonimizar_texto, hash_telefone
 from app.services.audio.voz import falar
 from app.services.llm.explicar import explicar
@@ -553,6 +553,10 @@ async def _passo(session: AsyncSession, conversa: Conversa, telefone: str, texto
     # Violência interrompe qualquer etapa (exceto respostas curtas de menu, como "1" ou "sim")
     if classificacao and classificacao["categoria"] == VIOLENCIA and _resposta(texto) is None and not texto.isdigit():
         return await _emergencia(session, conversa, telefone, texto)
+
+    # "Quando cai meu Bolsa Família?": responde a data e a pessoa continua na etapa em que estava
+    if estado != "CONFIRMAR_APAGAR" and calendario_bf.e_pergunta(texto_norm):
+        return calendario_bf.resposta(texto_norm)
 
     if estado == "CONFIRMAR_APAGAR":
         resposta = _resposta(texto)

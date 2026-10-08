@@ -10,7 +10,7 @@ from typing import Any, Awaitable, Callable, Dict, List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services import catalogo, unidades
+from app.services import catalogo, funcionamento, unidades
 from app.services.ml.train_evaluator import CATEGORIAS
 from app.services.rag import documentos as base
 
@@ -43,7 +43,10 @@ async def _servicos(session: AsyncSession, args: Dict[str, Any]) -> Dict[str, An
 
 
 def _lugar(u, km=None) -> Dict[str, Any]:
-    return {"nome": u.nome, "tipo": u.tipo, "endereco": u.endereco, "horario": u.horario, "telefone": u.telefone,
+    agora_ = funcionamento.situacao(u.funcionamento)
+    return {"nome": u.nome, "tipo": u.tipo, "endereco": u.endereco,
+            "horario": funcionamento.texto_horario(u.horario, u.funcionamento), "telefone": u.telefone,
+            **({"situacao_agora": agora_["texto"]} if agora_ else {}),
             **({"distancia_km": round(km, 1)} if km is not None else {})}
 
 

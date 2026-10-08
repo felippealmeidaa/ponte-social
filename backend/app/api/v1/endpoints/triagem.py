@@ -11,7 +11,8 @@ from app.core.deps import escopo, pode_ver, usuario_logado
 from app.core.security import decrypt_secret
 from app.db import get_session
 from app.models import Conversa, DocumentoAnexo, Mensagem, Triagem, UnidadeAtendimento, iso, local
-from app.services import unidades
+from app.services import demonstracao, unidades
+from app.services.ml import temas
 from app.models import FUSO_LOCAL
 from app.services import agenda, catalogo, documentos, mapa_demanda, relatorio
 from app.services.avisos import avisar_andamento
@@ -327,9 +328,9 @@ async def ver_contato(triagem_id: str, usuario: Dict[str, Any] = Depends(usuario
 
 @router.get("/indicadores/resumo")
 async def indicadores(dias: int = 30, usuario: Dict[str, Any] = Depends(usuario_logado), session: AsyncSession = Depends(get_session)):
-    """Números da fila e indicadores de impacto propostos no plano (seção 10). Ignora os exemplos de demonstração."""
+    """Números da fila e indicadores de impacto propostos no plano (seção 10). Exemplos de demonstração só com o modo ligado."""
     desde = datetime.now(timezone.utc) - timedelta(days=dias)
-    consulta = select(Triagem).where(Triagem.criado_em >= desde, Triagem.canal != "demo")
+    consulta = demonstracao.filtro_casos(select(Triagem).where(Triagem.criado_em >= desde), demonstracao.ligado())
     if escopo(usuario):
         consulta = consulta.where(Triagem.unidade_id == escopo(usuario))
     itens = (await session.execute(consulta)).scalars().all()
@@ -343,6 +344,7 @@ async def indicadores(dias: int = 30, usuario: Dict[str, Any] = Depends(usuario_
     dias_lista = [(hoje - timedelta(days=dias - 1 - i)).isoformat() for i in range(dias)]
     return {
         "periodo_dias": dias,
+        "exemplos_fora": 0 if demonstracao.ligado() else await demonstracao.contar(session),
         "total": len(itens),
         "abertas": sum(t.status in {"PENDENTE", "URGENTE_CREAS"} for t in itens),
         "urgentes": sum(t.prioridade == "URGENTE_VIOLENCIA" for t in itens),
@@ -388,11 +390,25 @@ def _mes_ou_422(mes: Optional[str]) -> tuple:
         raise HTTPException(status_code=422, detail="Mês inválido. Use o formato 2026-09.")
 
 
+@router.get("/indicadores/temas")
+async def temas_emergentes(dias: int = 30, usuario: Dict[str, Any] = Depends(usuario_logado), session: AsyncSession = Depends(get_session)):
+    """Relatos parecidos do período agrupados sozinhos (sem violência). Exemplos só com o modo de demonstração."""
+    dias = max(7, min(dias, 180))
+    desde = datetime.now(timezone.utc) - timedelta(days=dias)
+    consulta = demonstracao.filtro_casos(select(Triagem).where(Triagem.criado_em >= desde), demonstracao.ligado())
+    if escopo(usuario):
+        consulta = consulta.where(Triagem.unidade_id == escopo(usuario))
+    itens = (await session.execute(consulta)).scalars().all()
+    # Com o modo desligado, diz quantos exemplos ficaram de fora (para a tela oferecer ligar o modo)
+    fora = 0 if demonstracao.ligado() else await demonstracao.contar(session)
+    return {**temas.agrupar(itens, dias), "exemplos_fora": fora}
+
+
 @router.get("/indicadores/mapa")
 async def mapa_de_demandas(dias: int = 30, usuario: Dict[str, Any] = Depends(usuario_logado), session: AsyncSession = Depends(get_session)):
-    """Casos do período agrupados por bairro, com um ponto por bairro (nunca por pessoa). Ignora os exemplos de demonstração."""
+    """Casos do período agrupados por bairro, com um ponto por bairro (nunca por pessoa). Exemplos só com o modo de demonstração."""
     desde = datetime.now(timezone.utc) - timedelta(days=dias)
-    consulta = select(Triagem).where(Triagem.criado_em >= desde, Triagem.canal != "demo")
+    consulta = demonstracao.filtro_casos(select(Triagem).where(Triagem.criado_em >= desde), demonstracao.ligado())
     if escopo(usuario):
         consulta = consulta.where(Triagem.unidade_id == escopo(usuario))
     itens = (await session.execute(consulta)).scalars().all()

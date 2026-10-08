@@ -223,6 +223,8 @@ class UnidadeAtendimento(Base):
     categorias: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
     telefone: Mapped[str] = mapped_column(String(80), default="")
     horario: Mapped[str] = mapped_column(String(160), default="")
+    # Faixas de funcionamento para o "aberto agora" (services/funcionamento.py); vazio = só o texto de "horario"
+    funcionamento: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
     bairros: Mapped[list] = mapped_column(JSON, default=list)
     fonte: Mapped[str] = mapped_column(Text, default="")
     verificado_em: Mapped[Optional[date]] = mapped_column(Date, nullable=True)

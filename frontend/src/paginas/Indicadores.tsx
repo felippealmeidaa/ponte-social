@@ -4,6 +4,8 @@ import { api } from '../api';
 import { Aviso, Esqueleto, FaixaLeitura, Leitura, Painel, Vazio } from '../components/ui';
 import { useAtualizacao } from '../useAtualizacao';
 import { Relatorio } from './Relatorio';
+import { AvisoDemoDesligado } from '../components/AvisoDemo';
+import { Temas } from './Temas';
 import { CANAIS, corCategoria, duracao, ESTADOS, nomeCategoria, ORDEM_ESTADOS } from '../vocabulario';
 
 // Série única na cor da marca; a barra em foco ganha a cor do texto
@@ -15,6 +17,7 @@ const MapaDemanda = lazy(() => import('../components/MapaDemanda').then((m) => (
 
 interface Resumo {
   periodo_dias: number;
+  exemplos_fora: number;
   total: number;
   abertas: number;
   urgentes: number;
@@ -37,17 +40,19 @@ const diaCurto = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString
 
 export function Indicadores({ parametro }: { parametro?: string }) {
   if (parametro === 'relatorio') return <Relatorio />;
+  if (parametro === 'temas') return <Temas />;
   return <PaginaIndicadores />;
 }
 
 function PaginaIndicadores() {
   const [dias, setDias] = useState(30);
-  const { dados, erro } = useAtualizacao(useCallback(() => api<Resumo>(`/triagem/indicadores/resumo?dias=${dias}`), [dias]), 30000);
+  const { dados, erro, recarregar } = useAtualizacao(useCallback(() => api<Resumo>(`/triagem/indicadores/resumo?dias=${dias}`), [dias]), 30000);
 
   return (
     <>
+      {dados && dados.exemplos_fora > 0 && <div className="mb-4"><AvisoDemoDesligado quantos={dados.exemplos_fora} onLigado={recarregar} /></div>}
       <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <p className="max-w-[75ch] text-[14.5px] text-texto-2">O que chegou à fila no período. Os exemplos de demonstração não entram na conta.</p>
+        <p className="max-w-[75ch] text-[14.5px] text-texto-2">O que chegou à fila no período. Os exemplos de demonstração só entram com o modo demonstração ligado (Gestão › Demonstração).</p>
         <div className="flex flex-wrap items-center gap-3">
         <div role="group" aria-label="Período" className="flex rounded-[3px] border border-linha-forte p-1">
           {PERIODOS.map((p) => (

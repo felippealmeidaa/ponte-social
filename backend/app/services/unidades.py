@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models import UnidadeAtendimento, agora, iso
+from app.services import funcionamento as horario_funcionamento
 from app.services import geo
 from app.services.ml.text_rules import normalizar
 from app.services.ml.train_evaluator import CATEGORIAS, VIOLENCIA
@@ -59,7 +60,8 @@ def ponto_da(u: UnidadeAtendimento) -> Optional[geo.Ponto]:
 def para_dict(u: UnidadeAtendimento) -> dict:
     return {
         "id": u.id, "nome": u.nome, "tipo": u.tipo, "endereco": u.endereco, "telefone": u.telefone,
-        "horario": u.horario, "bairros": u.bairros or [], "fonte": u.fonte or "",
+        "horario": u.horario, "funcionamento": u.funcionamento or [],
+        "situacao": horario_funcionamento.situacao(u.funcionamento), "bairros": u.bairros or [], "fonte": u.fonte or "",
         "latitude": u.latitude, "longitude": u.longitude, "categorias": categorias_da(u),
         "mapa": geo.link_mapa(u.latitude, u.longitude, u.endereco) if (ponto_da(u) or u.endereco) else None,
         "verificado_em": u.verificado_em.isoformat() if u.verificado_em else None, "ativo": u.ativo,
@@ -159,9 +161,13 @@ def descricao(u: UnidadeAtendimento, km: Optional[float] = None) -> str:
     linhas = [f"*{u.nome}*" + (f" (a {geo.texto_distancia(km)})" if km is not None else "")]
     if u.endereco:
         linhas.append(u.endereco)
-    detalhes = ". ".join(p for p in (u.horario, f"Tel.: {u.telefone}" if u.telefone else "") if p)
+    horario = horario_funcionamento.texto_horario(u.horario, u.funcionamento)
+    detalhes = ". ".join(p for p in (horario, f"Tel.: {u.telefone}" if u.telefone else "") if p)
     if detalhes:
         linhas.append(detalhes)
+    agora_ = horario_funcionamento.situacao(u.funcionamento)
+    if agora_:
+        linhas.append(("🟢 " if agora_["aberto"] else "🔴 ") + agora_["texto"])
     if ponto_da(u) or u.endereco:
         linhas.append(f"Como chegar: {geo.link_mapa(u.latitude, u.longitude, u.endereco)}")
     return "\n".join(linhas)
@@ -193,6 +199,7 @@ async def salvar(session: AsyncSession, dados: dict, usuario: str, unidade_id: O
     unidade.endereco = (dados.get("endereco") or "").strip()
     unidade.telefone = (dados.get("telefone") or "").strip()
     unidade.horario = (dados.get("horario") or "").strip()
+    unidade.funcionamento = horario_funcionamento.validar(dados.get("funcionamento"))
     unidade.bairros = _limpar_bairros(dados.get("bairros") or [])
     categorias = [c for c in dados.get("categorias") or [] if c in CATEGORIAS]
     # Igual ao padrão do tipo: guarda vazio, para acompanhar o padrão se ele mudar
@@ -233,7 +240,8 @@ async def carregar_rede_exemplo(session: AsyncSession) -> int:
     for d in dados:
         session.add(UnidadeAtendimento(
             id=f"uni-{uuid.uuid4().hex[:8]}", nome=d["nome"], tipo=d["tipo"], endereco=d.get("endereco", ""),
-            telefone=d.get("telefone", ""), horario=d.get("horario", ""), bairros=d.get("bairros", []),
+            telefone=d.get("telefone", ""), horario=d.get("horario", ""), funcionamento=d.get("funcionamento") or horario_funcionamento.de_texto(d.get("horario", "")),
+            bairros=d.get("bairros", []),
             categorias=d.get("categorias"), latitude=d.get("latitude"), longitude=d.get("longitude"),
             fonte="Não conferido com a prefeitura. " + d.get("fonte", ""), verificado_em=None, ativo=True,
             atualizado_em=agora(), atualizado_por="rede pública (exemplo)",
