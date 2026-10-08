@@ -60,3 +60,6 @@ Thumbs.db
 .impeccable/review/
 .impeccable/questions/
 .impeccable/decision-*.json
+
+# Logs do iniciar.bat
+scripts/logs/
