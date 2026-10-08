@@ -1,5 +1,6 @@
 """Correção da necessidade pela equipe, retreino que só troca o modelo se não piorar, e comparação LLM x modelo local."""
 import json
+import uuid
 
 from fastapi.testclient import TestClient
 
@@ -99,3 +100,20 @@ def test_comparacao_llm_x_modelo_local_no_mesmo_teste(monkeypatch, tmp_path):
         assert a["hibrido"]["recall_violencia"] >= a["modelo_local"]["recall_violencia"]
         assert all(c["hibrido"] == "violencia_protecao" for c in r["casos"] if c["modelo_local"] == "violencia_protecao")
         assert client.get("/api/v1/ml/comparacao").json()["resultado"]["timestamp"] == r["timestamp"]
+
+
+def test_mesmo_relato_vale_a_correcao_da_equipe():
+    """Relato repetido: a pessoa confirmou um caso como documentos, a equipe corrigiu outro igual para trabalho e cursos.
+    O exemplo de treino fica com a correção da equipe, não com o caso que chegou primeiro."""
+    relato = f"perdi tudo na enchente e nao sei pra onde ir {uuid.uuid4().hex[:6]}"
+    with TestClient(app) as client:
+        autenticar(client)
+        _caso(client, relato)  # confirmado pela pessoa, sem correção
+        corrigido = _caso(client, relato)
+        client.patch(f"/api/v1/triagem/{corrigido['id']}/categoria", json={"categoria": "trabalho_renda"})
+
+        async def reais():
+            async with abrir_sessao() as session:
+                return await retreino.exemplos_reais(session)
+        achados = [e for e in client.portal.call(reais) if e["texto"].startswith(relato[:30])]
+        assert len(achados) == 1 and achados[0]["categoria"] == "trabalho_renda" and achados[0]["fonte"] == "equipe"

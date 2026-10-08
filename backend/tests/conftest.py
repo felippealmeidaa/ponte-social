@@ -12,6 +12,11 @@ os.environ["GEMINI_API_KEY"] = ""
 # Nem o OpenStreetMap, nem a rede de exemplo: cada teste cadastra as unidades de que precisa
 os.environ["GEOCODIFICAR"] = "false"
 os.environ["CARREGAR_REDE_EXEMPLO"] = "false"
+# Segredos e endereço público da máquina de quem roda (backend/.env) não valem nos testes: cada teste que
+# precisa de token do webhook ou de PUBLICO_URL define o seu
+os.environ["EVOLUTION_WEBHOOK_TOKEN"] = ""
+os.environ["META_APP_SECRET"] = ""
+os.environ["PUBLICO_URL"] = ""
 
 
 def autenticar(client):

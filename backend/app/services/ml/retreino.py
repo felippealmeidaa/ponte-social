@@ -33,7 +33,8 @@ async def exemplos_reais(session: AsyncSession) -> List[Dict[str, str]]:
     q = select(Triagem).where(
         Triagem.canal != "demo", Triagem.consentiu_uso_para_treino.is_(True),
         or_(Triagem.categoria_confirmada_pelo_cidadao.is_(True), Triagem.corrigida_por.is_not(None)),
-    )
+    # Mesmo relato em mais de um caso: vale a correção da equipe (a mais recente) antes da confirmação da pessoa
+    ).order_by(Triagem.corrigida_por.is_(None), Triagem.corrigida_em.desc(), Triagem.criado_em.desc())
     vistos, saida = set(), []
     for t in (await session.execute(q)).scalars():
         texto = (t.relato_traducao or t.relato_anonimizado or "").strip()
