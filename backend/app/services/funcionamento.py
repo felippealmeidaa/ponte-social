@@ -5,10 +5,11 @@ Uma faixa é {"dias": [0..6], "abre": "08:00", "fecha": "17:00"}, com 0 = segund
 ter mais de uma (ex.: restaurante popular só no almoço, CRAS com horário diferente no sábado). Sem faixas, o lugar
 não diz "aberto" nem "fechado": fica só o texto livre do horário.
 
-Horário de Brasília. Feriado não entra na conta: o texto sempre diz o horário de costume.
+Horário de Brasília. Feriado nacional (Lei 662/1949, Lei 6.802/1980 e Lei 14.759/2023) e os "dias sem atendimento"
+cadastrados pela coordenação (feriado municipal, ponto facultativo, recesso) contam como fechado o dia todo.
 """
 import re
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import List, Optional
 
 from app.models import local
@@ -16,6 +17,13 @@ from app.models import local
 DIAS_CURTOS = ["seg.", "ter.", "qua.", "qui.", "sex.", "sáb.", "dom."]
 DIAS_NOME = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"]
 MAX_FAIXAS = 6
+# Feriados nacionais de data fixa: Lei 662/1949 (redação da Lei 10.607/2002), Lei 6.802/1980 (12/10) e
+# Lei 14.759/2023 (20/11). Sexta-feira Santa, Carnaval e Corpus Christi não são nacionais: entram como dia sem
+# atendimento, quando a prefeitura decretar.
+FERIADOS_NACIONAIS = {(1, 1): "Confraternização Universal", (4, 21): "Tiradentes", (5, 1): "Dia do Trabalho",
+                      (9, 7): "Independência", (10, 12): "Nossa Senhora Aparecida", (11, 2): "Finados",
+                      (11, 15): "Proclamação da República", (11, 20): "Dia de Zumbi e da Consciência Negra",
+                      (12, 25): "Natal"}
 _HORA = re.compile(r"^([01]\d|2[0-3]):([0-5]\d)$")
 
 
@@ -68,12 +76,28 @@ def resumo(faixas: Optional[List[dict]]) -> str:
     return texto[:1].upper() + texto[1:]
 
 
-def _aberturas(faixas: List[dict], inicio: datetime, dias: int = 8):
-    """(abre, fecha) de cada faixa, em ordem, de hoje até 'dias' à frente."""
+def dias_sem_atendimento() -> List[dict]:
+    """Feriados municipais, pontos facultativos e recessos cadastrados (Gestão › Unidades)."""
+    from app.services import catalogo  # evita import circular na carga do app
+    return list(catalogo.opcoes_fluxo(None).get("dias_sem_atendimento") or [])
+
+
+def feriado(dia: date) -> Optional[str]:
+    """Nome do feriado ou do dia sem atendimento, ou None se é dia normal."""
+    if (dia.month, dia.day) in FERIADOS_NACIONAIS:
+        return FERIADOS_NACIONAIS[(dia.month, dia.day)]
+    iso = dia.isoformat()
+    return next((d.get("nome") or "dia sem atendimento" for d in dias_sem_atendimento() if d.get("data") == iso), None)
+
+
+def _aberturas(faixas: List[dict], inicio: datetime, dias: int = 15):
+    """(abre, fecha) de cada faixa, em ordem, de hoje até 'dias' à frente, pulando feriados."""
     hoje = inicio.date()
     saida = []
     for n in range(dias):
         dia = hoje + timedelta(days=n)
+        if feriado(dia):
+            continue
         for f in faixas:
             if dia.weekday() in f["dias"]:
                 abre = datetime.combine(dia, _hora(f["abre"]), tzinfo=inicio.tzinfo)
@@ -105,9 +129,11 @@ def situacao(faixas: Optional[List[dict]], momento: Optional[datetime] = None) -
                     fim = f2
             return {"aberto": True, "texto": f"Aberto agora, fecha às {_hora_falada(fim.strftime('%H:%M'))}"}
     proxima = next((abre for abre, _ in janelas if abre > agora), None)
+    hoje = feriado(agora.date())
+    fechado = f"Fechado hoje ({hoje})" if hoje else "Fechado agora"
     if proxima is None:
-        return {"aberto": False, "texto": "Fechado agora"}
-    return {"aberto": False, "texto": f"Fechado agora, abre {_quando(proxima, agora)}"}
+        return {"aberto": False, "texto": fechado}
+    return {"aberto": False, "texto": f"{fechado}, abre {_quando(proxima, agora)}"}
 
 
 _DIA_TEXTO = {"seg": 0, "ter": 1, "qua": 2, "qui": 3, "sex": 4, "sab": 5, "sáb": 5, "dom": 6}

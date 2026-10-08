@@ -10,6 +10,7 @@ Em development, com a tabela vazia, carrega a rede pública de Anápolis pesquis
 """
 import difflib
 import json
+import re
 import uuid
 from datetime import date
 from pathlib import Path
@@ -117,6 +118,37 @@ async def cras_do_bairro(session: AsyncSession, bairro: str) -> Optional[Unidade
         if unidade.tipo == "CRAS" and (n := _nota_bairro(unidade, alvo)) > nota:
             melhor, nota = unidade, n
     return melhor if nota >= SEMELHANCA_MINIMA else None
+
+
+PREFIXOS_BAIRRO = ("vila", "jardim", "setor", "residencial", "bairro", "conjunto", "parque", "loteamento", "chacaras")
+
+
+def _sem_prefixo(bairro: str) -> str:
+    partes = normalizar(bairro).split()
+    while len(partes) > 1 and partes[0] in PREFIXOS_BAIRRO:
+        partes = partes[1:]
+    return " ".join(partes)
+
+
+async def ponto_do_bairro(session: AsyncSession, bairro: str) -> Optional[geo.Ponto]:
+    """Centro aproximado do bairro. O mapa público não conhece todos os bairros (ex.: Vila Jaiara): tenta o nome
+    como veio, depois um lugar da rede cadastrado naquele bairro (pelo endereço ou pela lista de bairros) e, por fim,
+    o nome sem 'Vila', 'Jardim', 'Setor'..."""
+    if not (bairro or "").strip():
+        return None
+    if ponto := await geo.buscar(bairro):
+        return ponto
+    alvo, curto = normalizar(bairro), _sem_prefixo(bairro)
+    for u in await listar(session, apenas_ativas=True):
+        p = ponto_da(u)
+        if not p:
+            continue
+        nomes = [normalizar(b) for b in (u.bairros or [])]
+        if alvo in nomes or re.search(r"\b" + re.escape(alvo) + r"\b", normalizar(u.endereco or "")):
+            return p
+    if curto != alvo:
+        return await geo.buscar(curto)
+    return None
 
 
 async def cras_mais_perto(session: AsyncSession, ponto: geo.Ponto) -> Optional[UnidadeAtendimento]:

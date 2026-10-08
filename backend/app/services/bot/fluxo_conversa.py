@@ -404,7 +404,7 @@ async def _definir_local(session: AsyncSession, conversa: Conversa, bairro: Opti
     if localizacao:
         conversa.latitude, conversa.longitude = geo.arredondar(*localizacao)
         bairro = await geo.bairro_do_ponto(_ponto(conversa)) or "Localização pelo WhatsApp"
-    elif bairro and (centro := (endereco and await geo.buscar(endereco)) or await geo.buscar(bairro)):
+    elif bairro and (centro := (endereco and await geo.buscar(endereco)) or await unidades.ponto_do_bairro(session, bairro)):
         conversa.latitude, conversa.longitude = geo.arredondar(*centro)
     conversa.bairro = bairro
     unidade = await unidades.cras_de_referencia(session, bairro, _ponto(conversa))

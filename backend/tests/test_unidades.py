@@ -108,3 +108,21 @@ def test_emergencia_mostra_creas_cadastrado():
         with unidades(client, CREAS_TESTE):
             r = conversa(client, telefone(), "meu marido me agrediu e estou com medo")
             assert "190" in r[0][0] and "CREAS Teste" in r[0][0] and "Av. Exemplo, 50" in r[0][0]
+
+
+def test_bairro_que_o_mapa_nao_conhece_usa_lugar_cadastrado_nele():
+    """O mapa público não conhece todo bairro (ex.: Vila Jaiara). Um lugar da rede com endereço naquele bairro
+    serve de ponto aproximado, e o bot indica o CRAS mais perto dele."""
+    from app.db import abrir_sessao
+    from app.services import unidades as servico
+    restaurante = {"nome": "Restaurante Teste Jaiara", "tipo": "RESTAURANTE_POPULAR", "endereco": "Rua Anchieta, 10, Vila Jaiaraíba",
+                   "latitude": -16.29, "longitude": -48.97}
+    with TestClient(app) as client:
+        autenticar(client)
+        with unidades(client, restaurante):
+            async def ponto(bairro):
+                async with abrir_sessao() as session:
+                    return await servico.ponto_do_bairro(session, bairro)
+            assert client.portal.call(ponto, "vila jaiaraíba") == (-16.29, -48.97)
+            assert client.portal.call(ponto, "Jaiaraíba") == (-16.29, -48.97)  # sem o "Vila" também acha
+            assert client.portal.call(ponto, "bairro inexistente") is None

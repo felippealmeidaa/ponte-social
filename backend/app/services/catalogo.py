@@ -9,7 +9,7 @@ Cada CRAS pode personalizar respostas, textos e opções do fluxo. O que ele nã
 padrão da secretaria (tabelas servicos_categoria, textos_bot e opcoes_fluxo["padrao"]).
 """
 import copy
-from datetime import datetime
+from datetime import date, datetime
 from typing import Dict, List, Optional
 
 from sqlalchemy import delete, select
@@ -371,6 +371,9 @@ OPCOES_PADRAO: Dict[str, object] = {
     "lembrete_horas": 20,                # quantas horas antes vai o lembrete
     "retorno_dias": 3,                   # dias até o "conseguiu ir ao CRAS?" (perguntar_depois)
     "modo_demonstracao": False,          # Gestão › Demonstração: indicadores, mapa e relatório contam os exemplos
+    # Gestão › Unidades: feriado municipal, ponto facultativo, recesso ([{"data": "2026-12-24", "nome": "..."}]);
+    # os nacionais já estão em services/funcionamento.py
+    "dias_sem_atendimento": [],
 }
 # chave: (mínimo, máximo, unidade mostrada no erro)
 LIMITES_NUMERICOS = {
@@ -380,7 +383,7 @@ LIMITES_NUMERICOS = {
     "retorno_dias": (1, 30, "dias"),
 }
 VALORES_CONTATO = ("perguntar", "sempre", "nunca")
-SO_SECRETARIA = {"perguntar_bairro", "modo_demonstracao"}
+SO_SECRETARIA = {"perguntar_bairro", "modo_demonstracao", "dias_sem_atendimento"}
 
 _servicos: Dict[str, dict] = copy.deepcopy(KNOWLEDGE_SERVICES)
 _textos: Dict[str, str] = {k: v["texto"] for k, v in TEXTOS_PADRAO.items()}
@@ -416,7 +419,11 @@ def validar_opcoes(opcoes: dict, unidade: Optional[str]) -> Optional[str]:
             return f"Opção desconhecida: {chave}."
         if chave in SO_SECRETARIA and unidade:
             return "Essa opção só pode ser mudada no padrão da secretaria."
-        if chave == "contato":
+        if chave == "dias_sem_atendimento":
+            erro = _validar_dias(valor)
+            if erro:
+                return erro
+        elif chave == "contato":
             if valor not in VALORES_CONTATO:
                 return "Contato deve ser: perguntar, sempre ou nunca."
         elif chave in LIMITES_NUMERICOS:
@@ -425,6 +432,19 @@ def validar_opcoes(opcoes: dict, unidade: Optional[str]) -> Optional[str]:
                 return f"Use um número inteiro de {minimo} a {maximo} {unidade_medida}."
         elif not isinstance(valor, bool):
             return f"A opção {chave} deve ser ligada ou desligada."
+    return None
+
+
+def _validar_dias(valor) -> Optional[str]:
+    if not isinstance(valor, list) or len(valor) > 60:
+        return "Envie a lista de dias sem atendimento (no máximo 60)."
+    for d in valor:
+        if not isinstance(d, dict) or not isinstance(d.get("nome", ""), str) or len(d.get("nome", "")) > 80:
+            return "Cada dia precisa de data e de um nome curto."
+        try:
+            date.fromisoformat(str(d.get("data", "")))
+        except ValueError:
+            return "Data inválida na lista de dias sem atendimento."
     return None
 
 

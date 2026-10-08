@@ -231,7 +231,7 @@ async def buscar_por_bairro(bairro: str, session: AsyncSession = Depends(get_ses
     """Testa qual CRAS o bot indicaria para um bairro: pela lista de bairros ou, sem ela, o mais perto no mapa."""
     if unidade := await unidades.cras_do_bairro(session, bairro):
         return {"bairro": bairro, "unidade": unidades.para_dict(unidade), "como": "lista", "km": None}
-    centro = await geo.buscar(bairro)
+    centro = await unidades.ponto_do_bairro(session, bairro)  # a mesma busca que o bot usa
     unidade = await unidades.cras_mais_perto(session, centro) if centro else None
     km = round(geo.distancia_km(centro, unidades.ponto_da(unidade)), 1) if unidade else None
     return {"bairro": bairro, "unidade": unidades.para_dict(unidade) if unidade else None,

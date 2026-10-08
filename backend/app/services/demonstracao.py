@@ -109,7 +109,8 @@ async def gerar(session: AsyncSession, quantos: int = 60, dias: int = 30, sement
     for _ in range(quantos):
         categoria = sorteio.choices(categorias, weights=pesos)[0]
         info = catalogo.servico(categoria)
-        criado = agora_ - timedelta(days=sorteio.uniform(0, dias), hours=sorteio.uniform(0, 10))
+        # Dentro do período (com folga de 1 h): um caso de "30 dias e 3 horas" ficaria fora dos indicadores de 30 dias
+        criado = agora_ - timedelta(hours=sorteio.uniform(0, dias * 24 - 1))
         status = _status(categoria, sorteio)
         atendido = None
         if status != "PENDENTE" and status != "URGENTE_CREAS":

@@ -3,6 +3,7 @@ import { Building2, CircleAlert, ExternalLink, LocateFixed, MapPin, Plus, Save, 
 import { api, atualizar, enviar, ErroApi } from '../api';
 import { Aviso, Botao, Campo, classeEntrada, Esqueleto, PainelLateral, Selo, Vazio } from '../components/ui';
 import { useAtualizacao } from '../useAtualizacao';
+import { DiasSemAtendimento } from '../components/DiasSemAtendimento';
 import { CATEGORIAS } from '../vocabulario';
 
 // Faixa de funcionamento ("aberto agora"); dias: 0 = segunda ... 6 = domingo
@@ -126,6 +127,8 @@ export function Unidades() {
           </section>
         ))
       )}
+
+      <DiasSemAtendimento />
 
       {temCras && <TestarBairro />}
 
@@ -403,7 +406,7 @@ function EditorFaixas({ faixas, onMudar }: { faixas: Faixa[]; onMudar: (f: Faixa
         {faixas.length ? 'Outra faixa (ex.: sábado ou almoço)' : 'Adicionar horário'}
       </Botao>
       <p className="text-xs text-texto-3">
-        Com o horário aqui, o bot diz “aberto agora, fecha às 17h” ou “fechado, abre amanhã às 8h”. Feriado não entra na conta.
+        Com o horário aqui, o bot diz “aberto agora, fecha às 17h” ou “fechado, abre amanhã às 8h”. Feriados: veja “Feriados e dias sem atendimento”, abaixo da lista.
       </p>
     </fieldset>
   );

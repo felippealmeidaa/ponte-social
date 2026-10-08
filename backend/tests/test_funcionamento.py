@@ -22,8 +22,9 @@ def _em(dia, hora, minuto=0):
     (_em(8, 10), "Aberto agora, fecha às 17h"),           # quinta de manhã
     (_em(8, 7, 30), "Fechado agora, abre hoje às 8h"),
     (_em(8, 17), "Fechado agora, abre amanhã às 8h"),     # fecha às 17h em ponto
-    (_em(9, 18), "Fechado agora, abre segunda às 8h"),    # sexta à noite
-    (_em(10, 9), "Fechado agora, abre segunda às 8h"),    # sábado
+    (_em(9, 18), "Fechado agora, abre terça às 8h"),      # sexta à noite (segunda, 12/10, é feriado nacional)
+    (_em(10, 9), "Fechado agora, abre terça às 8h"),      # sábado
+    (_em(16, 18), "Fechado agora, abre segunda às 8h"),   # sexta seguinte, sem feriado
 ])
 def test_situacao_por_horario(momento, esperado):
     assert f.situacao(SEG_SEX, momento)["texto"] == esperado
@@ -69,3 +70,29 @@ def test_cadastro_com_faixas_pela_api():
             assert cras["funcionamento"] == SEG_SEX and cras["situacao"]["texto"]
         r = client.post("/api/v1/configuracao/unidades", json=cras_teste(funcionamento=[{"dias": [1], "abre": "18:00", "fecha": "08:00"}]))
         assert r.status_code == 422 and "antes" in r.json()["detail"]
+
+
+def test_feriado_nacional_e_dia_sem_atendimento(monkeypatch):
+    # 12/10/2026 é segunda e feriado nacional (N. Sra. Aparecida): fechado o dia todo, abre terça
+    assert f.situacao(SEG_SEX, _em(12, 10))["texto"] == "Fechado hoje (Nossa Senhora Aparecida), abre amanhã às 8h"
+    # Sexta antes do feriado, à noite: pula o feriado de segunda
+    assert f.situacao(SEG_SEX, _em(9, 18))["texto"] == "Fechado agora, abre terça às 8h"
+    assert f.feriado(datetime(2026, 11, 20).date()) == "Dia de Zumbi e da Consciência Negra"
+    # Dia sem atendimento cadastrado pela coordenação (ex.: ponto facultativo)
+    monkeypatch.setattr(f, "dias_sem_atendimento", lambda: [{"data": "2026-10-08", "nome": "Ponto facultativo"}])
+    assert f.situacao(SEG_SEX, _em(8, 10))["texto"] == "Fechado hoje (Ponto facultativo), abre amanhã às 8h"
+
+
+def test_dias_sem_atendimento_pela_api():
+    from app.services import catalogo
+    url = "/api/v1/configuracao/fluxo/opcoes"
+    with TestClient(app) as client:
+        autenticar(client)
+        try:
+            dias = [{"data": "2026-12-24", "nome": "Ponto facultativo"}]
+            assert client.put(url, json={"opcoes": {"dias_sem_atendimento": dias}}).json()["opcoes"]["dias_sem_atendimento"] == dias
+            assert f.feriado(datetime(2026, 12, 24).date()) == "Ponto facultativo"
+            assert client.put(url, json={"opcoes": {"dias_sem_atendimento": [{"data": "24/12", "nome": "x"}]}}).status_code == 422
+            assert catalogo.validar_opcoes({"dias_sem_atendimento": []}, "uni-x") is not None  # só a secretaria
+        finally:
+            client.put(url, json={"opcoes": {"dias_sem_atendimento": []}})
