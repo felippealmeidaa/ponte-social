@@ -1,5 +1,5 @@
 """
-Retorno dias depois: quem recebeu a orientação mas não quis contato do CRAS recebe, depois de RETORNO_DIAS,
+Retorno dias depois: quem recebeu a orientação mas não quis contato do CRAS recebe, depois de "retorno_dias" (Gestão › Alertas),
 "conseguiu ir ao CRAS?". Se ainda não foi, pode pedir que o CRAS entre em contato (o caso entra na fila).
 Recupera quem desistiu no meio do caminho.
 

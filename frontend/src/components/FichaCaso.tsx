@@ -319,6 +319,9 @@ export function FichaCaso({ caso, onFechar, onAlterado, encaixado = false }: { c
           {aviso && !aviso.enviado && aviso.motivo === 'falha_no_envio' && (
             <div className="mt-2"><Aviso tom="info">A situação foi salva, mas o aviso não saiu pelo WhatsApp. Confira a conexão em Configurações.</Aviso></div>
           )}
+          {aviso && !aviso.enviado && aviso.motivo === 'desligado' && (
+            <p className="mt-2 text-[13px] text-texto-3">A situação foi salva. Esse aviso está desligado em Gestão › Alertas, então a pessoa não recebeu mensagem.</p>
+          )}
           {aviso && !aviso.enviado && aviso.motivo === 'conversa_apagada' && (
             <p className="mt-2 text-[13px] text-texto-3">A pessoa apagou a conversa: não há como avisar pelo WhatsApp.</p>
           )}

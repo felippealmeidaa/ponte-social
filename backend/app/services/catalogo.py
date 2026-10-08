@@ -361,8 +361,23 @@ OPCOES_PADRAO: Dict[str, object] = {
     "contato": "perguntar",              # perguntar | sempre | nunca
     "perguntar_depois": True,            # quem não quis contato recebe "conseguiu ir ao CRAS?" dias depois
     "alerta_urgente_min": 10,            # painel: caso de violência sem atendimento há mais que isso acende o alerta
+    # Gestão › Alertas. Em violência nenhuma mensagem automática vai pelo WhatsApp, com qualquer valor daqui.
+    "alerta_fila_horas": 48,             # painel: caso comum aguardando há mais que isso acende outro aviso (0 = desligado)
+    "aviso_em_atendimento": True,        # "a equipe recebeu seu pedido" ao marcar Em atendimento
+    "aviso_concluido": True,             # "seu atendimento foi concluído"
+    "pedir_avaliacao": True,             # nota de 1 a 5 junto do aviso de concluído
+    "aviso_agendamento": True,           # confirmação (com link da agenda) e desmarcação do atendimento marcado
+    "lembrete_vespera": True,            # lembrete antes do atendimento marcado
+    "lembrete_horas": 20,                # quantas horas antes vai o lembrete
+    "retorno_dias": 3,                   # dias até o "conseguiu ir ao CRAS?" (perguntar_depois)
 }
-LIMITES_NUMERICOS = {"alerta_urgente_min": (1, 240)}
+# chave: (mínimo, máximo, unidade mostrada no erro)
+LIMITES_NUMERICOS = {
+    "alerta_urgente_min": (1, 240, "minutos"),
+    "alerta_fila_horas": (0, 720, "horas (0 desliga)"),
+    "lembrete_horas": (2, 72, "horas"),
+    "retorno_dias": (1, 30, "dias"),
+}
 VALORES_CONTATO = ("perguntar", "sempre", "nunca")
 SO_SECRETARIA = {"perguntar_bairro"}
 
@@ -404,9 +419,9 @@ def validar_opcoes(opcoes: dict, unidade: Optional[str]) -> Optional[str]:
             if valor not in VALORES_CONTATO:
                 return "Contato deve ser: perguntar, sempre ou nunca."
         elif chave in LIMITES_NUMERICOS:
-            minimo, maximo = LIMITES_NUMERICOS[chave]
+            minimo, maximo, unidade_medida = LIMITES_NUMERICOS[chave]
             if isinstance(valor, bool) or not isinstance(valor, int) or not minimo <= valor <= maximo:
-                return f"O tempo do alerta deve ser um número de {minimo} a {maximo} minutos."
+                return f"Use um número inteiro de {minimo} a {maximo} {unidade_medida}."
         elif not isinstance(valor, bool):
             return f"A opção {chave} deve ser ligada ou desligada."
     return None

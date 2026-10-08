@@ -338,10 +338,11 @@ async def _receber_documento(session: AsyncSession, conversa: Conversa, triagem:
 
 def _agendar_acompanhamento(conversa: Conversa) -> None:
     """Quem não quis contato recebe, dias depois, "conseguiu ir ao CRAS?". Nunca em violência."""
-    if not catalogo.opcoes_fluxo(conversa.unidade_id)["perguntar_depois"] or conversa.categoria_escolhida in (None, VIOLENCIA):
+    opcoes = catalogo.opcoes_fluxo(conversa.unidade_id)
+    if not opcoes["perguntar_depois"] or conversa.categoria_escolhida in (None, VIOLENCIA):
         return
     conversa.acompanhamento = {
-        "em": (agora() + timedelta(days=settings.RETORNO_DIAS)).isoformat(), "enviado": False,
+        "em": (agora() + timedelta(days=opcoes["retorno_dias"])).isoformat(), "enviado": False,
         "categoria": conversa.categoria_escolhida, "relato": conversa.relato, "classificacao": conversa.classificacao,
     }
 

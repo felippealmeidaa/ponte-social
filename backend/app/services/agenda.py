@@ -23,9 +23,16 @@ from app.services.channels.envio import enviar_pelo_canal
 from app.services.llm.traducao import traduzir
 
 DIAS = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado", "domingo"]
-# Lembrete: entre 20 h e 1 h antes, e só se a marcação foi feita com pelo menos 20 h de antecedência
-JANELA_LEMBRETE = timedelta(hours=20)
+# Lembrete: entre "lembrete_horas" (Gestão › Alertas, padrão 20 h) e 1 h antes, e só se a marcação foi feita com
+# pelo menos essa antecedência (quem marcou para daqui a pouco acabou de receber a confirmação)
 MINIMO_ANTES = timedelta(hours=1)
+# Qual opção de Gestão › Alertas liga cada mensagem
+OPCAO_DO_AVISO = {"agendamento_confirmado": "aviso_agendamento", "agendamento_cancelado": "aviso_agendamento",
+                  "agendamento_lembrete": "lembrete_vespera"}
+
+
+def janela_lembrete(unidade_id: Optional[str]) -> timedelta:
+    return timedelta(hours=catalogo.opcoes_fluxo(unidade_id)["lembrete_horas"])
 
 
 def _hora(dt: datetime) -> str:
@@ -102,6 +109,8 @@ async def _avisar(session: AsyncSession, triagem: Triagem, chave: str, quando: d
     motivo = motivo_sem_aviso(triagem)
     if motivo:
         return {"enviado": False, "motivo": motivo}
+    if not catalogo.opcoes_fluxo(triagem.unidade_id)[OPCAO_DO_AVISO[chave]]:
+        return {"enviado": False, "motivo": "desligado"}
     conversa = await session.get(Conversa, triagem.conversa_id)
     if conversa is None:
         return {"enviado": False, "motivo": "conversa_apagada"}
@@ -151,15 +160,16 @@ async def enviar_lembretes(session: AsyncSession, momento: Optional[datetime] = 
                               Triagem.status.not_in(["CONCLUIDO", "ARQUIVADO"]))
     enviados = 0
     for t in (await session.execute(q)).scalars():
+        janela = janela_lembrete(t.unidade_id)
         para = local(t.agendado_para)
-        feito = local(t.agendado_em) if t.agendado_em else para - JANELA_LEMBRETE * 2
+        feito = local(t.agendado_em) if t.agendado_em else para - janela * 2
         agora_local = local(momento)
-        if not (agora_local + MINIMO_ANTES <= para <= agora_local + JANELA_LEMBRETE) or para - feito < JANELA_LEMBRETE:
+        if not (agora_local + MINIMO_ANTES <= para <= agora_local + janela) or para - feito < janela:
             continue
-        motivo = motivo_sem_aviso(t)
+        motivo = motivo_sem_aviso(t) or ("desligado" if not catalogo.opcoes_fluxo(t.unidade_id)["lembrete_vespera"] else None)
         resultado = {"enviado": False} if motivo else await _avisar(session, t, "agendamento_lembrete", t.agendado_para)
         if resultado["enviado"] or motivo:
-            t.lembrete_enviado_em = momento  # violência: marca como resolvido sem enviar
+            t.lembrete_enviado_em = momento  # violência ou lembrete desligado: marca como resolvido sem enviar
             enviados += int(resultado["enviado"])
     await session.commit()
     return enviados

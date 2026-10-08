@@ -8,7 +8,7 @@ import { Indicadores } from './paginas/Indicadores';
 import { ServicosMensagens } from './paginas/ServicosMensagens';
 import { Configuracoes } from './paginas/Configuracoes';
 import type { ResumoConversa, Triagem } from './tipos';
-import { AlertaUrgente } from './components/AlertaUrgente';
+import { AlertaFila, AlertaUrgente } from './components/AlertaUrgente';
 import { BotaoTema } from './components/Tema';
 import { useAtualizacao } from './useAtualizacao';
 import { nomeUnidade, useUnidades } from './unidades';
@@ -64,9 +64,10 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
   const conversas = useAtualizacao(useCallback(() => api<ResumoConversa[]>('/atendimento/conversas'), []), 4000);
 
   const triagens = fila.dados ?? [];
-  // Tempo do alerta de urgência (Configurações → Alertas)
-  const opcoesPainel = useAtualizacao(useCallback(() => api<{ opcoes: { alerta_urgente_min?: number } }>('/configuracao/fluxo/opcoes'), []), 60000);
+  // Tempos dos alertas da barra do topo (Gestão › Alertas)
+  const opcoesPainel = useAtualizacao(useCallback(() => api<{ opcoes: { alerta_urgente_min?: number; alerta_fila_horas?: number } }>('/configuracao/fluxo/opcoes'), []), 60000);
   const minutosAlerta = opcoesPainel.dados?.opcoes.alerta_urgente_min ?? 10;
+  const horasFila = opcoesPainel.dados?.opcoes.alerta_fila_horas ?? 0;
   // Mesma regra da Fila: violência que ainda espera alguém (urgente ou aguardando com prioridade de violência)
   const urgentes = triagens.filter((t) => t.status === 'URGENTE_CREAS' || (t.prioridade === 'URGENTE_VIOLENCIA' && t.status === 'PENDENTE')).length;
   const aguardando = triagens.filter((t) => t.status === 'PENDENTE').length;
@@ -108,6 +109,7 @@ function Painel({ usuario, onSair }: { usuario: Usuario; onSair: () => void }) {
 
         <span className="ml-auto" />
         <AlertaUrgente triagens={triagens} minutos={minutosAlerta} />
+        <AlertaFila triagens={triagens} horas={horasFila} />
         <dl className="hidden items-center gap-5 2xl:flex">
           <CampoCabecalho rotulo="Unidade">{usuario.unidade_id ? nomeUnidade(unidades.dados, usuario.unidade_id) : 'Todas as unidades'}</CampoCabecalho>
           <CampoCabecalho rotulo={papel}>{usuario.name}</CampoCabecalho>

@@ -17,6 +17,7 @@ from app.services.llm.traducao import traduzir
 from app.services.ml.train_evaluator import VIOLENCIA
 
 TEXTO_POR_STATUS = {"EM_ATENDIMENTO": "aviso_em_atendimento", "CONCLUIDO": "aviso_concluido"}
+# O texto e a opção de liga/desliga (Gestão › Alertas) têm o mesmo nome
 NOME_ASSUNTO = {
     "renda_beneficio": "renda e benefícios", "cadastro_atualizacao": "Cadastro Único", "moradia": "moradia",
     "documentacao": "documentos", "alimentacao": "alimentação", "pessoa_idosa_pcd": "pessoa idosa ou com deficiência",
@@ -41,6 +42,9 @@ async def avisar_andamento(session: AsyncSession, triagem: Triagem, status: str)
     motivo = motivo_sem_aviso(triagem)
     if motivo:
         return {"enviado": False, "motivo": motivo}
+    opcoes = catalogo.opcoes_fluxo(triagem.unidade_id)
+    if not opcoes[chave]:
+        return {"enviado": False, "motivo": "desligado"}
     conversa = await session.get(Conversa, triagem.conversa_id)
     if conversa is None:  # a pessoa apagou os dados
         return {"enviado": False, "motivo": "conversa_apagada"}
@@ -49,7 +53,7 @@ async def avisar_andamento(session: AsyncSession, triagem: Triagem, status: str)
               .replace("{cras}", unidade.nome if unidade else "CRAS")
               .replace("{assunto}", NOME_ASSUNTO.get(triagem.categoria, "seu pedido"))]
     # Concluído: pede a nota de 1 a 5 (se ninguém da equipe estiver conversando com a pessoa agora)
-    avaliar = status == "CONCLUIDO" and not conversa.atendimento_humano
+    avaliar = status == "CONCLUIDO" and opcoes["pedir_avaliacao"] and not conversa.atendimento_humano
     if avaliar:
         textos.append(catalogo.texto("pedir_avaliacao", triagem.unidade_id))
     enviados = await traduzir(textos, "es") if conversa.idioma == "es" else textos

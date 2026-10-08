@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { BellOff, BellRing, ShieldAlert } from 'lucide-react';
+import { BellOff, BellRing, Clock, ShieldAlert } from 'lucide-react';
 import type { Triagem } from '../tipos';
 
 // Caso de violência sem ninguém atendendo há mais que o tempo do alerta (configurável pela coordenação, padrão 10 min):
@@ -96,5 +96,33 @@ export function AlertaUrgente({ triagens, minutos = 10 }: { triagens: Triagem[];
         {som ? <BellRing className="size-4" aria-hidden /> : <BellOff className="size-4" aria-hidden />}
       </button>
     </span>
+  );
+}
+
+/** Casos comuns aguardando há mais que "alerta_fila_horas" (Gestão › Alertas; 0 desliga): etiqueta âmbar, sem som.
+ *  Violência fica de fora: já tem o alerta próprio, em minutos. */
+export function AlertaFila({ triagens, horas }: { triagens: Triagem[]; horas: number }) {
+  const [agora, setAgora] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setAgora(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+  if (!horas) return null;
+  const esperas = triagens
+    .filter((t) => t.status === 'PENDENTE' && t.prioridade !== 'URGENTE_VIOLENCIA')
+    .map((t) => (agora - new Date(t.criado_em).getTime()) / 3_600_000)
+    .filter((h) => h >= horas);
+  const n = esperas.length;
+  if (!n) return null;
+  const maior = Math.floor(Math.max(...esperas));
+  const espera = maior >= 48 ? `${Math.floor(maior / 24)} dias` : `${maior} h`;
+  const descricao = `${n === 1 ? '1 caso aguarda' : `${n} casos aguardam`} há mais de ${horas} h sem ninguém atender; o mais antigo espera há ${espera}`;
+  return (
+    <a href="#/fila/PENDENTE" title={descricao} aria-label={`${descricao}. Ver na fila`}
+      className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-[3px] border border-alta/40 bg-alta-fundo px-2 text-[12.5px] font-semibold text-alta hover:border-alta">
+      <Clock className="size-3.5 shrink-0" aria-hidden />
+      <span className="dado">{n}</span>
+      <span className="hidden sm:inline">aguardando +{horas} h</span>
+    </a>
   );
 }

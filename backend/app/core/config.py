@@ -93,8 +93,6 @@ class Settings(BaseSettings):
     RESPONDER_EM_AUDIO: bool = True
     GEMINI_TTS_MODEL: str = "gemini-2.5-flash-preview-tts"
     GEMINI_TTS_VOZ: str = "Kore"
-    # Quem não quis contato do CRAS recebe, depois destes dias, a pergunta "conseguiu ir?"
-    RETORNO_DIAS: int = 3
     ACOMPANHAMENTO_AUTOMATICO: bool = True
     # Fotos de documentos pelo WhatsApp: limites e prazo para apagar depois de o caso ser fechado
     DOCUMENTOS_MAX: int = 10

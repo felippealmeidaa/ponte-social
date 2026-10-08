@@ -112,6 +112,7 @@ export function AgendamentoCaso({ caso, podeAvisar, violencia, onAlterado }: {
         </div>
       )}
       {aviso?.enviado && <p role="status" className="mt-2 text-[13px] font-semibold text-ok">A pessoa foi avisada pelo WhatsApp.</p>}
+      {aviso && !aviso.enviado && aviso.motivo === 'desligado' && <p className="mt-2 text-[13px] text-texto-3">Salvo. A mensagem de horário marcado está desligada em Gestão › Alertas, então a pessoa não foi avisada.</p>}
       {aviso && !aviso.enviado && aviso.motivo === 'falha_no_envio' && <div className="mt-2"><Aviso tom="info">Salvo, mas a mensagem não saiu pelo WhatsApp. Confira a conexão.</Aviso></div>}
       {erro && <div className="mt-2"><Aviso>{erro}</Aviso></div>}
     </section>
