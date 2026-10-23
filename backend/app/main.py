@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -9,6 +10,18 @@ from app.db import abrir_sessao, init_db
 from app.services.live_chat.manager import live_chat_manager
 from app.services import acompanhamento, catalogo, documentos, unidades, usuarios
 from app.services.triagens import aplicar_retencao, popular_demo_se_vazio
+
+
+class WebhookLogFilter(logging.Filter):
+    """Filtra requisições 200 rotineiras de webhooks e polling para não poluir o terminal."""
+    def filter(self, record: logging.LogRecord) -> bool:
+        msg = record.getMessage()
+        if "/api/v1/webhooks/evolution" in msg and "200 OK" in msg:
+            return False
+        return True
+
+
+logging.getLogger("uvicorn.access").addFilter(WebhookLogFilter())
 
 
 @asynccontextmanager

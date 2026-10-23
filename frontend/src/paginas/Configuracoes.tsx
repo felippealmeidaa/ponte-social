@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { Bot, Camera, MapPin, Mic, QrCode, Send, Smartphone, Square, Trash2, UserRound, Wifi, WifiOff } from 'lucide-react';
+import { Bot, Camera, MapPin, Mic, QrCode, RefreshCw, Send, Smartphone, Square, Trash2, UserRound, Wifi, WifiOff } from 'lucide-react';
 import { api, enviar, ErroApi } from '../api';
 import { Aviso, Botao, Esqueleto, Selo } from '../components/ui';
 import { irPara } from '../navegacao';
@@ -45,14 +45,25 @@ export function Configuracoes({ aba }: { aba?: string }) {
 }
 
 function ConexaoWhatsApp() {
-  const status = useAtualizacao(useCallback(() => api<{ connected: boolean; state: string; evolution_url: string }>('/whatsapp/status'), []), 10000);
-  const [qr, setQr] = useState<{ qrcode?: string; pairing_code?: string; erro?: string } | null>(null);
+  const status = useAtualizacao(useCallback(() => api<{ connected: boolean; state: string; profile_name?: string; evolution_url: string }>('/whatsapp/status'), []), 10000);
+  const [qr, setQr] = useState<{ qrcode?: string; pairing_code?: string; erro?: string; message?: string; connected?: boolean } | null>(null);
   const [gerando, setGerando] = useState(false);
+  const [desconectando, setDesconectando] = useState(false);
 
   const gerarQr = async () => {
     setGerando(true);
+    setQr(null);
     try {
-      setQr(await api('/whatsapp/qrcode', { method: 'POST' }));
+      let resp = await api<{ qrcode?: string; pairing_code?: string; erro?: string; message?: string; connected?: boolean }>('/whatsapp/qrcode', { method: 'POST' });
+      // Se a primeira chamada veio enquanto inicializava, tenta novamente após 1.5s antes de alertar
+      if (!resp?.qrcode && !resp?.connected && resp?.erro?.includes('inicializando')) {
+        await new Promise((r) => setTimeout(r, 1500));
+        resp = await api('/whatsapp/qrcode', { method: 'POST' });
+      }
+      setQr(resp);
+      if (resp.connected) {
+        status.recarregar();
+      }
     } catch (e) {
       setQr({ erro: e instanceof ErroApi ? e.message : 'Não foi possível gerar o QR Code.' });
     } finally {
@@ -60,7 +71,21 @@ function ConexaoWhatsApp() {
     }
   };
 
-  const conectado = status.dados?.connected;
+  const desconectar = async () => {
+    if (!window.confirm('Tem certeza que deseja desconectar/resetar a instância do WhatsApp?')) return;
+    setDesconectando(true);
+    try {
+      await api('/whatsapp/disconnect', { method: 'POST' });
+      setQr(null);
+      await status.recarregar();
+    } catch (e) {
+      setQr({ erro: e instanceof ErroApi ? e.message : 'Não foi possível desconectar.' });
+    } finally {
+      setDesconectando(false);
+    }
+  };
+
+  const conectado = Boolean(status.dados?.connected || qr?.connected);
   const imagem = qr?.qrcode ? (qr.qrcode.startsWith('data:') ? qr.qrcode : `data:image/png;base64,${qr.qrcode}`) : null;
 
   return (
@@ -68,11 +93,17 @@ function ConexaoWhatsApp() {
       <section className="flex flex-col gap-4">
         <div className="flex items-center gap-3">
           {status.dados ? (
-            conectado ? <Selo tom="ok">Conectado</Selo> : <Selo tom="neutro">Desconectado</Selo>
+            conectado ? (
+              <Selo tom="ok">Conectado {status.dados.profile_name ? `(${status.dados.profile_name})` : ''}</Selo>
+            ) : (
+              <Selo tom="neutro">Desconectado</Selo>
+            )
           ) : <Esqueleto className="h-6 w-28" />}
           <span className="text-sm text-texto-2">Número do CRAS na Evolution API</span>
         </div>
         {status.erro && <Aviso>{status.erro}</Aviso>}
+        {qr?.erro && <Aviso tom="urgente">{qr.erro}</Aviso>}
+        {qr?.message && !qr?.erro && <Aviso tom="info">{qr.message}</Aviso>}
         <p className="text-sm text-texto-2 max-w-[60ch]">
           O bot só responde a quem escreve para o número, nunca dispara mensagens em massa. Use um chip dedicado ao serviço.
         </p>
@@ -81,13 +112,56 @@ function ConexaoWhatsApp() {
           <li className="flex gap-2"><QrCode className="size-4 mt-0.5 shrink-0 text-texto-3" aria-hidden />Gere o QR Code aqui e aponte a câmera.</li>
           <li className="flex gap-2">{conectado ? <Wifi className="size-4 mt-0.5 shrink-0 text-ok" aria-hidden /> : <WifiOff className="size-4 mt-0.5 shrink-0 text-texto-3" aria-hidden />}O estado acima muda para “Conectado” em alguns segundos.</li>
         </ol>
-        <div><Botao variante="primario" icone={QrCode} carregando={gerando} onClick={gerarQr} disabled={conectado}>Gerar QR Code</Botao></div>
+        <div className="flex flex-wrap items-center gap-3">
+          {!conectado ? (
+            <Botao variante="primario" icone={QrCode} carregando={gerando} onClick={gerarQr}>
+              Gerar QR Code
+            </Botao>
+          ) : (
+            <Botao variante="perigo" icone={WifiOff} carregando={desconectando} onClick={desconectar}>
+              Desconectar WhatsApp
+            </Botao>
+          )}
+          {!conectado && (
+            <Botao variante="secundario" icone={RefreshCw} carregando={desconectando} onClick={desconectar} title="Reinicia a instância na Evolution API se estiver travada">
+              Limpar / Resetar Conexão
+            </Botao>
+          )}
+        </div>
       </section>
-      <section aria-live="polite" className="grid min-h-64 place-items-center rounded-[4px] border border-dashed border-linha-forte p-6">
-        {qr?.erro && <Aviso tom="info">{qr.erro}</Aviso>}
-        {imagem && <img src={imagem} alt="QR Code para conectar o WhatsApp do CRAS" className="size-64 rounded-[3px] bg-white p-2" />}
-        {qr?.pairing_code && <p className="mt-3 text-sm text-texto-2">Código de pareamento: <strong className="tabular text-texto">{qr.pairing_code}</strong></p>}
-        {!qr && <p className="text-sm text-texto-3">O QR Code aparece aqui.</p>}
+      <section aria-live="polite" className="grid min-h-64 place-items-center rounded-[4px] border border-dashed border-linha-forte p-6 text-center">
+        {gerando && (
+          <div className="flex flex-col items-center gap-3">
+            <RefreshCw className="size-8 animate-spin text-primaria" />
+            <p className="text-sm text-texto-2">Solicitando QR Code à Evolution API...</p>
+          </div>
+        )}
+        {!gerando && conectado && (
+          <div className="flex flex-col items-center gap-3">
+            <div className="rounded-full bg-ok/10 p-3 text-ok">
+              <Wifi className="size-8" />
+            </div>
+            <p className="font-medium text-texto">WhatsApp Conectado!</p>
+            <p className="text-xs text-texto-2 max-w-[32ch]">
+              {status.dados?.profile_name ? `Conectado como ${status.dados.profile_name}. ` : ''}
+              O bot está ativo e pronto para responder mensagens.
+            </p>
+          </div>
+        )}
+        {!gerando && !conectado && imagem && (
+          <div className="flex flex-col items-center">
+            <img src={imagem} alt="QR Code para conectar o WhatsApp do CRAS" className="size-64 rounded-[3px] bg-white p-2 shadow-sm" />
+            {qr?.pairing_code && (
+              <p className="mt-3 text-sm text-texto-2">
+                Código de pareamento: <strong className="tabular text-texto">{qr.pairing_code}</strong>
+              </p>
+            )}
+            <p className="mt-2 text-xs text-texto-3">Aponte a câmera do WhatsApp para conectar</p>
+          </div>
+        )}
+        {!gerando && !conectado && !imagem && (
+          <p className="text-sm text-texto-3">O QR Code aparece aqui ao clicar em &ldquo;Gerar QR Code&rdquo;.</p>
+        )}
       </section>
     </div>
   );

@@ -1,6 +1,6 @@
 import os
 import joblib
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional, Sequence
 from app.services.ml.text_rules import predict_heuristic
 from app.services import catalogo
 from app.services.llm import entendimento
@@ -73,7 +73,7 @@ class SocialClassifierService:
         return cls.montar(categoria, metodo, confianca, secundarias)
 
     @staticmethod
-    def montar(categoria: str, metodo: str, confianca: float = 0.0, secundarias: List[str] = ()) -> Dict[str, Any]:
+    def montar(categoria: str, metodo: str, confianca: float = 0.0, secundarias: Optional[Sequence[str]] = None) -> Dict[str, Any]:
         """Resultado da classificação com o caminho do catálogo (usado pelo modelo local e pela IA)."""
         info_servico = catalogo.servico(categoria)
         return {
@@ -83,7 +83,7 @@ class SocialClassifierService:
             "metodo_decisao": METODOS[metodo],
             "prioridade": PRIORIDADE_POR_CATEGORIA.get(categoria, "BAIXA"),
             "is_urgente": info_servico["urgencia"],
-            "necessidades_secundarias": list(secundarias),
+            "necessidades_secundarias": list(secundarias or ()),
             "servicos_recomendados": info_servico["servicos"],
             "documentos_necessarios": info_servico["documentos"],
             "local_atendimento": info_servico["local_atendimento"],

@@ -17,6 +17,7 @@ import json
 import os
 import re
 from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import joblib
 import numpy as np
@@ -238,7 +239,7 @@ def escolher_limiares(probs_oof, X, y, classes):
 
 def train_and_evaluate(dataset_path: str = DATASET_PATH, output_model_path: str = MODEL_OUTPUT,
                        report_output_path: str = REPORT_OUTPUT, test_path: str = TEST_PATH,
-                       exemplos_reais: list = None, n_jobs: int = -1):
+                       exemplos_reais: Optional[list] = None, n_jobs: int = -1):
     """exemplos_reais: [{"texto", "categoria"}] de casos confirmados pela pessoa ou corrigidos pela equipe.
     Entram só no treino (nunca no teste, que fica fixo para a comparação ser justa)."""
     print("=" * 70)
@@ -260,8 +261,8 @@ def train_and_evaluate(dataset_path: str = DATASET_PATH, output_model_path: str 
             reais["origem"] = "real"
             n_reais = len(reais)
             df = pd.concat([df, reais[["texto", "categoria", "grupo", "origem"]]], ignore_index=True)
-    X, y, grupos = df["texto"].values, df["categoria"].values, df["grupo"].values
-    X_teste, y_teste = teste["texto"].values, teste["categoria"].values
+    X, y, grupos = df["texto"].to_list(), df["categoria"].to_list(), df["grupo"].to_list()
+    X_teste, y_teste = teste["texto"].to_list(), teste["categoria"].to_list()
     print(f"Treino: {len(df)} relatos únicos em {df['grupo'].nunique()} frases-modelo | Teste: {len(teste)} relatos informais")
 
     cv = StratifiedGroupKFold(n_splits=5, shuffle=True, random_state=SEED)
@@ -356,9 +357,9 @@ def train_and_evaluate(dataset_path: str = DATASET_PATH, output_model_path: str 
             "decisao": "regra de violência → modelo (se confiante) → palavras-chave → não identificado (Disque Social 121)",
             "limitacao": "treino e teste ainda são simulados; os números precisam ser refeitos com relatos reais do CRAS",
         },
-        "dataset_size": int(len(df)),
-        "exemplos_reais": int(n_reais),
-        "test_size": int(len(teste)),
+        "dataset_size": len(df),
+        "exemplos_reais": n_reais,
+        "test_size": len(teste),
         "classes": CATEGORIAS,
         "baselines": baselines,
         "modelos_avaliados_cv5": resultados,

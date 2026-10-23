@@ -2,6 +2,7 @@ import base64
 import hashlib
 import hmac
 import json
+import time
 from typing import Any, Dict, Optional, Tuple
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile
@@ -94,13 +95,44 @@ def _assinatura_meta_valida(corpo: bytes, assinatura: str) -> bool:
     return hmac.compare_digest(assinatura or "", esperado)
 
 
+# Cache em memória do último QR Code recebido via webhook
+ultimo_qrcode: Dict[str, Any] = {}
+
+
 @router.post("/evolution")
 async def webhook_evolution_api(request: Request, background_tasks: BackgroundTasks):
-    """Receptor de webhooks da Evolution API v2 (evento messages.upsert)."""
+    """Receptor de webhooks da Evolution API v2 (messages.upsert, qrcode.updated, connection.update)."""
     if not _token_evolution_valido(request):
         return Response(content="Token do webhook inválido", status_code=401)
     payload = await request.json()
-    if payload.get("event") != "messages.upsert":
+    event = payload.get("event")
+
+    # 1. Evento de atualização de QR Code
+    if event == "qrcode.updated":
+        data = payload.get("data", {})
+        qr_obj = data.get("qrcode") if isinstance(data.get("qrcode"), dict) else data
+        b64 = qr_obj.get("base64")
+        code = qr_obj.get("code")
+        pairing = qr_obj.get("pairingCode")
+        inst = payload.get("instance") or "cras-anapolis"
+        if b64 or code:
+            ultimo_qrcode[inst] = {
+                "qrcode": b64 or code,
+                "pairing_code": pairing,
+                "timestamp": time.time()
+            }
+        return {"status": "qrcode_stored"}
+
+    # 2. Evento de atualização de conexão
+    if event == "connection.update":
+        data = payload.get("data", {})
+        state = data.get("state")
+        inst = payload.get("instance") or "cras-anapolis"
+        if state == "open":
+            ultimo_qrcode.pop(inst, None)
+        return {"status": "connection_updated"}
+
+    if event != "messages.upsert":
         return {"status": "ignored_event"}
 
     data = payload.get("data", {})
@@ -109,6 +141,18 @@ async def webhook_evolution_api(request: Request, background_tasks: BackgroundTa
     # Ignora o próprio bot, grupos e status: o bot só responde a quem escreveu direto para ele
     if key_data.get("fromMe", False) or not remote_jid.endswith("@s.whatsapp.net"):
         return {"status": "ignored"}
+
+    # Ignora mensagens de sincronização de histórico antigo (mais de 2 minutos)
+    message_timestamp = data.get("messageTimestamp")
+    if message_timestamp:
+        try:
+            ts = int(message_timestamp)
+            if ts > 10_000_000_000:
+                ts = ts // 1000
+            if int(time.time()) - ts > 120:
+                return {"status": "ignored_historical_message"}
+        except (ValueError, TypeError):
+            pass
 
     phone = remote_jid.split("@")[0]
     message_data = data.get("message", {}) or {}

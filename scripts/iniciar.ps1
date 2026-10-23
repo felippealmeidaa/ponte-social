@@ -1,8 +1,14 @@
-﻿# Liga a Ponte Social inteira nesta máquina: Docker (Postgres, Redis, Evolution), túnel público,
+# Liga a Ponte Social inteira nesta máquina: Docker (Postgres, Redis, Evolution), túnel público,
 # backend e painel. Use pelo iniciar.bat na raiz do projeto.
 $ErrorActionPreference = 'Stop'
 $raiz = Split-Path -Parent $PSScriptRoot
 $envArq = Join-Path $raiz 'backend\.env'
+if (-not (Test-Path $envArq)) {
+    $envRaiz = Join-Path $raiz '.env'
+    if (Test-Path $envRaiz) {
+        Copy-Item $envRaiz $envArq
+    }
+}
 $logs = Join-Path $raiz 'scripts\logs'
 New-Item -ItemType Directory -Force $logs | Out-Null
 
@@ -18,7 +24,7 @@ function Achar($nome, $padroes) {
     return $null
 }
 
-if (-not (Test-Path $envArq)) { Falha "não achei $envArq" }
+if (-not (Test-Path $envArq)) { Falha "não achei $envArq nem $raiz\.env" }
 
 # 1. Docker
 Passo 'Docker'
@@ -44,11 +50,14 @@ if ($LASTEXITCODE -ne 0) { Falha 'docker compose falhou (veja a mensagem acima).
 Passo 'Túnel público'
 function Gravar-PublicoUrl($valor) {
     # Troca a linha PUBLICO_URL do .env (UTF-8 sem BOM, como o resto do arquivo)
-    $linhas = [System.Collections.Generic.List[string]]([IO.File]::ReadAllLines($envArq))
-    $nova = "PUBLICO_URL=$valor"
-    $i = $linhas.FindIndex([Predicate[string]]{ param($l) $l -like 'PUBLICO_URL=*' })
-    if ($i -ge 0) { $linhas[$i] = $nova } else { $linhas.Add($nova) }
-    [IO.File]::WriteAllLines($envArq, $linhas, (New-Object System.Text.UTF8Encoding $false))
+    $arquivosEnv = @($envArq, (Join-Path $raiz '.env')) | Where-Object { Test-Path $_ } | Select-Object -Unique
+    foreach ($arq in $arquivosEnv) {
+        $linhas = [System.Collections.Generic.List[string]]([IO.File]::ReadAllLines($arq))
+        $nova = "PUBLICO_URL=$valor"
+        $i = $linhas.FindIndex([Predicate[string]]{ param($l) $l -like 'PUBLICO_URL=*' })
+        if ($i -ge 0) { $linhas[$i] = $nova } else { $linhas.Add($nova) }
+        [IO.File]::WriteAllLines($arq, $linhas, (New-Object System.Text.UTF8Encoding $false))
+    }
 }
 $url = $null
 $cloudflared = Achar 'cloudflared' @("${env:ProgramFiles(x86)}\cloudflared\cloudflared.exe", "$env:ProgramFiles\cloudflared\cloudflared.exe")

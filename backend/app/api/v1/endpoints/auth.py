@@ -75,7 +75,10 @@ async def logout(response: Response):
 
 @router.get("/eu")
 async def quem_sou_eu(usuario: Dict[str, Any] = Depends(usuario_logado), session: AsyncSession = Depends(get_session)):
-    return usuarios.para_dict(await session.get(Usuario, usuario["sub"]))
+    u = await session.get(Usuario, usuario["sub"])
+    if not u:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado")
+    return usuarios.para_dict(u)
 
 
 @router.post("/trocar-senha")

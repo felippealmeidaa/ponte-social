@@ -47,10 +47,12 @@ Os textos vêm de services/catalogo.py e podem ser editados pelo CRAS no painel.
 Respostas são texto com opções numeradas (1/2): botões interativos não funcionam de forma
 confiável na Evolution/Baileys.
 """
+import asyncio
 from datetime import timedelta
-from typing import List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from sqlalchemy import delete, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -187,6 +189,15 @@ def registrar(session: AsyncSession, conversa: Conversa, autor: str, texto: str,
     session.add(Mensagem(conversa_id=conversa.telefone_hash, autor=autor, texto=texto, traducao=traducao))
 
 
+_locks_telefone: Dict[str, asyncio.Lock] = {}
+
+
+def _lock_telefone(chave: str) -> asyncio.Lock:
+    if chave not in _locks_telefone:
+        _locks_telefone[chave] = asyncio.Lock()
+    return _locks_telefone[chave]
+
+
 async def obter_conversa(session: AsyncSession, telefone: str, canal: str) -> Conversa:
     chave = hash_telefone(telefone)
     conversa = await session.get(Conversa, chave)
@@ -208,69 +219,75 @@ async def processar_mensagem(session: AsyncSession, telefone: str, texto: Option
     is_audio: áudio que não deu para transcrever. de_audio: texto que veio da transcrição de um áudio.
     saida: se a pessoa pediu áudio, recebe {"audio": bytes WAV} para quem chamou enviar junto.
     anexo: foto ou PDF que a pessoa mandou (bytes, tipo). Só é guardado na etapa de documentos."""
-    conversa = await obter_conversa(session, telefone, canal)
-    texto = (texto or "").strip()
-    localizacao = localizacao or geo.coordenadas_no_texto(texto)
-    if localizacao:
-        texto = ""
-    # Espanhol: o bot lê a tradução em português; o original fica no histórico e no relato do caso
-    original = texto
-    if texto and not conversa.idioma and parece_espanhol(texto):
-        conversa.idioma = "es"
-    if conversa.idioma == "es" and precisa_traduzir(texto):
-        texto = (await traduzir([texto], "pt"))[0]
-    conversa._original = original if original != texto else None
-    registrar(session, conversa, "cidadao",
-              "[áudio]" if is_audio else "[localização enviada]" if localizacao
-              else ("[📎 foto ou arquivo enviado]" if anexo else "")
-              + (" " if anexo and original else "") + ("🎤 " if de_audio else "") + anonimizar_texto(original),
-              traducao=anonimizar_texto(texto) if conversa._original else None)
-    conversa.nao_lidas = (conversa.nao_lidas or 0) + 1
+    chave = hash_telefone(telefone)
+    lock = _lock_telefone(chave)
+    async with lock:
+        conversa = await obter_conversa(session, telefone, canal)
+        texto = (texto or "").strip()
+        localizacao = localizacao or geo.coordenadas_no_texto(texto)
+        if localizacao:
+            texto = ""
+        # Espanhol: o bot lê a tradução em português; o original fica no histórico e no relato do caso
+        original = texto
+        if texto and not conversa.idioma and parece_espanhol(texto):
+            conversa.idioma = "es"
+        if conversa.idioma == "es" and precisa_traduzir(texto):
+            texto = (await traduzir([texto], "pt"))[0]
+        conversa._original = original if original != texto else None
+        registrar(session, conversa, "cidadao",
+                  "[áudio]" if is_audio else "[localização enviada]" if localizacao
+                  else ("[📎 foto ou arquivo enviado]" if anexo else "")
+                  + (" " if anexo and original else "") + ("🎤 " if de_audio else "") + anonimizar_texto(original),
+                  traducao=anonimizar_texto(texto) if conversa._original else None)
+        conversa.nao_lidas = (conversa.nao_lidas or 0) + 1
 
-    try:
-        if conversa.atendimento_humano:
-            return []  # o atendente responde pelo painel
-        if is_audio:
-            respostas = [catalogo.texto("audio", conversa.unidade_id)]
-        else:
-            expirada = conversa.atualizado_em is not None and \
-                conversa.atualizado_em.replace(tzinfo=agora().tzinfo) < agora() - timedelta(minutes=settings.CONVERSA_EXPIRA_MIN)
-            if (expirada or conversa.estado == "FINALIZADA") and conversa.estado not in ESPERA_LONGA:
-                # Quem já consentiu não precisa aceitar de novo a cada conversa
-                conversa.estado = "RETORNO" if conversa.consentiu_em else "NOVA"
-                conversa.tentativas, conversa.relato = 0, None
-                conversa.categoria_sugerida = conversa.categoria_escolhida = None
-                conversa.classificacao = None
-                if conversa.bairro:  # a coordenação pode ter mudado os bairros de cada CRAS
-                    unidade = await unidades.cras_de_referencia(session, conversa.bairro, _ponto(conversa))
-                    conversa.unidade_id = unidade.id if unidade else None
-            if localizacao and conversa.consentiu_em and conversa.estado != "AGUARDANDO_BAIRRO":
-                respostas = await _localizacao_avulsa(session, conversa, localizacao)
-            elif anexo and conversa.estado not in ESTADOS_DE_DOCUMENTOS:
-                # Por segurança, foto de documento só é guardada depois de a pessoa escolher mandá-las
-                respostas = [catalogo.texto("imagem_fora_de_hora", conversa.unidade_id)]
+        try:
+            if conversa.atendimento_humano:
+                return []  # o atendente responde pelo painel
+            if is_audio:
+                respostas = [catalogo.texto("audio", conversa.unidade_id)]
             else:
-                respostas = await _passo(session, conversa, telefone, texto, localizacao, anexo)
-        apagada = getattr(conversa, "_apagada", False)
-        # Guarda a resposta para "não entendi" / "manda em áudio" (a ajuda em si não substitui a resposta guardada)
-        if respostas and not apagada and not getattr(conversa, "_ajuda", False):
-            conversa.ultima_resposta = "\n\n".join(respostas)
-        if saida is not None and getattr(conversa, "_voz", None):
-            saida["audio"] = conversa._voz
-        if getattr(conversa, "_idioma_detectado", None) == "es" and not apagada:
-            conversa.idioma = "es"  # a IA viu espanhol num relato que escapou da detecção rápida
-        if de_audio and respostas and not apagada and not getattr(conversa, "_emergencia", False):
-            ouvido = original if len(original) <= 280 else original[:277] + "…"
-            respostas = [f"🎤 Ouvi seu áudio assim: “{ouvido}”"] + respostas
-        enviadas = await traduzir(respostas, "es") if conversa.idioma == "es" and not apagada else respostas
-        if not apagada:
-            for enviada, pt in zip(enviadas, respostas):
-                registrar(session, conversa, "bot", enviada, traducao=pt if enviada != pt else None)
-        return enviadas
-    finally:
-        if not getattr(conversa, "_apagada", False):
-            conversa.atualizado_em = agora()
-        await session.commit()
+                expirada = conversa.atualizado_em is not None and \
+                    conversa.atualizado_em.replace(tzinfo=agora().tzinfo) < agora() - timedelta(minutes=settings.CONVERSA_EXPIRA_MIN)
+                if (expirada or conversa.estado == "FINALIZADA") and conversa.estado not in ESPERA_LONGA:
+                    # Quem já consentiu não precisa aceitar de novo a cada conversa
+                    conversa.estado = "RETORNO" if conversa.consentiu_em else "NOVA"
+                    conversa.tentativas, conversa.relato = 0, None
+                    conversa.categoria_sugerida = conversa.categoria_escolhida = None
+                    conversa.classificacao = None
+                    if conversa.bairro:  # a coordenação pode ter mudado os bairros de cada CRAS
+                        unidade = await unidades.cras_de_referencia(session, conversa.bairro, _ponto(conversa))
+                        conversa.unidade_id = unidade.id if unidade else None
+                if localizacao and conversa.consentiu_em and conversa.estado != "AGUARDANDO_BAIRRO":
+                    respostas = await _localizacao_avulsa(session, conversa, localizacao)
+                elif anexo and conversa.estado not in ESTADOS_DE_DOCUMENTOS:
+                    # Por segurança, foto de documento só é guardada depois de a pessoa escolher mandá-las
+                    respostas = [catalogo.texto("imagem_fora_de_hora", conversa.unidade_id)]
+                else:
+                    respostas = await _passo(session, conversa, telefone, texto, localizacao, anexo)
+            apagada = getattr(conversa, "_apagada", False)
+            # Guarda a resposta para "não entendi" / "manda em áudio" (a ajuda em si não substitui a resposta guardada)
+            if respostas and not apagada and not getattr(conversa, "_ajuda", False):
+                conversa.ultima_resposta = "\n\n".join(respostas)
+            if saida is not None and getattr(conversa, "_voz", None):
+                saida["audio"] = conversa._voz
+            if getattr(conversa, "_idioma_detectado", None) == "es" and not apagada:
+                conversa.idioma = "es"  # a IA viu espanhol num relato que escapou da detecção rápida
+            if de_audio and respostas and not apagada and not getattr(conversa, "_emergencia", False):
+                ouvido = original if len(original) <= 280 else original[:277] + "…"
+                respostas = [f"🎤 Ouvi seu áudio assim: “{ouvido}”"] + respostas
+            enviadas = await traduzir(respostas, "es") if conversa.idioma == "es" and not apagada else respostas
+            if not apagada:
+                for enviada, pt in zip(enviadas, respostas):
+                    registrar(session, conversa, "bot", enviada, traducao=pt if enviada != pt else None)
+            return enviadas
+        finally:
+            if not getattr(conversa, "_apagada", False):
+                conversa.atualizado_em = agora()
+            try:
+                await session.commit()
+            except IntegrityError:
+                await session.rollback()
 
 
 async def _apagar_dados(session: AsyncSession, conversa: Conversa) -> bool:

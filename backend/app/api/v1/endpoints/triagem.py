@@ -284,7 +284,7 @@ async def revisar_documento(triagem_id: str, documento_id: str, payload: Revisao
         conversa = await session.get(Conversa, triagem.conversa_id) if triagem.conversa_id else None
         pedido_enviado = False
         if conversa is not None:
-            texto = catalogo.texto("documento_refazer", triagem.unidade_id).replace("{motivo}", doc.motivo)
+            texto = catalogo.texto("documento_refazer", triagem.unidade_id).replace("{motivo}", doc.motivo or "")
             enviado = (await traduzir([texto], "es"))[0] if conversa.idioma == "es" else texto
             if await enviar_pelo_canal(conversa, enviado):
                 session.add(Mensagem(conversa_id=conversa.telefone_hash, autor="bot", texto=enviado,
@@ -371,19 +371,21 @@ async def indicadores(dias: int = 30, usuario: Dict[str, Any] = Depends(usuario_
 async def relatorio_do_mes(mes: Optional[str] = None, usuario: Dict[str, Any] = Depends(usuario_logado),
                            session: AsyncSession = Depends(get_session)):
     """Relatório de um mês ("2026-09"; sem mês, o mês corrente) para ver na tela e imprimir/salvar em PDF."""
-    return await relatorio.montar(session, *_mes_ou_422(mes), escopo(usuario))
+    ano, mes_num = _mes_ou_422(mes)
+    return await relatorio.montar(session, ano, mes_num, escopo(usuario))
 
 
 @router.get("/relatorio.xlsx")
 async def relatorio_planilha(mes: Optional[str] = None, usuario: Dict[str, Any] = Depends(usuario_logado),
                              session: AsyncSession = Depends(get_session)):
     """O mesmo relatório como planilha, uma aba por assunto."""
-    dados = await relatorio.montar(session, *_mes_ou_422(mes), escopo(usuario))
+    ano, mes_num = _mes_ou_422(mes)
+    dados = await relatorio.montar(session, ano, mes_num, escopo(usuario))
     return Response(relatorio.planilha(dados), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     headers={"Content-Disposition": f'attachment; filename="{relatorio.nome_arquivo(dados)}"'})
 
 
-def _mes_ou_422(mes: Optional[str]) -> tuple:
+def _mes_ou_422(mes: Optional[str]) -> tuple[int, int]:
     try:
         return relatorio.mes_valido(mes)
     except ValueError:
