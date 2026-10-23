@@ -1,4 +1,4 @@
-﻿# Liga a Ponte Social inteira nesta máquina: Docker (Postgres, Redis, Evolution), túnel público,
+# Liga a Ponte Social inteira nesta máquina: Docker (Postgres, Redis, Evolution), túnel público,
 # backend e painel. Use pelo iniciar.bat na raiz do projeto.
 $ErrorActionPreference = 'Stop'
 $raiz = Split-Path -Parent $PSScriptRoot
@@ -86,7 +86,8 @@ Passo 'Backend e painel'
 # (o recarregamento automático do uvicorn não percebe mudanças no .env)
 & (Join-Path $PSScriptRoot 'parar_servidores.ps1')
 $python = Join-Path $raiz '.venv\Scripts\python.exe'
-if (-not (Test-Path $python)) { Falha "não achei o Python do projeto em $python" }
+if (-not (Test-Path $python)) { $python = Join-Path $raiz 'backend\.venv\Scripts\python.exe' }
+if (-not (Test-Path $python)) { Falha "não achei o Python do projeto em .venv nem em backend\.venv" }
 $env:PYTHONIOENCODING = 'utf-8'
 Start-Process $python -ArgumentList 'run_dev.py' -WorkingDirectory $raiz
 $limite = (Get-Date).AddSeconds(90)

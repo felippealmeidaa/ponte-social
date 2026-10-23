@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plano Mestre de Arquitetura · A Grande Plataforma No-Code & IA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090a0f;
+      --surface: #12151e;
+      --surface-elevated: #1a1f2c;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.16);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent: #ff5500;
+      --accent-glow: rgba(255, 85, 0, 0.2);
+      --accent-soft: rgba(255, 85, 0, 0.12);
+      --cyan: #00e5ff;
+      --cyan-soft: rgba(0, 229, 255, 0.12);
+      --emerald: #10b981;
+      --emerald-soft: rgba(16, 185, 129, 0.12);
+      --rose: #f43f5e;
+      --rose-soft: rgba(244, 63, 94, 0.12);
+      --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-elevated: #f1f5f9;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --text: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #64748b;
+      --accent: #ea580c;
+      --accent-glow: rgba(234, 88, 12, 0.15);
+      --accent-soft: #ffedd5;
+      --cyan: #0284c7;
+      --cyan-soft: #e0f2fe;
+      --emerald: #059669;
+      --emerald-soft: #d1fae5;
+      --rose: #e11d48;
+      --rose-soft: #ffe4e6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-main);
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+      overflow-x: hidden;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    /* Top Bar de Controle */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(12px);
+    }
+    .brand-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-badge {
+      background: var(--accent);
+      color: #ffffff;
+      font-family: var(--font-mono);
+      font-weight: 800;
+      font-size: 13px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.05em;
+    }
+    .brand-title {
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn {
+      background: var(--surface-elevated);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-family: var(--font-main);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn:hover {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+    .btn-primary:hover {
+      background: #e04b00;
+      color: #ffffff;
+    }
+
+    /* Container Principal */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px 100px;
+    }
+
+    /* Slide Hero */
+    .hero {
+      text-align: center;
+      padding: 50px 20px 70px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 50px;
+    }
+    .tag {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border: 1px solid var(--accent);
+      padding: 4px 12px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 18px;
+    }
+    .hero h1 {
+      font-size: clamp(32px, 5vw, 52px);
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 20px;
+      letter-spacing: -0.03em;
+    }
+    .hero p {
+      font-size: clamp(16px, 2vw, 20px);
+      color: var(--text-muted);
+      max-width: 800px;
+      margin: 0 auto 30px;
+    }
+
+    /* Grid de Pilares */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .card:hover {
+      border-color: var(--border-strong);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px -10px rgba(0,0,0,0.5);
+    }
+    .card-accent-top {
+      border-top: 3px solid var(--accent);
+    }
+    .card-cyan-top {
+      border-top: 3px solid var(--cyan);
+    }
+    .card-emerald-top {
+      border-top: 3px solid var(--emerald);
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .card-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+    }
+    .card-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .card-desc {
+      color: var(--text-muted);
+      font-size: 14.5px;
+      margin-bottom: 18px;
+    }
+
+    /* Analogia / Metáfora para facilitar */
+    .analogy-box {
+      background: var(--surface-elevated);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 10px 10px 0;
+      padding: 14px 16px;
+      margin-top: 14px;
+      font-size: 13.5px;
+    }
+    .analogy-title {
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Diagrama Visual Interativo */
+    .diagram-container {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 28px;
+      margin: 40px 0;
+    }
+    .diagram-title {
+      text-align: center;
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .diagram-subtitle {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 36px;
+    }
+
+    .flow-tree {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: center;
+    }
+    .flow-row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+    }
+    .flow-node {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      padding: 16px 20px;
+      border-radius: 12px;
+      min-width: 220px;
+      text-align: center;
+      position: relative;
+      transition: all 0.2s;
+    }
+    .flow-node:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .flow-node.core {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+      min-width: 280px;
+    }
+    .flow-node-title {
+      font-weight: 700;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+    .flow-node-sub {
+      font-size: 12px;
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+    }
+    .flow-arrow {
+      font-size: 22px;
+      color: var(--accent);
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Seções com Tabs */
+    .tab-bar {
+      display: flex;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+      margin-bottom: 24px;
+      overflow-x: auto;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: var(--font-main);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .tab-btn.active {
+      background: var(--accent);
+      color: #ffffff;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Checklist / Badges */
+    .badge-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .badge-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    .badge-list li strong {
+      color: var(--text);
+    }
+    .check-icon {
+      color: var(--emerald);
+      font-weight: 800;
+    }
+
+    /* Modo Impressão / PDF */
+    @media print {
+      .navbar, .btn { display: none !important; }
+      body { background: #ffffff !important; color: #000000 !important; }
+      .card, .diagram-container, .analogy-box, .flow-node {
+        border-color: #cccccc !important;
+        background: #fafafa !important;
+        color: #000000 !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+      }
+      .tab-content { display: block !important; margin-bottom: 30px; }
+      .hero { padding: 20px 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Topbar de Navegação & Exportação -->
+  <nav class="navbar">
+    <div class="brand-box">
+      <span class="logo-badge">ARQUITETURA V2.5</span>
+      <span class="brand-title">A Grande Plataforma No-Code & IA</span>
+    </div>
+    <div class="controls">
+      <button class="btn" onclick="toggleTheme()" title="Alternar Modo Claro / Escuro">🌓 Tema</button>
+      <button class="btn btn-primary" onclick="window.print()">📄 Exportar PDF / Imprimir</button>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <!-- HERO SECTION -->
+    <header class="hero">
+      <span class="tag">Visão Estratégica & Arquitetura</span>
+      <h1>Como a Nossa Plataforma Realmente Funciona</h1>
+      <p>
+        Um guia visual e intuitivo explicando a transformação do nosso sistema em um 
+        <strong>SaaS Universal No-Code de CRM + IA + MLOps</strong>, mantendo o <strong>CRAS & Assistência Social</strong> 
+        como o nosso caso de uso de ouro e prova de conceito definitiva.
+      </p>
+    </header>
+
+    <!-- O RESUMO EM 30 SEGUNDOS -->
+    <section class="card card-accent-top" style="margin-bottom: 40px;">
+      <div class="card-header">
+        <div class="card-icon" style="background: var(--accent-soft); color: var(--accent);">💡</div>
+        <h2 class="card-title">O Conceito Central (Para Entender de Primeira)</h2>
+      </div>
+      <p style="font-size: 16px; color: var(--text); line-height: 1.7; margin-bottom: 16px;">
+        Imagine que estamos construindo uma <strong>fábrica de carros sob medida</strong>. 
+        Essa fábrica consegue produzir qualquer tipo de carro pelo painel (carros de corrida, caminhões, ambulâncias), 
+        sem que ninguém precise soldar metal na mão. 
+        Mas, para estrear e provar que nossa fábrica é a melhor do mundo, <strong>vamos construir e entregar a ambulância mais perfeita e avançada da história (o CRAS/Social)</strong>.
+      </p>
+      <div class="analogy-box">
+        <div class="analogy-title">🎯 Em Termos Técnicos:</div>
+        Criamos uma plataforma universal de <strong>CRM + Construtor de Fluxos No-Code (estilo n8n) + Machine Learning Studio + IA RAG Avançada</strong> configurável 100% pelo Frontend. O módulo do <strong>CRAS</strong> é o nosso perfil oficial, pronto para uso e ultra-otimizado.
+      </div>
+    </section>
+
+    <!-- DIAGRAMA VISUAL GERAL -->
+    <section class="diagram-container">
+      <h2 class="diagram-title">Mapa de Camadas da Arquitetura</h2>
+      <p class="diagram-subtitle">O fluxo completo da mensagem do cidadão até o aprendizado contínuo da IA</p>
+
+      <div class="flow-tree">
+        <!-- Nível 1: Entrada -->
+        <div class="flow-row">
+          <div class="flow-node">
+            <div class="flow-node-title">📱 Canais de Entrada</div>
+            <div class="flow-node-sub">WhatsApp Oficial (Meta) / Evolution API / Z-API</div>
+          </div>
+        </div>
+
+        <div class="flow-arrow">⬇️</div>
+
+        <!-- Nível 2: Orquestrador No-Code -->
+        <div class="flow-row">
+          <div class="flow-node core">
+            <div class="flow-node-title">⚡ Orquestrador de Fluxos (No-Code tipo n8n)</div>
+            <div class="flow-node-sub">Canvas Interativo · Condições · Encaminhamentos · Nós</div>
+          </div>
+        </div>
+
+        <div class="flow-arrow">⬇️</div>
+
+        <!-- Nível 3: Motores de IA & MLOps -->
+        <div class="flow-row">
+          <div class="flow-node">
+            <div class="flow-node-title">🧠 Motor de RAG Inteligente</div>
+            <div class="flow-node-sub">Semantic Chunking · Query Rewriter · Reranking</div>
+          </div>
+          <div class="flow-node">
+            <div class="flow-node-title">📊 MLOps & Machine Learning</div>
+            <div class="flow-node-sub">Classificador Local (Random Forest / SVM)</div>
+          </div>
+          <div class="flow-node">
+            <div class="flow-node-title">🤖 Copiloto Onboarding</div>
+            <div class="flow-node-sub">Agente Guia para Usuários Leigos</div>
+          </div>
+        </div>
+
+        <div class="flow-arrow">⬇️</div>
+
+        <!-- Nível 4: Aplicação Vertical CRAS -->
+        <div class="flow-row">
+          <div class="flow-node" style="border-color: var(--emerald); background: var(--emerald-soft);">
+            <div class="flow-node-title" style="color: var(--emerald);">🏆 Perfil CRAS & Assistência Social</div>
+            <div class="flow-node-sub">Triagem de Vulnerabilidade · Detecção de Violência · Agendamentos</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EXPLICAÇÃO DETALHADA POR TABS -->
+    <section style="margin-top: 50px;">
+      <h2 style="font-size: 26px; font-weight: 800; margin-bottom: 20px;">Os 5 Pilares Tecnológicos Detalhados</h2>
+
+      <!-- Tab Bar -->
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="showTab(0)">1. Motor No-Code (n8n)</button>
+        <button class="tab-btn" onclick="showTab(1)">2. RAG de Última Geração</button>
+        <button class="tab-btn" onclick="showTab(2)">3. MLOps no Frontend</button>
+        <button class="tab-btn" onclick="showTab(3)">4. Copiloto Onboarding</button>
+        <button class="tab-btn" onclick="showTab(4)">5. O Foco no CRAS</button>
+        <button class="tab-btn" onclick="showTab(5)">6. Data & Knowledge Hub</button>
+      </div>
+
+      <!-- Tab 1: Motor No-Code -->
+      <div class="tab-content active" id="tab-0">
+        <div class="card card-accent-top">
+          <div class="card-header">
+            <div class="card-icon">🎛️</div>
+            <div>
+              <h3 class="card-title">Construtor Visual de Fluxos (Estilo n8n)</h3>
+              <p class="card-desc">Crie qualquer jornada de atendimento apenas arrastando blocos pelo navegador.</p>
+            </div>
+          </div>
+          <ul class="badge-list">
+            <li><span class="check-icon">✓</span> <div><strong>Zero Código Necessário:</strong> O usuário cria etapas, perguntas, mensagens automáticas e desvios diretamente no Canvas interativo.</div></li>
+            <li><span class="check-icon">✓</span> <div><strong>Nós Inteligentes:</strong> Blocos condicionais (Ex.: <em>"Se o usuário mencionar ameaça física ➡️ Desvia imediatamente para o Trilho de Proteção"</em>).</div></li>
+            <li><span class="check-icon">✓</span> <div><strong>Publicação Instantânea:</strong> Alterou no Canvas? A próxima mensagem enviada no WhatsApp já segue a nova rota na hora, sem reiniciar servidor.</div></li>
+          </ul>
+          <div class="analogy-box">
+            <div class="analogy-title">👶 Explicando de forma simples:</div>
+            É como brincar de Lego ou dominó. Você encaixa as pecinhas dizendo: <em>"Primeiro dá 'Oi', depois pergunta o bairro, depois descobre o problema e encaminha para a unidade certa"</em>.
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: RAG Inteligente -->
+      <div class="tab-content" id="tab-1">
+        <div class="card card-cyan-top">
+          <div class="card-header">
+            <div class="card-icon">📚</div>
+            <div>
+              <h3 class="card-title">RAG Inteligente (Base de Conhecimento Sem Perdas)</h3>
+              <p class="card-desc">Como a IA lê leis, decretos, tabelas e manuais sem alucinar e sem cortar frases.</p>
+            </div>
+          </div>
+          <div class="grid-3" style="margin-top: 20px;">
+            <div style="background: var(--surface-elevated); padding: 18px; border-radius: 12px; border: 1px solid var(--border);">
+              <h4 style="color: var(--cyan); font-weight: 700; margin-bottom: 8px;">1. Chunking com IA</h4>
+              <p style="font-size: 13.5px; color: var(--text-muted);">Em vez de cortar o texto a cada 500 letras (o que quebra frases e regras no meio), a própria IA entende parágrafos, tabelas e tópicos inteiros antes de fatiar.</p>
+            </div>
+            <div style="background: var(--surface-elevated); padding: 18px; border-radius: 12px; border: 1px solid var(--border);">
+              <h4 style="color: var(--cyan); font-weight: 700; margin-bottom: 8px;">2. Intent Query Rewriter</h4>
+              <p style="font-size: 13.5px; color: var(--text-muted);">Se o cidadão manda um áudio confuso: <em>"preciso de cumida pra minhas cria"</em>, o reescritor traduz para a busca: <em>"Requisitos para Cesta de Alimentos e Benefício Eventual de Vulnerabilidade"</em>.</p>
+            </div>
+            <div style="background: var(--surface-elevated); padding: 18px; border-radius: 12px; border: 1px solid var(--border);">
+              <h4 style="color: var(--cyan); font-weight: 700; margin-bottom: 8px;">3. Reranking Semântico</h4>
+              <p style="font-size: 13.5px; color: var(--text-muted);">Pega as 10 páginas encontradas e reordena com nota de 0 a 100, entregando para o bot apenas a informação exata e verificada.</p>
+            </div>
+          </div>
+          <div class="analogy-box">
+            <div class="analogy-title">👶 Explicando de forma simples:</div>
+            É como uma biblioteca mágica. Você não precisa ler 500 páginas de um livro de leis. Você joga o PDF lá dentro, e a IA vira um especialista naquele livro que responde exatamente onde ir e o que levar.
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: MLOps -->
+      <div class="tab-content" id="tab-2">
+        <div class="card card-accent-top">
+          <div class="card-header">
+            <div class="card-icon">🧪</div>
+            <div>
+              <h3 class="card-title">MLOps & Treinamento Visual de Modelos</h3>
+              <p class="card-desc">Machine Learning profissional configurável pelo navegador.</p>
+            </div>
+          </div>
+          <ul class="badge-list">
+            <li><span class="check-icon">✓</span> <div><strong>Modelos Locais Leves & Rápidos:</strong> Treinamento de classificadores de texto rápidos (TF-IDF + Random Forest / Naive Bayes) que rodam em 2 milissegundos sem gastar API paga.</div></li>
+            <li><span class="check-icon">✓</span> <div><strong>Benchmark Lado a Lado:</strong> O painel permite testar a mesma frase na LLM (Gemini/OpenAI) e no Modelo Local ao mesmo tempo para ver quem acerta mais.</div></li>
+            <li><span class="check-icon">✓</span> <div><strong>Aprendizado Contínuo com Casos Reais:</strong> Casos atendidos pelos assistentes viram automaticamente dados de retreinamento para a IA ficar cada vez mais afiada.</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Tab 4: Copiloto -->
+      <div class="tab-content" id="tab-3">
+        <div class="card card-emerald-top">
+          <div class="card-header">
+            <div class="card-icon">🤝</div>
+            <div>
+              <h3 class="card-title">Copiloto de Onboarding para Usuários Leigos</h3>
+              <p class="card-desc">Um assistente que cria fluxos e prompts conversando com o usuário.</p>
+            </div>
+          </div>
+          <p style="font-size: 15px; color: var(--text-muted); margin-bottom: 16px;">
+            Nem todo gestor ou atendente sabe configurar um fluxo de nós ou escrever prompts de sistema complexos. 
+            O <strong>Copiloto Integrado</strong> conversa em linguagem natural:
+          </p>
+          <div style="background: var(--surface-elevated); border: 1px dashed var(--border-strong); border-radius: 12px; padding: 18px; margin-bottom: 16px;">
+            <p style="font-style: italic; color: var(--accent); margin-bottom: 8px;"><strong>Usuário:</strong> "Quero criar um atendimento para o CRAS que primeiro pergunte se tem idoso na casa e depois veja se precisa de BPC."</p>
+            <p style="color: var(--emerald);"><strong>Copiloto:</strong> "Perfeito! Criei o nó de pergunta 'Pessoa Idosa', adicionei a regra condicional de desvio e já pluguei na base de dados do BPC. Deseja aplicar?"</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 5: Foco no CRAS -->
+      <div class="tab-content" id="tab-4">
+        <div class="card card-emerald-top">
+          <div class="card-header">
+            <div class="card-icon">🏛️</div>
+            <div>
+              <h3 class="card-title">A Estratégia de Foco: A Excelência no CRAS</h3>
+              <p class="card-desc">Por que não vamos nos perder tentando atender outros nichos agora.</p>
+            </div>
+          </div>
+          <div class="grid-2">
+            <div>
+              <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 10px; color: var(--emerald);">🎯 Por que a base é Universal?</h4>
+              <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6;">
+                Porque o código é limpo, extensível, modular e escalável. A infraestrutura suporta qualquer empresa, clínica ou órgão público no futuro através do mesmo painel.
+              </p>
+            </div>
+            <div>
+              <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 10px; color: var(--accent);">🔥 Por que o Foco 100% é no CRAS?</h4>
+              <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6;">
+                Porque para a banca avaliadora, para os pilotos municipais e para os testes de campo, ter <strong>um caso de uso real rodando com perfeição e salvando vidas</strong> tem 1.000x mais valor do que dez templates genéricos pela metade.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 6: Data & Knowledge Hub -->
+      <div class="tab-content" id="tab-5">
+        <div class="card card-cyan-top">
+          <div class="card-header">
+            <div class="card-icon">📂</div>
+            <div>
+              <h3 class="card-title">Data & Knowledge Hub (Central de Documentos & Datasets)</h3>
+              <p class="card-desc">Controle transparente de arquivos, chunks semânticos, vetorização e curadoria de dados de Machine Learning.</p>
+            </div>
+          </div>
+          <div class="grid-2" style="margin-top: 20px;">
+            <div style="background: var(--surface-elevated); padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+              <h4 style="color: var(--cyan); font-weight: 700; margin-bottom: 10px;">📄 Ingestão & Edição de Chunks</h4>
+              <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 10px;">
+                Upload de PDFs de leis e decretos com visualização lado a lado. Se uma regra municipal mudar, o administrador edita o texto do chunk diretamente na tela e o sistema re-vetoriza no mesmo segundo.
+              </p>
+            </div>
+            <div style="background: var(--surface-elevated); padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
+              <h4 style="color: var(--accent); font-weight: 700; margin-bottom: 10px;">🏷️ Curadoria de Dados de Treino (MLOps)</h4>
+              <p style="font-size: 14px; color: var(--text-muted); line-height: 1.6; margin-bottom: 10px;">
+                Gestor de frases rotuladas (Frase ➔ Intenção). Permite alimentar o modelo local com novas gírias e expressões regionais ou importar planilhas CSV com centenas de exemplos históricos.
+              </p>
+            </div>
+          </div>
+          <div class="analogy-box">
+            <div class="analogy-title">💡 Em Resumo:</div>
+            Nada de "caixa preta" ou scripts manuais de Python para mexer em dados. O usuário tem um estúdio visual completo para inspecionar, editar e reindexar qualquer conhecimento do sistema.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESUMO FINAL EM TABELA -->
+    <section style="margin-top: 50px;">
+      <h2 style="font-size: 24px; font-weight: 800; margin-bottom: 16px;">Comparativo: O que o Sistema É vs. O que Ele Não É</h2>
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+          <thead>
+            <tr style="background: var(--surface-elevated); border-bottom: 1px solid var(--border); text-align: left;">
+              <th style="padding: 14px 18px; font-size: 14px;">Dimensão</th>
+              <th style="padding: 14px 18px; font-size: 14px; color: var(--rose);">❌ O que NÃO somos</th>
+              <th style="padding: 14px 18px; font-size: 14px; color: var(--emerald);">✅ O que NÓS SOMOS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 14px 18px; font-weight: 600;">Escopo</td>
+              <td style="padding: 14px 18px; color: var(--text-dim);">Apenas um formulário rígido de triagem social.</td>
+              <td style="padding: 14px 18px; color: var(--text);">Um ecossistema SaaS No-Code completo de CRM, IA e automação.</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 14px 18px; font-weight: 600;">Customização</td>
+              <td style="padding: 14px 18px; color: var(--text-dim);">Precisa de programador no backend para mudar textos e rotas.</td>
+              <td style="padding: 14px 18px; color: var(--text);">Qualquer texto, regra, documento e fluxo é editado pelo Frontend.</td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <td style="padding: 14px 18px; font-weight: 600;">Inteligência</td>
+              <td style="padding: 14px 18px; color: var(--text-dim);">Chatbot simples de árvore fixa com palavras-chave.</td>
+              <td style="padding: 14px 18px; color: var(--text);">RAG semântico com chunking inteligente + Machine Learning híbrido.</td>
+            </tr>
+            <tr>
+              <td style="padding: 14px 18px; font-weight: 600;">Aplicação Piloto</td>
+              <td style="padding: 14px 18px; color: var(--text-dim);">Exemplos genéricos fictícios.</td>
+              <td style="padding: 14px 18px; color: var(--text);">Perfil oficial do CRAS Anápolis com fluxo de violência e agendamento real.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer style="margin-top: 60px; text-align: center; border-top: 1px solid var(--border); padding-top: 30px; color: var(--text-dim); font-size: 13px;">
+      Documento Estratégico de Arquitetura de Software · Plataforma de Gestão, IA & Automação No-Code
+    </footer>
+
+  </main>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+    }
+
+    function showTab(index) {
+      const buttons = document.querySelectorAll('.tab-btn');
+      const contents = document.querySelectorAll('.tab-content');
+      
+      buttons.forEach((b, i) => {
+        if (i === index) b.classList.add('active');
+        else b.classList.remove('active');
+      });
+
+      contents.forEach((c, i) => {
+        if (i === index) c.classList.add('active');
+        else c.classList.remove('active');
+      });
+    }
+  </script>
+</body>
+</html>
