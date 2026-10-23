@@ -14,8 +14,7 @@ Toda a documentação técnica, estratégica e visual do projeto está organizad
 
 | Documento | Localização | Descrição |
 | :--- | :--- | :--- |
-| ⭐ **Documento Mestre Unificado (Oficial)** | [`documentacao/Ponte_Social_Documento_Mestre.docx`](documentacao/Ponte_Social_Documento_Mestre.docx) · [`Ponte_Social_Documento_Mestre.pdf`](documentacao/Ponte_Social_Documento_Mestre.pdf) · [Versão .MD](documentacao/Ponte_Social_Documento_Mestre.md) | **Relatório completo unificado (Word ABNT e PDF de 39 páginas):** Visão de produto, ODS, Análise SWOT, 3 Personas, Requisitos (RF/RNF), Histórias de Usuário BDD, Metodologia Ágil, Product & Sprint Backlogs detalhados (Sprints 1 a 6), Arquitetura em camadas, Pipeline NLP/MLOps, Conformidade LGPD, Modelo de Negócio B2G e Roadmap detalhado. |
-| **Apresentação Interativa da Arquitetura** | [`docs/apresentacao_arquitetura.html`](docs/apresentacao_arquitetura.html) | Deck interativo completo demonstrando o motor de IA, plataforma No-Code, copiloto e fluxos do sistema. |
+| ⭐ **Documento Mestre Unificado (Oficial)** | [`documentacao/Ponte_Social_Documento_Mestre.pdf`](documentacao/Ponte_Social_Documento_Mestre.pdf) · [Versão .MD](documentacao/Ponte_Social_Documento_Mestre.md) | **Relatório completo unificado (PDF oficial de 39 páginas):** Visão de produto, ODS, Análise SWOT, 3 Personas, Requisitos (RF/RNF), Histórias de Usuário BDD, Metodologia Ágil, Product & Sprint Backlogs detalhados (Sprints 1 a 6), Arquitetura em camadas, Pipeline NLP/MLOps, Conformidade LGPD, Modelo de Negócio B2G e Roadmap detalhado. |
 
 ---
 
