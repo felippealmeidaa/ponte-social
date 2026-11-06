@@ -48,7 +48,7 @@ if ($LASTEXITCODE -ne 0) { Falha 'docker compose falhou (veja a mensagem acima).
 
 # 2. Túnel público (links que o celular abre, como o .ics da agenda)
 Passo 'Túnel público'
-function Gravar-PublicoUrl($valor) {
+function Set-PublicoUrl($valor) {
     # Troca a linha PUBLICO_URL do .env (UTF-8 sem BOM, como o resto do arquivo)
     $arquivosEnv = @($envArq, (Join-Path $raiz '.env')) | Where-Object { Test-Path $_ } | Select-Object -Unique
     foreach ($arq in $arquivosEnv) {
@@ -82,11 +82,11 @@ if (-not $cloudflared) {
     if (-not $url) { Write-Host 'O túnel não deu endereço em 60 s: seguindo sem ele.' -ForegroundColor Yellow }
 }
 if ($url) {
-    Gravar-PublicoUrl "$url/api/v1"
+    Set-PublicoUrl "$url/api/v1"
     Write-Host "Endereço público: $url"
 } else {
     # Sem túnel, apaga o endereço antigo: o bot deixa de mandar o link do iPhone em vez de mandar um link morto
-    Gravar-PublicoUrl ''
+    Set-PublicoUrl ''
 }
 
 # 3. Backend e painel (janela própria: fechar a janela desliga os dois)
